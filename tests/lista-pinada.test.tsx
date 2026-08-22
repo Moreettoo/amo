@@ -264,3 +264,78 @@ describe('ListaPinada — aritmética do progresso de rolagem (geometria simulad
     }
   })
 })
+
+describe('ListaPinada — Home e End, partindo do meio (não da borda que a tecla já alcança)', () => {
+  it('Home seleciona a primeira aba a partir de uma aba do meio, não já selecionada', async () => {
+    const u = userEvent.setup()
+    render(<ListaPinada />)
+    // Tira a seleção do índice 0 por clique — um caminho já coberto pelas
+    // asserções existentes — antes de testar o Home. Se a aba 0 continuasse
+    // selecionada por já ser o estado inicial, a asserção do Home passaria
+    // mesmo com o handler quebrado: exatamente a armadilha do teste vazio.
+    await u.click(screen.getAllByRole('tab')[3])
+    let abas = screen.getAllByRole('tab')
+    expect(abas[3]).toHaveAttribute('aria-selected', 'true')
+
+    await u.keyboard('{Home}')
+    abas = screen.getAllByRole('tab')
+    expect(abas[0]).toHaveAttribute('aria-selected', 'true')
+  })
+
+  it('End seleciona a última aba a partir de uma aba do meio, não já selecionada', async () => {
+    const u = userEvent.setup()
+    render(<ListaPinada />)
+    await u.click(screen.getAllByRole('tab')[3])
+    let abas = screen.getAllByRole('tab')
+    expect(abas[3]).toHaveAttribute('aria-selected', 'true')
+
+    await u.keyboard('{End}')
+    abas = screen.getAllByRole('tab')
+    expect(abas[SABORES.length - 1]).toHaveAttribute('aria-selected', 'true')
+  })
+})
+
+describe('ListaPinada — roving tabindex depois de interação, e ordem real de Tab', () => {
+  it('depois de um clique, a aba recém-selecionada fica com tabIndex 0 e todas as outras com -1', async () => {
+    const u = userEvent.setup()
+    render(<ListaPinada />)
+    await u.click(screen.getAllByRole('tab')[3])
+    const abas = screen.getAllByRole('tab')
+    abas.forEach((aba, i) => {
+      expect(aba).toHaveAttribute('tabindex', i === 3 ? '0' : '-1')
+    })
+  })
+
+  it('depois de uma seta, a aba recém-selecionada fica com tabIndex 0 e todas as outras com -1', async () => {
+    const u = userEvent.setup()
+    render(<ListaPinada />)
+    const abas = screen.getAllByRole('tab')
+    abas[0].focus()
+    await u.keyboard('{ArrowDown}')
+    const abasDepois = screen.getAllByRole('tab')
+    abasDepois.forEach((aba, i) => {
+      expect(aba).toHaveAttribute('tabindex', i === 1 ? '0' : '-1')
+    })
+  })
+
+  it('Tab entra na lista uma única vez: da sentinela de antes vai pra aba ativa, e de lá direto pra sentinela de depois', async () => {
+    const u = userEvent.setup()
+    render(
+      <>
+        <button type="button">sentinela antes</button>
+        <ListaPinada />
+        <button type="button">sentinela depois</button>
+      </>,
+    )
+    const sentinelaAntes = screen.getByRole('button', { name: 'sentinela antes' })
+    const sentinelaDepois = screen.getByRole('button', { name: 'sentinela depois' })
+    const abas = screen.getAllByRole('tab')
+
+    sentinelaAntes.focus()
+    await u.tab()
+    expect(document.activeElement).toBe(abas[0])
+
+    await u.tab()
+    expect(document.activeElement).toBe(sentinelaDepois)
+  })
+})
