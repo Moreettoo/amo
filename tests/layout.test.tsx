@@ -11,7 +11,9 @@ describe('AnnouncementBar', () => {
     const texto = screen.getByText(/zero açúcar/i)
     expect(texto).toBeInTheDocument()
     expect(texto.textContent).toMatch(/cozido a vapor/i)
-    expect(texto.textContent).toMatch(/pote de vidro reutilizável/i)
+    // The spec mandates a non-breaking space (U+00A0) in "Pote de&nbsp;vidro"
+    // to prevent wrapping on narrow viewports. Accept both space characters.
+    expect(texto.textContent).toMatch(/pote de[\s ]vidro reutilizável/i)
   })
 
   it('não tem botão de fechar — não há o que fechar', () => {
