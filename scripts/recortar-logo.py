@@ -36,6 +36,20 @@ VAL_MIN = 0.72
 # bem acima de SAT_MIN) e nunca passa por este calculo.
 RAMPA = 0.06
 
+# Threshold de alpha (0-255) para o bbox de conteudo real em limites_visiveis.
+# 128 = pelo menos meio-opaco para contar como "conteudo". Validado no arquivo
+# de origem: na margem fora da caixa de conteudo (a regiao que um corte correto
+# deveria descartar), o alpha do ruido residual de JPEG nunca passa de 127 —
+# e isso em so 2 pixels de ~1.1M, espalhados em blocos isolados, nao uma
+# silhueta continua. O conteudo real comeca com um salto abrupto logo depois:
+# varrer o threshold de 90 a 215 desloca a caixa encontrada no maximo 2-3px
+# por lado. Ha folga grande entre o teto do ruido e a borda real do desenho,
+# entao 128 fica bem no meio dessa folga.
+MINIMO_ALPHA = 128
+# Respiro extra em px por lado, pos-recorte, para a arte nao ficar colada na
+# propria caixa delimitadora (um SVG de verdade carregaria um pouco disso).
+MARGEM = 16
+
 
 def recortar(img: Image.Image) -> Image.Image:
     rgb = np.asarray(img.convert("RGB"), dtype=np.float32) / 255.0
@@ -57,11 +71,38 @@ def recortar(img: Image.Image) -> Image.Image:
     return Image.fromarray(saida, mode="RGBA")
 
 
+def limites_visiveis(img: Image.Image, minimo: int = MINIMO_ALPHA) -> tuple | None:
+    """Bbox do conteudo real, ignorando ruido de alpha quase-zero.
+
+    getbbox() no alpha cru trata qualquer pixel com alpha > 0 como conteudo, e o
+    JPEG deixa sobreviventes espalhados ate as bordas — o que devolve a tela
+    inteira. Binarizar o alpha antes descarta esse ruido.
+    """
+    alpha = img.getchannel("A")
+    mascara = alpha.point(lambda a: 255 if a >= minimo else 0)
+    return mascara.getbbox()
+
+
 def recortar_caixa(img: Image.Image, box: tuple) -> Image.Image:
-    """Corta e apara a moldura transparente que sobrar."""
+    """Corta e apara a moldura transparente que sobrar.
+
+    Usa limites_visiveis (alpha binarizado) em vez do getbbox() cru, senao o
+    ruido de JPEG espalhado ate a borda faz o bbox devolver a tela inteira.
+    Depois de achar a caixa de conteudo real, devolve MARGEM px por lado (sem
+    passar dos limites do corte) para a arte nao ficar colada na propria
+    moldura.
+    """
     corte = img.crop(box)
-    limites = corte.getbbox()
-    return corte.crop(limites) if limites else corte
+    limites = limites_visiveis(corte)
+    if limites is None:
+        return corte
+    x0, y0, x1, y1 = limites
+    L, A = corte.size
+    x0 = max(0, x0 - MARGEM)
+    y0 = max(0, y0 - MARGEM)
+    x1 = min(L, x1 + MARGEM)
+    y1 = min(A, y1 + MARGEM)
+    return corte.crop((x0, y0, x1, y1))
 
 
 def main() -> None:
