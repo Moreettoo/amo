@@ -70,4 +70,44 @@ describe('Sabores', () => {
     expect(painel).toHaveClass('md:col-span-2')
     expect(painel).toHaveClass('lg:col-span-1')
   })
+
+  it('a grade tem as colunas certas em cada breakpoint', () => {
+    const { container } = render(<Sabores />)
+    const grade = container.querySelector('[data-grade]')
+    expect(grade).toBeTruthy()
+    // A grade base e sm tem 1 e 2 colunas; md tem 3, lg tem 4.
+    // O painel estica em md para fechar a linha: sem isso, 7+1 deixa buraco.
+    // Ambos os lados desse invariante (grid-cols-* e painel's col-span-*) devem estar sincronizados.
+    expect(grade).toHaveClass('grid-cols-1')
+    expect(grade).toHaveClass('sm:grid-cols-2')
+    expect(grade).toHaveClass('md:grid-cols-3')
+    expect(grade).toHaveClass('lg:grid-cols-4')
+  })
+
+  it('tem hierarquia de headings correta', () => {
+    render(<Sabores />)
+    // A seção tem um h2 como seu próprio título
+    const sectionHeading = screen.getByRole('heading', { level: 2 })
+    expect(sectionHeading).toBeInTheDocument()
+    expect(sectionHeading.textContent).toBe('Cada pote tem um nome')
+
+    // Cada card tem um h3 para o nome do sabor
+    const cardHeadings = screen.getAllByRole('heading', { level: 3 })
+    expect(cardHeadings).toHaveLength(7)
+
+    // A seção não deve introduzir um h1 (o h1 único é do Hero)
+    const { container } = render(<Sabores />)
+    expect(container.querySelector('h1')).toBeNull()
+  })
+
+  it('assert as cópias hardcoded da seção', () => {
+    const { container } = render(<Sabores />)
+    // Título principal da seção
+    expect(screen.getByText('Cada pote tem um nome')).toBeInTheDocument()
+    // Subtítulo com acento
+    expect(screen.getByText('Escolha pelo sabor, ou pelo que você está sentindo.')).toBeInTheDocument()
+    // Texto do painel de assinatura
+    const painel = container.querySelector('[data-painel]')
+    expect(painel?.textContent).toContain('Um abraço em forma de sobremesa')
+  })
 })

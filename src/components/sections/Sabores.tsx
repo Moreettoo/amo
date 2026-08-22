@@ -26,7 +26,7 @@ export function Sabores() {
         </Reveal>
 
         <Reveal delay={0.08}>
-          <div className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+          <div data-grade className="mt-14 grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {SABORES.map((s) => (
               <SaborCard key={s.slug} sabor={s} />
             ))}
