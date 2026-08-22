@@ -7,6 +7,9 @@ import { AMarca } from '@/components/sections/AMarca'
 import { Sabores } from '@/components/sections/Sabores'
 import { Ritual } from '@/components/sections/Ritual'
 import { ListaPinada } from '@/components/sections/ListaPinada'
+import { Bento } from '@/components/sections/Bento'
+import { FaixaAssinatura } from '@/components/sections/FaixaAssinatura'
+import { CtaFinal } from '@/components/sections/CtaFinal'
 
 export default function Home() {
   return (
@@ -20,6 +23,9 @@ export default function Home() {
         <Sabores />
         <Ritual />
         <ListaPinada />
+        <Bento />
+        <FaixaAssinatura />
+        <CtaFinal />
       </main>
       <Footer />
     </>
