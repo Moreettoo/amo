@@ -26,6 +26,11 @@ describe('Selos', () => {
       expect(svg).toHaveAttribute('aria-hidden', 'true')
     }
   })
+
+  it('não introduz <h1> — o único da página é o do Hero', () => {
+    render(<Selos />)
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
+  })
 })
 
 describe('AMarca', () => {
@@ -45,14 +50,30 @@ describe('AMarca', () => {
   it('afirma só o que o rótulo afirma', () => {
     render(<AMarca />)
     const texto = document.body.textContent ?? ''
-    expect(texto).toMatch(/eritritol e\s*stevia/i)
+    // U+00A0 é exigido pelo rótulo — uma quebra de linha nesse ponto arruína
+    // a leitura. A asserção é sobre o codepoint exato (não um \s* frouxo,
+    // que casa com espaço normal, NBSP ou nada) porque esse caractere já foi
+    // derrubado em silêncio antes neste projeto.
+    expect(texto).toContain('eritritol e\u00A0stevia')
     expect(texto).toMatch(/cozido a vapor/i)
-    // sem claim médico ou nutricional que o rótulo não faz
-    expect(texto).not.toMatch(/emagrec|cura|diabet|light|fit\b/i)
+    // Guarda jurídica, não capricho de copywriter: AMO é marca real de
+    // alimento, e um claim médico ou nutricional que o rótulo não sustenta é
+    // exposição legal. Lista agrupada por categoria de claim — emagrecimento,
+    // calorias, ação fisiológica, halo nutricional, endosso profissional,
+    // glicemia/diabetes. Se este teste disparar, a resposta é mudar o texto,
+    // nunca alargar a regex para o texto passar.
+    expect(texto).not.toMatch(
+      /emagrec|perde\s+peso|queima\s+gordura|hipocal[óo]ric|zero\s+caloria|\bcura\b|previne|\btrata\b|combate|colesterol|imunidade|antioxidante|glicem|glic[êe]mic|insulin|diabet|detox|nutritiv|nutricionista|\bfit\b|\blight\b/i,
+    )
   })
 
   it('a foto tem alt descritivo', () => {
     render(<AMarca />)
     expect(screen.getByRole('img')).toHaveAttribute('alt', expect.stringMatching(/pote/i))
+  })
+
+  it('não introduz <h1> — o único da página é o do Hero', () => {
+    render(<AMarca />)
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
   })
 })

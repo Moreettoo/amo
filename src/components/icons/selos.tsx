@@ -58,7 +58,7 @@ const Adocante = () => (
   </svg>
 )
 
-/** duas mãos: feito à mão */
+/** uma mão, três dedos de altura graduada sobre a palma: feito à mão */
 const Artesanal = () => (
   <svg {...base}>
     <path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12" />
