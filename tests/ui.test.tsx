@@ -1,6 +1,7 @@
 // tests/ui.test.tsx
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { hasReducedMotionListener, prefersReducedMotion } from 'motion/react'
 import { Reveal } from '@/components/ui/Reveal'
 import { Estrato } from '@/components/ui/Estrato'
 import { Pill } from '@/components/ui/Pill'
@@ -10,6 +11,60 @@ describe('Reveal', () => {
   it('renderiza os filhos', () => {
     render(<Reveal><p>oi</p></Reveal>)
     expect(screen.getByText('oi')).toBeInTheDocument()
+  })
+
+  it('sob prefers-reduced-motion, renderiza uma div sem nenhum marcador de animação', () => {
+    // useReducedMotion() (motion@13.1.1) só lê window.matchMedia uma vez por
+    // arquivo de teste: initPrefersReducedMotion() roda apenas enquanto
+    // hasReducedMotionListener.current for falso, e o resultado fica
+    // cacheado module-level em prefersReducedMotion.current. O teste anterior
+    // ('renderiza os filhos') já disparou essa inicialização usando o stub
+    // global de tests/setup.ts (matches: false), então trocar
+    // window.matchMedia aqui sozinho não teria efeito nenhum — é preciso
+    // zerar hasReducedMotionListener.current para forçar uma nova leitura.
+    // A query real consultada por dentro é "(prefers-reduced-motion)", em
+    // contexto booleano — não "(prefers-reduced-motion: reduce)".
+    const originalMatchMedia = window.matchMedia
+    const originalHasListener = hasReducedMotionListener.current
+    const originalPrefersReduced = prefersReducedMotion.current
+
+    try {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: (query: string) => ({
+          matches: query.includes('prefers-reduced-motion'),
+          media: query,
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          dispatchEvent: () => false,
+        }),
+      })
+      hasReducedMotionListener.current = false
+
+      const { container } = render(
+        <Reveal className="marca-teste">
+          <p>conteudo</p>
+        </Reveal>,
+      )
+
+      const raiz = container.firstElementChild
+      expect(raiz?.tagName).toBe('DIV')
+      expect(raiz).toHaveClass('marca-teste')
+      expect(raiz?.hasAttribute('style')).toBe(false)
+      const marcadorFramer = raiz
+        ?.getAttributeNames()
+        .some((nome) => nome.startsWith('data-framer'))
+      expect(marcadorFramer).toBe(false)
+      expect(screen.getByText('conteudo')).toBeInTheDocument()
+    } finally {
+      Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: originalMatchMedia,
+      })
+      hasReducedMotionListener.current = originalHasListener
+      prefersReducedMotion.current = originalPrefersReduced
+    }
   })
 })
 
