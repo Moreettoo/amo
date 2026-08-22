@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { existsSync, statSync } from 'node:fs'
+import { existsSync, statSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import imageSize from 'image-size'
 import { SABORES } from '@/data/sabores'
 import { SELOS } from '@/data/selos'
 import { RITUAL } from '@/data/ritual'
@@ -52,6 +53,22 @@ describe('SABORES', () => {
       expect(s.largura).toBeGreaterThan(0)
       expect(s.altura).toBeGreaterThan(0)
       expect(s.largura / s.altura).toBeLessThan(1)
+    }
+  })
+
+  it('não aponta dois sabores para a mesma foto', () => {
+    const imagens = SABORES.map((s) => s.imagem)
+    expect(new Set(imagens).size).toBe(SABORES.length)
+  })
+
+  it('declara a dimensão real de cada foto, não uma aproximação', () => {
+    for (const s of SABORES) {
+      const dimensions = imageSize(readFileSync(publico(s.imagem)))
+      expect({ slug: s.slug, largura: dimensions.width, altura: dimensions.height }).toEqual({
+        slug: s.slug,
+        largura: s.largura,
+        altura: s.altura,
+      })
     }
   })
 })
