@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const ITENS = [
   { href: '#sabores', rotulo: 'Sabores' },
@@ -13,6 +13,7 @@ const ITENS = [
 export function Nav() {
   const [rolou, setRolou] = useState(false)
   const [aberto, setAberto] = useState(false)
+  const botaoRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     const aoRolar = () => setRolou(window.scrollY > 40)
@@ -24,7 +25,10 @@ export function Nav() {
   useEffect(() => {
     if (!aberto) return
     const aoTeclar = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setAberto(false)
+      if (e.key === 'Escape') {
+        setAberto(false)
+        botaoRef.current?.focus()
+      }
     }
     window.addEventListener('keydown', aoTeclar)
     return () => window.removeEventListener('keydown', aoTeclar)
@@ -37,7 +41,7 @@ export function Nav() {
         className={
           'mx-auto flex h-[88px] max-w-[1280px] items-center justify-between ' +
           'rounded-[20px] px-5 md:px-8 ' +
-          'transition-[background-color,box-shadow] duration-[240ms] ' +
+          'transition-[background-color] duration-[240ms] ' +
           (rolou
             ? 'bg-sage/95 shadow-[0_8px_32px_-8px_rgb(46_36_31_/_0.12)] backdrop-blur-md'
             : 'bg-transparent')
@@ -47,7 +51,7 @@ export function Nav() {
           <Image
             src="/marca/logo-amo.png"
             alt="AMO Sabores Saudáveis"
-            width={132}
+            width={149}
             height={44}
             priority
             className="h-9 w-auto md:h-11"
@@ -68,6 +72,7 @@ export function Nav() {
         </ul>
 
         <button
+          ref={botaoRef}
           type="button"
           aria-label={aberto ? 'Fechar menu' : 'Abrir menu'}
           aria-expanded={aberto}
@@ -91,7 +96,10 @@ export function Nav() {
             <li key={i.href}>
               <Link
                 href={i.href}
-                onClick={() => setAberto(false)}
+                onClick={() => {
+                  setAberto(false)
+                  botaoRef.current?.focus()
+                }}
                 className="font-sans text-base text-ink"
               >
                 {i.rotulo}

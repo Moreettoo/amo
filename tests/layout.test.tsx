@@ -1,6 +1,7 @@
 // tests/layout.test.tsx
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { AnnouncementBar } from '@/components/layout/AnnouncementBar'
 import { Nav } from '@/components/layout/Nav'
 import { Footer } from '@/components/layout/Footer'
@@ -59,6 +60,61 @@ describe('Nav', () => {
   it('a imagem do logo tem alt com o nome da marca', () => {
     render(<Nav />)
     expect(screen.getByAltText(/amo/i)).toBeInTheDocument()
+  })
+
+  it('a nav nunca redimensiona ao rolar — só o fundo muda', () => {
+    render(<Nav />)
+    const nav = screen.getByRole('navigation')
+    expect(nav.className).toContain('h-[88px]')
+    expect(nav.className).toContain('bg-transparent')
+
+    Object.defineProperty(window, 'scrollY', { value: 80, configurable: true })
+    fireEvent.scroll(window)
+
+    // A altura não pode migrar para o ramo condicional: só bg-*/shadow-*/backdrop-blur-* mudam.
+    expect(nav.className).toContain('h-[88px]')
+    expect(nav.className).not.toContain('bg-transparent')
+    expect(nav.className).toContain('bg-sage/95')
+
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
+  })
+
+  it('Esc fecha o menu mobile e devolve o foco ao botão de alternância', async () => {
+    const user = userEvent.setup()
+    render(<Nav />)
+    const botao = screen.getByRole('button', { name: /abrir menu/i })
+    const painel = document.getElementById('menu-mobile')!
+
+    await user.click(botao)
+    expect(botao).toHaveAttribute('aria-expanded', 'true')
+    expect(painel).not.toHaveAttribute('hidden')
+
+    // Cenário real do bug: o foco de teclado avança para dentro do painel aberto
+    // (não fica no botão) antes do Esc ser pressionado.
+    await user.tab()
+    const linkFocado = within(painel).getAllByRole('link')[0]
+    expect(document.activeElement).toBe(linkFocado)
+
+    await user.keyboard('{Escape}')
+
+    expect(botao).toHaveAttribute('aria-expanded', 'false')
+    expect(painel).toHaveAttribute('hidden')
+    expect(document.activeElement).toBe(botao)
+  })
+
+  it('clicar num link do menu mobile fecha o menu e devolve o foco ao botão', async () => {
+    const user = userEvent.setup()
+    render(<Nav />)
+    const botao = screen.getByRole('button', { name: /abrir menu/i })
+    const painel = document.getElementById('menu-mobile')!
+
+    await user.click(botao)
+    const link = within(painel).getAllByRole('link')[0]
+    await user.click(link)
+
+    expect(botao).toHaveAttribute('aria-expanded', 'false')
+    expect(painel).toHaveAttribute('hidden')
+    expect(document.activeElement).toBe(botao)
   })
 })
 

@@ -16,7 +16,7 @@ export function Footer() {
           src="/marca/logo-amo-lockup.png"
           alt="AMO Sabores Saudáveis — para quem ama comer bem"
           width={260}
-          height={170}
+          height={150}
           className="h-auto w-[200px] md:w-[240px]"
         />
 
