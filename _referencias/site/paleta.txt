@@ -1,0 +1,7 @@
+PALETA (uso ponderado — Cream e Sage são dominantes, Rosewood/Blush só aparecem como accent pontual, nunca como cor majoritária):
+- Cream #FAF2E9 — fundo base, dominante
+- Sage #C3CDB4 — seções, hero, dominante
+- Sand #DCC9A8 — suporte neutro
+- Ink #2E241F — texto e elementos escuros
+- Rosewood #B9707A — accent, CTA, hover
+- Blush #D9ACA6 — accent pontual (1 a cada 4 elementos no máximo)
