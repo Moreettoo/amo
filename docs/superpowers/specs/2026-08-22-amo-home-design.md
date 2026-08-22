@@ -59,8 +59,8 @@ Tudo abaixo foi lido dos rótulos e do logo. Nada inventado.
 
 1. Abra com amor
 2. Pegue sua colher
-3. Saboreie sem culpa
-4. Guarde seu pote de vidro
+3. A saboreie sem culpa
+4. Cuide do pote de vidro
 
 **Logo:** capital "A" serifada de alto contraste (didone) + "m" em script
 copperplate + pote de vidro com coração. Cobre metálico. Abaixo, filete e
@@ -463,8 +463,8 @@ H2: **"Como aproveitar seu AMO"** — texto literal do rótulo
 
 Os 4 passos, com numeral fantasma gigante em `sand` atrás de cada um:
 
-`01` Abra com amor · `02` Pegue sua colher · `03` Saboreie sem culpa ·
-`04` Guarde seu pote de vidro
+`01` Abra com amor · `02` Pegue sua colher · `03` A saboreie sem culpa ·
+`04` Cuide do pote de vidro
 
 **A numeração se justifica:** é sequência de verdade, numerada no próprio
 rótulo. Não é ornamento — a ordem carrega informação (você não guarda o pote

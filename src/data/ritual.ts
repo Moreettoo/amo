@@ -6,6 +6,6 @@ export type PassoRitual = {
 export const RITUAL: readonly PassoRitual[] = [
   { ordem: 1, titulo: 'Abra com amor' },
   { ordem: 2, titulo: 'Pegue sua colher' },
-  { ordem: 3, titulo: 'Saboreie sem culpa' },
-  { ordem: 4, titulo: 'Guarde seu pote de vidro' },
+  { ordem: 3, titulo: 'A saboreie sem culpa' },
+  { ordem: 4, titulo: 'Cuide do pote de vidro' },
 ] as const

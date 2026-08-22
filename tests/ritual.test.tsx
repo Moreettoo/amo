@@ -25,8 +25,8 @@ describe('Ritual', () => {
     )
     expect(itens[0]).toContain('Abra com amor')
     expect(itens[1]).toContain('Pegue sua colher')
-    expect(itens[2]).toContain('Saboreie sem culpa')
-    expect(itens[3]).toContain('Guarde seu pote de vidro')
+    expect(itens[2]).toContain('A saboreie sem culpa')
+    expect(itens[3]).toContain('Cuide do pote de vidro')
   })
 
   it('esconde o numeral decorativo do leitor de tela — o <ol> já numera', () => {
