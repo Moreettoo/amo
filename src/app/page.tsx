@@ -5,6 +5,7 @@ import { Hero } from '@/components/sections/Hero'
 import { Selos } from '@/components/sections/Selos'
 import { AMarca } from '@/components/sections/AMarca'
 import { Sabores } from '@/components/sections/Sabores'
+import { Ritual } from '@/components/sections/Ritual'
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
         <Selos />
         <AMarca />
         <Sabores />
+        <Ritual />
       </main>
       <Footer />
     </>
