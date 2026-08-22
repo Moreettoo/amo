@@ -72,6 +72,14 @@ export function Hero() {
                     {l.texto}
                   </motion.span>
                 </span>
+                {/* Espaço real como irmão de DOM entre as linhas — é o que dá ao
+                    h1 o nome acessível "Um abraço em forma de sobremesa" em vez
+                    de palavras coladas. Fica invisível porque é um nó de texto
+                    só-espaço filho direto de um container flex/grid (o h1 é
+                    `flex flex-col`), e essa spec descarta esse nó. Se uma
+                    mudança futura tirar o `flex` do h1 e depender só do
+                    `block` de cada span, este espaço deixa de ser descartado
+                    e vira um caractere visível. */}
                 {i < LINHAS.length - 1 && ' '}
               </Fragment>
             ))}

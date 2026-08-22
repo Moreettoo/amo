@@ -53,7 +53,8 @@ export function Nav() {
             alt="AMO Sabores Saudáveis"
             width={149}
             height={44}
-            priority
+            loading="eager"
+            fetchPriority="low"
             className="h-9 w-auto md:h-11"
           />
         </Link>
