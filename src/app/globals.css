@@ -16,6 +16,14 @@
   --ease-amo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Fora de @layer base de propósito: no Tailwind v4, @keyframes dentro de uma
+   cascade layer perde para a ordem de precedência das layers e a animação
+   não dispara. Nome global, então não repetir "fadeIn" em outro lugar. */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 @layer base {
   html {
     scroll-behavior: smooth;

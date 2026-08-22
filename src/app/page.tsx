@@ -6,6 +6,7 @@ import { Selos } from '@/components/sections/Selos'
 import { AMarca } from '@/components/sections/AMarca'
 import { Sabores } from '@/components/sections/Sabores'
 import { Ritual } from '@/components/sections/Ritual'
+import { ListaPinada } from '@/components/sections/ListaPinada'
 
 export default function Home() {
   return (
@@ -18,6 +19,7 @@ export default function Home() {
         <AMarca />
         <Sabores />
         <Ritual />
+        <ListaPinada />
       </main>
       <Footer />
     </>
