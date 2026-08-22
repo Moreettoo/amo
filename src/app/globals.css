@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #FAF2E9;
+  --color-sage: #C3CDB4;
+  --color-sand: #DCC9A8;
+  --color-ink: #2E241F;
+  --color-rosewood: #B9707A;
+  --color-rosewood-forte: #9B5E66;
+  --color-blush: #D9ACA6;
+
+  --font-display: var(--fonte-bodoni), Georgia, "Times New Roman", serif;
+  --font-script: var(--fonte-parisienne), "Brush Script MT", cursive;
+  --font-sans: var(--fonte-jost), system-ui, -apple-system, sans-serif;
+
+  --ease-amo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* o deslocamento de âncora vive nos alvos, como scroll-mt-*, não aqui —
+       scroll-padding no container soma com scroll-margin no alvo */
+  }
+
+  body {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-tap-highlight-color: color-mix(in srgb, var(--color-rosewood) 24%, transparent);
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-rosewood-forte);
+    outline-offset: 2px;
+  }
+
+  button, a, summary, [role="tab"] {
+    touch-action: manipulation;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
