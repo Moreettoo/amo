@@ -43,6 +43,27 @@ export default function RootLayout({
       className={`${bodoni.variable} ${parisienne.variable} ${jost.variable}`}
     >
       <body>
+        {/* Sem JavaScript, a hidratação nunca acontece — o HTML do servidor
+            fica congelado no estado `initial` que o Motion já grava inline
+            (opacity:0 no Reveal, no hero e nas 3 faixas). `whileInView` e
+            `animate` nunca disparam sem React vivo, então título, parágrafos
+            e CTAs do Hero e todo <Reveal> da página ficam permanentemente em
+            branco — metade visível é só a barra de anúncio, a nav, o rodapé
+            e o que não passa por Motion. `!important` é necessário: bate a
+            especificidade do style inline que o SSR do Motion escreveu, sem
+            precisar tocar na coreografia (spec §6.1) nem no orçamento de
+            performance dela (spec §14.8) — ambas seguem intactas quando JS
+            carrega normalmente. `data-anim` marca cada elemento animado do
+            Hero e de <Reveal>; `data-faixa` já marcava as 3 faixas do H1. */}
+        <noscript>
+          <style>{`
+            [data-anim],
+            [data-faixa] {
+              opacity: 1 !important;
+              transform: none !important;
+            }
+          `}</style>
+        </noscript>
         <a
           href="#conteudo"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-ink focus:px-5 focus:py-3 focus:text-sm focus:text-cream"

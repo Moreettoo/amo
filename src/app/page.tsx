@@ -16,7 +16,7 @@ export default function Home() {
     <>
       <AnnouncementBar />
       <Nav />
-      <main id="conteudo">
+      <main id="conteudo" className="scroll-mt-28">
         <Hero />
         <Selos />
         <AMarca />

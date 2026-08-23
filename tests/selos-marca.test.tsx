@@ -43,8 +43,14 @@ describe('AMarca', () => {
   })
 
   it('cita a linha secundária do rótulo', () => {
-    render(<AMarca />)
-    expect(screen.getByText('AMO por você. Por seu AMO.')).toBeInTheDocument()
+    // container.textContent, não getByText: a linha agora tem cada "AMO"
+    // dentro do próprio <span translate="no"> (revisão da Task 12, Important
+    // 3), então o texto está partido em nós de texto separados e getByText
+    // (que por padrão só olha nós de texto filhos diretos de um elemento,
+    // ignorando texto de elementos filhos) não vê mais a frase inteira em
+    // nenhum elemento só. textContent agrega tudo, independente de marcação.
+    const { container } = render(<AMarca />)
+    expect(container.textContent).toContain('AMO por você. Por seu AMO.')
   })
 
   it('afirma só o que o rótulo afirma', () => {

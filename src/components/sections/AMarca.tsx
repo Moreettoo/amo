@@ -38,7 +38,7 @@ export function AMarca() {
               </p>
             </div>
             <p className="mt-8 font-script text-[clamp(1.5rem,2.4vw,2rem)] text-rosewood-forte">
-              AMO por você. Por seu AMO.
+              <span translate="no">AMO</span> por você. Por seu <span translate="no">AMO</span>.
             </p>
           </Reveal>
         </div>

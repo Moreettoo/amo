@@ -12,8 +12,12 @@ describe('Bento', () => {
   })
 
   it('traz a linha secundária do rótulo', () => {
-    render(<Bento />)
-    expect(screen.getByText('AMO por você. Por seu AMO.')).toBeInTheDocument()
+    // container.textContent, não getByText: mesma razão do teste equivalente
+    // de AMarca (tests/selos-marca.test.tsx) — cada "AMO" da linha agora vive
+    // no seu próprio <span translate="no"> (revisão da Task 12, Important 3),
+    // e getByText não atravessa elementos filhos por padrão.
+    const { container } = render(<Bento />)
+    expect(container.textContent).toContain('AMO por você. Por seu AMO.')
   })
 
   it('esconde o texto fantasma decorativo do leitor de tela', () => {

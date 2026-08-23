@@ -17,7 +17,7 @@ export function Ritual() {
             id="ritual-titulo"
             className="mt-6 max-w-[22ch] text-[clamp(1.875rem,4vw,3.5rem)] leading-[1.05] tracking-[-0.015em] text-ink"
           >
-            Como aproveitar seu AMO
+            Como aproveitar seu <span translate="no">AMO</span>
           </h2>
         </Reveal>
 

@@ -65,11 +65,33 @@ describe('a página completa', () => {
 
   it('todo link interno aponta para um id que existe na página', () => {
     const { container } = render(<Home />)
+    // #conteudo não é mais excluído: é âncora do skip link e do logo da nav,
+    // e <main id="conteudo"> está presente sempre que <Home/> é montado — a
+    // exclusão nunca protegia nada, só escondia o alvo mais carregado da
+    // página deste próprio guarda (revisão da Task 12).
     const ancoras = [...container.querySelectorAll('a[href^="#"]')]
       .map((a) => a.getAttribute('href')!.slice(1))
-      .filter((id) => id && id !== 'conteudo')
+      .filter((id) => id)
     for (const id of new Set(ancoras)) {
       expect(container.querySelector(`#${id}`), `âncora morta: #${id}`).toBeTruthy()
+    }
+  })
+
+  it('todo alvo de âncora tem scroll-margin-top — a nav sticky não pode cobrir o elemento focado', () => {
+    // Spec §11 e §14.4: "scroll-margin-top em todo alvo de âncora, igual à
+    // altura da nav". #conteudo é alvo do skip link (layout.tsx) e do logo
+    // da nav (Nav.tsx) — o candidato mais carregado a este requisito, porque
+    // ativar o skip link é a primeira coisa que uma pessoa usando teclado
+    // faz na página. Era o único alvo sem `scroll-mt-28` até a revisão da
+    // Task 12 (page.tsx só tinha `<main id="conteudo">`, sem classe).
+    const { container } = render(<Home />)
+    const ancoras = [...container.querySelectorAll('a[href^="#"]')]
+      .map((a) => a.getAttribute('href')!.slice(1))
+      .filter((id) => id)
+    for (const id of new Set(ancoras)) {
+      const alvo = container.querySelector(`#${id}`)
+      expect(alvo, `âncora morta: #${id}`).toBeTruthy()
+      expect(alvo!.className, `#${id} sem scroll-mt-28`).toMatch(/\bscroll-mt-28\b/)
     }
   })
 
@@ -236,6 +258,54 @@ describe('a página completa', () => {
     for (const arquivo of arquivosFonte()) {
       const codigo = readFileSync(arquivo, 'utf8')
       expect(codigo, `${arquivo} usa repeat: Infinity`).not.toMatch(/repeat:\s*Infinity/)
+    }
+  })
+
+  // ---------------------------------------------------------------------
+  // Achado da revisão final de branch da Task 12 (Important 3): "AMO" —
+  // "eu amo" em português — some da marca se um tradutor automático mexer
+  // nela. A regra (Global Constraints, ecoada na spec §11) não admite
+  // exceção. A omissão real que motivou este teste não foi de uma
+  // ocorrência: foram três arquivos ao mesmo tempo (AMarca, Bento, Ritual)
+  // sem que nenhum teste de seção isolada notasse, porque nenhum deles
+  // afirmava a regra — só citava o texto. Este teste afirma a regra.
+  // ---------------------------------------------------------------------
+
+  it('todo "AMO" renderizado como texto está dentro de translate="no" — a única exceção é o fantasma decorativo do Bento', () => {
+    const { container } = render(<Home />)
+
+    // TreeWalker sobre nós de texto, não regex em innerHTML: precisa do nó
+    // de texto de verdade pra perguntar "o elemento pai tem translate=no?"
+    // depois de "AMO" poder estar dentro do seu próprio <span> (é exatamente
+    // o que a correção da Task 12 fez em AMarca/Bento/Ritual).
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
+    const ocorrencias: Text[] = []
+    let no: Node | null
+    while ((no = walker.nextNode())) {
+      if (/\bAMO\b/.test(no.textContent ?? '')) ocorrencias.push(no as Text)
+    }
+
+    // A única exceção deliberada: o "AMO" fantasma do Bento (data-fantasma,
+    // aria-hidden="true") — puramente decorativo, já escondido de leitor de
+    // tela, e por isso deixado de fora do escopo desta regra (revisão da
+    // Task 12, Important 3). Tudo o mais tem que estar blindado.
+    const reais = ocorrencias.filter(
+      (t) => !t.parentElement?.closest('[aria-hidden="true"]'),
+    )
+
+    // Contagem exata, não "pelo menos uma": AMarca (1) + "AMO por você. Por
+    // seu AMO." em AMarca (2) + a mesma linha no Bento (2) + Footer (1) +
+    // "seu AMO" no Ritual (1) = 7. Uma correção futura que blinde só uma das
+    // duas ocorrências de uma linha (do jeito que já aconteceu com &nbsp; —
+    // ver o teste de nbsp acima) reprova aqui.
+    expect(ocorrencias.length - reais.length).toBe(1) // só o fantasma do Bento fica de fora
+    expect(reais).toHaveLength(7)
+
+    for (const t of reais) {
+      expect(
+        t.parentElement?.getAttribute('translate'),
+        `"AMO" sem translate="no" — pai: ${t.parentElement?.outerHTML}`,
+      ).toBe('no')
     }
   })
 })

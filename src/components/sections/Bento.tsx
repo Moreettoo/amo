@@ -69,7 +69,7 @@ export function Bento() {
               })}
             </ul>
             <p className="font-script text-[clamp(1.5rem,2.4vw,2.125rem)] leading-tight text-rosewood-forte">
-              AMO por você. Por seu AMO.
+              <span translate="no">AMO</span> por você. Por seu <span translate="no">AMO</span>.
             </p>
           </div>
         </Reveal>

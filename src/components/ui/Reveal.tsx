@@ -19,6 +19,12 @@ export function Reveal({ children, delay = 0, className }: Props) {
 
   return (
     <motion.div
+      // Marcador genérico pra CSS de fallback sem JS (ver <noscript> em
+      // layout.tsx): o SSR do Motion já grava opacity:0 no style inline
+      // deste elemento (é o `initial`), e sem hidratação nada nunca chega a
+      // `whileInView`. `data-anim` é o gancho que a regra de noscript usa pra
+      // forçar o estado final visível sem precisar enumerar cada seção.
+      data-anim
       className={className}
       initial={{ opacity: 0, y: 16 }}
       whileInView={{ opacity: 1, y: 0 }}

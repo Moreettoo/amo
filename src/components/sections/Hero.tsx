@@ -13,11 +13,24 @@ import { SABORES } from '@/data/sabores'
  * As três linhas do título, cada uma em sua faixa de tonalidade.
  * É a tese da página: um bolo no pote é uma secção transversal, e o
  * título é essa secção. Ver spec §4.
+ *
+ * A seção por trás das faixas já é `bg-sage` (linha ~48) — compor sage sobre
+ * sage no mesmo alpha é a mesma cor, então as três faixas têm que progredir
+ * em `cream`, não em `sage`, pra existirem como faixas visíveis. É a leitura
+ * correta do wireframe da spec §4 ("sage 100% → sage 92% → sage 84% →
+ * cream/40"): cada estágio é cream aumentando sobre o chão sage, terminando
+ * perto do estrato cream que a seção seguinte já usa (Estrato n=1 logo
+ * abaixo). Progressão 10 → 22 → 36: cada salto muda uns 6-8 níveis de RGB
+ * por canal — sutil isoladamente, mas nítido com faixas coladas lado a lado
+ * (contraste simultâneo) — e 36 fica abaixo de 50 de propósito, pra sage
+ * continuar sendo a cor dominante da faixa (spec §5.1: "sage carrega a
+ * página, não cream"), só a última faixa já puxando visivelmente pro cream
+ * que vem a seguir.
  */
 const LINHAS = [
-  { texto: 'Um abraço em', fundo: 'bg-sage' },
-  { texto: 'forma de', fundo: 'bg-sage/80' },
-  { texto: 'sobremesa', fundo: 'bg-sage/60' },
+  { texto: 'Um abraço em', fundo: 'bg-cream/10' },
+  { texto: 'forma de', fundo: 'bg-cream/22' },
+  { texto: 'sobremesa', fundo: 'bg-cream/36' },
 ] as const
 
 const POTE = SABORES[0]
@@ -48,7 +61,7 @@ export function Hero() {
     <section aria-labelledby="hero-titulo" className="relative bg-sage pt-8 md:pt-4">
       <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-5 pb-20 md:grid-cols-[1.15fr_1fr] md:gap-14 md:px-10 md:pb-28">
         <div>
-          <motion.div {...anim(0.95)}>
+          <motion.div data-anim {...anim(0.95)}>
             <Etiqueta>Zero açúcar · Cozido a vapor</Etiqueta>
           </motion.div>
 
@@ -58,7 +71,18 @@ export function Hero() {
           >
             {LINHAS.map((l, i) => (
               <Fragment key={l.texto}>
-                <span className="relative">
+                {/* `isolate` é o que faz o -z-10 da faixa valer alguma coisa:
+                    sem ele, este span (relative, z-index auto) não abre
+                    stacking context própria, e o filho de z-index negativo
+                    escapa pra stacking context raiz — aí ele pinta antes do
+                    próprio background da <section> (que também é só
+                    `relative`, sem z-index, então cai no mesmo balde "auto"
+                    da raiz), e o sage opaco da seção cobre a faixa por cima.
+                    Com `isolate`, a faixa fica presa dentro da stacking
+                    context deste span, que só é pintada (como unidade) na
+                    vez do span na árvore — ou seja, depois que o fundo da
+                    section já pintou. */}
+                <span className="relative isolate">
                   <motion.span
                     aria-hidden="true"
                     data-faixa
@@ -66,6 +90,7 @@ export function Hero() {
                     className={`absolute inset-x-0 inset-y-[-0.06em] -z-10 origin-top ${l.fundo}`}
                   />
                   <motion.span
+                    data-anim
                     className="block"
                     {...anim(0.35 + i * 0.11)}
                   >
@@ -86,6 +111,7 @@ export function Hero() {
           </h1>
 
           <motion.p
+            data-anim
             {...anim(0.95)}
             className="mt-7 font-script text-[clamp(1.75rem,3vw,2.5rem)] leading-tight text-rosewood-forte"
           >
@@ -93,6 +119,7 @@ export function Hero() {
           </motion.p>
 
           <motion.p
+            data-anim
             {...anim(0.95)}
             className="mt-5 max-w-[46ch] font-sans text-[1.0625rem] leading-[1.65] text-ink/75"
           >
@@ -101,6 +128,7 @@ export function Hero() {
           </motion.p>
 
           <motion.div
+            data-anim
             {...anim(0.95)}
             className="mt-9 flex flex-wrap items-center gap-x-7 gap-y-4"
           >
@@ -116,7 +144,7 @@ export function Hero() {
           </motion.div>
         </div>
 
-        <motion.div {...anim(0.75)} className="relative">
+        <motion.div data-anim {...anim(0.75)} className="relative">
           <div className="overflow-hidden rounded-[20px]">
             <Image
               src={POTE.imagem}
