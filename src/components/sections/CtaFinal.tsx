@@ -8,7 +8,7 @@ const FOTO = SABORES[1] // Raízes / Paçoca
 
 export function CtaFinal() {
   return (
-    <section aria-labelledby="cta-titulo" className="bg-sage">
+    <section aria-labelledby="cta-titulo cta-contexto" className="bg-sage">
       <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-5 py-[clamp(4.5rem,9vw,8rem)] md:grid-cols-[1.1fr_1fr] md:gap-16 md:px-10">
         <Reveal>
           <h2
@@ -17,6 +17,18 @@ export function CtaFinal() {
           >
             Para quem ama comer bem
           </h2>
+          {/* A marca (§7.5) usa o mesmo H2 verbatim — repetição de propósito
+              da assinatura da marca, não descuido de copy (ver PARK #2,
+              progress.md). Isso deixa as duas <section> com o mesmo nome
+              acessível computado, o que o axe reprova (landmark-unique):
+              dois landmarks "region" indistinguíveis pra quem navega por
+              landmark. Este span só-leitor-de-tela estende o
+              aria-labelledby com contexto extra, sem tocar no texto
+              visível — a citação da marca continua idêntica nas duas
+              seções para quem vê a página. */}
+          <span id="cta-contexto" className="sr-only">
+            convite final
+          </span>
           <p className="mt-5 font-sans text-[1.0625rem] leading-[1.65] text-ink/75">
             Sete sabores. Zero açúcar.
           </p>
