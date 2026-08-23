@@ -91,13 +91,38 @@ describe('a página completa', () => {
   })
 
   it('passa no axe sem violação', async () => {
-    // O único item que sobra em resultado.incomplete (não em .violations,
+    // Ponto cego 1 — color-contrast (limite conhecido, não é lacuna nova):
+    // o único item que sobra em resultado.incomplete (não em .violations,
     // que é o que toHaveNoViolations() checa) é color-contrast — o jsdom
     // não implementa HTMLCanvasElement.getContext(), que é como o axe mede
     // cor renderizada, e a lib marca o teste como incompleto em vez de
-    // fingir passar ou reprovar. Não é uma lacuna nova: o contraste real,
-    // calculado direto dos hex dos tokens (não de pixel renderizado), já
-    // está coberto por tests/tokens.test.ts — é o critério de pronto §14.6.
+    // fingir passar ou reprovar. O contraste real, calculado direto dos hex
+    // dos tokens (não de pixel renderizado), já está coberto por
+    // tests/tokens.test.ts — é o critério de pronto §14.6.
+    //
+    // Ponto cego 2 — regras de documento inteiro NUNCA disparam aqui, e
+    // isso já deixou passar um bug real. Este teste (e todo teste de
+    // componente da suíte) renderiza só o fragmento <Home/> via
+    // @testing-library/react — nunca um <html>/<body> de verdade. As
+    // regras do axe que avaliam a árvore a partir da raiz do documento —
+    // `region` ("All page content should be contained by landmarks"),
+    // `landmark-one-main`, `page-has-heading-one` — só têm onde disparar
+    // contra um <body> real; contra um fragmento desconectado, elas não
+    // rodam, ponto. Isto não é hipotético: foi exatamente assim que a
+    // violação `region` do AnnouncementBar (root <div> solto direto em
+    // <body>, antes da <Nav>, sem landmark nenhum cobrindo — ver
+    // AnnouncementBar.tsx) escapou dos onze arquivos de teste de
+    // componente inteiros E deste mesmo teste de portão nesta mesma
+    // tarefa. Só foi encontrada rodando axe-core à mão direto contra o
+    // documento real do servidor de dev ao vivo — uma checagem avulsa que
+    // não ficou registrada em lugar nenhum do repositório. Sem este
+    // parágrafo, uma regressão futura da mesma classe — um novo elemento
+    // de topo de nível somado fora de qualquer landmark — passaria por
+    // este portão em silêncio, do mesmo jeito, de novo. Fechar o ponto
+    // cego de vez exigiria renderizar contra um documento jsdom completo
+    // (ou repetir a checagem live-server) — nenhuma das duas está
+    // automatizada aqui; isto é a fronteira documentada do que este teste
+    // cobre, não uma correção dela.
     const { container } = render(<Home />)
     expect(await axe(container)).toHaveNoViolations()
   })
@@ -152,10 +177,19 @@ describe('a página completa', () => {
     // Ângulo 2 — código-fonte: a prova acima tem um ponto cego teórico (se
     // um dia alguém somar `priority` à imagem do nav SEM tirar o
     // `loading="eager"` que já está lá, o atributo `loading` continua
-    // presente e a checagem acima não nota a mudança). A palavra `priority`
-    // como prop só pode aparecer em src/**, e só uma vez.
+    // presente e a checagem acima não nota a mudança). A prop `priority`
+    // como atributo JSX só pode aparecer em src/**, e só uma vez.
+    //
+    // O padrão casa `priority` só em posição de atributo JSX — início de
+    // linha (ou depois de espaço/`{`), seguido só de `=` ou do fim da
+    // linha — nunca em qualquer lugar do arquivo. Banir a palavra inteira
+    // reprovaria um comentário que citasse "priority" como palavra solta
+    // em prosa (termo em inglês dentro de um comentário em português é
+    // plausível neste projeto), o que reprovaria código legítimo por um
+    // motivo alheio ao que este guarda existe pra pegar. Revisão da
+    // Task 12, correção 3.
     const comPriority = arquivosFonte().filter((arquivo) =>
-      /(^|[\s{])priority(\s|$|=)/m.test(readFileSync(arquivo, 'utf8')),
+      /(^|[\s{])priority(?=\s*$|=)/m.test(readFileSync(arquivo, 'utf8')),
     )
     expect(comPriority.map((a) => a.replace(/\\/g, '/'))).toEqual([
       expect.stringMatching(/\/components\/sections\/Hero\.tsx$/),
@@ -192,11 +226,16 @@ describe('a página completa', () => {
     expect(html).not.toMatch(/animate-\[?marquee/i)
     expect(html).not.toMatch(/infinite/i)
 
-    // Único jeito de pegar repeat:Infinity é ler o código-fonte: nenhum
-    // arquivo sob src/ pode conter o literal `Infinity` do JS.
+    // Único jeito de pegar repeat:Infinity é ler o código-fonte. O padrão
+    // casa só a forma de verdade que o Motion usa — `repeat: Infinity`,
+    // dois-pontos e tudo — em vez do literal `Infinity` do JS sozinho:
+    // banir a palavra inteira em todo src/ reprovaria qualquer uso legítimo
+    // do global `Infinity` do JavaScript sem relação nenhuma com animação
+    // (ex.: um `Math.min(x, Infinity)` num cálculo comum). Revisão da
+    // Task 12, correção 3.
     for (const arquivo of arquivosFonte()) {
       const codigo = readFileSync(arquivo, 'utf8')
-      expect(codigo, `${arquivo} usa Infinity`).not.toMatch(/\bInfinity\b/)
+      expect(codigo, `${arquivo} usa repeat: Infinity`).not.toMatch(/repeat:\s*Infinity/)
     }
   })
 })

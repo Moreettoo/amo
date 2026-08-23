@@ -8,7 +8,7 @@ const FOTO = SABORES[1] // Raízes / Paçoca
 
 export function CtaFinal() {
   return (
-    <section aria-labelledby="cta-titulo cta-contexto" className="bg-sage">
+    <section aria-labelledby="cta-titulo cta-subtitulo" className="bg-sage">
       <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-5 py-[clamp(4.5rem,9vw,8rem)] md:grid-cols-[1.1fr_1fr] md:gap-16 md:px-10">
         <Reveal>
           <h2
@@ -22,14 +22,22 @@ export function CtaFinal() {
               progress.md). Isso deixa as duas <section> com o mesmo nome
               acessível computado, o que o axe reprova (landmark-unique):
               dois landmarks "region" indistinguíveis pra quem navega por
-              landmark. Este span só-leitor-de-tela estende o
-              aria-labelledby com contexto extra, sem tocar no texto
-              visível — a citação da marca continua idêntica nas duas
-              seções para quem vê a página. */}
-          <span id="cta-contexto" className="sr-only">
-            convite final
-          </span>
-          <p className="mt-5 font-sans text-[1.0625rem] leading-[1.65] text-ink/75">
+              landmark. A correção NÃO é copy nova: toda string deste
+              projeto é transcrita do rótulo físico, com uma única exceção
+              sinalizada e pendente do cliente (§7.5/§13) — um span
+              só-leitor-de-tela com prosa inventada ("convite final", tentativa
+              anterior) criaria uma segunda exceção em silêncio, e
+              só-leitor-de-tela não isenta: é copy mostrada a gente de
+              verdade. Em vez disso, aria-labelledby soma o parágrafo "Sete
+              sabores. Zero açúcar." abaixo — texto já visível, já aprovado,
+              já na página — ao heading. O nome acessível computado da seção
+              passa a ser "Para quem ama comer bem Sete sabores. Zero
+              açúcar.", que diverge do nome de A marca sem acrescentar uma
+              palavra que não estivesse já aprovada. */}
+          <p
+            id="cta-subtitulo"
+            className="mt-5 font-sans text-[1.0625rem] leading-[1.65] text-ink/75"
+          >
             Sete sabores. Zero açúcar.
           </p>
           <div className="mt-8">
