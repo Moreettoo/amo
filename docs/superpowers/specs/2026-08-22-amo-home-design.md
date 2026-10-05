@@ -791,3 +791,203 @@ A v1 está pronta quando, tudo ao mesmo tempo:
 7. Todo teste da §11 passando
 8. Lighthouse ≥ 95 em Performance e 100 em Acessibilidade, mobile
 9. Nenhuma afordância morta: todo elemento clicável faz algo real
+
+---
+
+## 15. Revisão visual v1.1
+
+Data: 2026-08-23. Pedido do cliente: revisar a home por completo, corrigir os
+jogos de cor que atrapalham a leitura, melhorar a escolha de fontes, trazer o
+que faltou da referência (com destaque para a rolagem que desliza) e remover
+todo travessão da app.
+
+As seções 1 a 14 continuam valendo. O que está abaixo substitui os pontos que
+cita, e cada troca traz o número que a motivou.
+
+### 15.1 Rolagem (novo, §6)
+
+`lunarossa.framer.website` foi inspecionado ao vivo: o `<html>` dele carrega
+`class="lenis lenis-autoToggle"`. A rolagem interpolada da referência é a
+biblioteca **Lenis**, então a nossa é a mesma biblioteca com os mesmos
+defaults, conduzida por `src/components/RolagemSuave.tsx`.
+
+O Lenis move o `scrollTop` real, não sequestra com transform, então `sticky`
+(Nav e ListaPinada) e `getBoundingClientRect` (índice ativo da ListaPinada)
+seguem intactos. Sob `prefers-reduced-motion` a instância é destruída e a
+rolagem volta a ser a nativa.
+
+Âncora é conduzida à mão, não pela opção `anchors` do Lenis, porque o
+`onClick` dele não chama preventDefault: a ação default do navegador saltaria
+para o alvo antes do primeiro frame interpolado, e prevenir o default sem
+tratar foco quebraria o "Pular para o conteúdo". Consequência: âncora interna
+usa `<a>` puro, nunca `next/link`, porque o Link roda o próprio scroll via
+`scrollIntoView` e brigaria pelo mesmo `scrollTop`.
+
+### 15.2 Tipografia (substitui §5.2)
+
+| papel | antes | agora | por quê |
+|---|---|---|---|
+| display | Bodoni Moda | **Bree Serif** | O cliente rejeitou o contraste grosso-fino: Bodoni é um didone, tem haste grossa e filete fino no mesmo caractere. Bree Serif é um slab de traço praticamente uniforme, então a letra tem uma espessura só. Continua serifada, o que mantém a relação com o "A" do logo, e é quente em vez de editorial. Peso único (400): onde havia `font-medium`/`font-semibold` em cima do display, o peso saiu, porque pedir peso inexistente faz o navegador engordar por síntese |
+| sans | Jost | **Poppins** 400/500/600 | É a sans da referência, e a altura-x dela é bem maior no mesmo corpo. O texto difícil de ler era justamente o rótulo pequeno em caixa alta |
+| script | Parisienne, 5 usos | Parisienne, **2 usos** (hero e A marca, sempre acima de 28 px) | A referência não tem script nenhum. Aplicar isso quer dizer usar menos, não trocar de família. Sai do nome do sabor no card, que era o identificador principal em traço fio de cabelo, e sai da anotação de 18 px, onde media 3.40:1 |
+
+Koulen, o display da referência, foi descartado por motivo técnico e não
+estético: ele não tem os glifos `Ç`, `ã`, `Á`, `Í`. Medindo a largura de
+avanço, `Ç` e `ã` batem exatamente com a do serif de fallback, ou seja, glifo
+ausente. Numa marca cujo claim é ZERO AÇÚCAR isso é inviável.
+
+Rótulo, em todo lugar: 12.5 px / 600 / `0.1em` / ink cheio. Antes era
+11 px / 500 / `0.18em` / ink 70%, os quatro parâmetros na direção errada.
+
+### 15.3 Contraste (substitui os alvos da §5.1)
+
+Todos os pares foram medidos. Onze reprovavam:
+
+| onde | antes | agora | correção |
+|---|---|---|---|
+| numeral do ritual | **1.01:1** | 9.16:1 | Sai de sand/70 atrás do texto (onde também colidia com o título) para ink sólido acima dele, com filete separando cada passo, como a seção de processo da referência |
+| seta do hero | **1.22:1** | 3.04:1 | blush passa a rosewood-forte |
+| anel do bento | **1.43:1** | removido | Nenhum alfa de cream chega a 3:1 sobre ink. Quem separa a célula é o respiro e a foto |
+| borda do botão de menu | **1.43:1** | 9.34:1 no glifo | Contorno ink/20 passa a preenchimento sand |
+| borda da Etiqueta | **1.57:1** | 9.16:1 no filete | Nenhum alfa de ink chega a 3:1 sobre cream ou sage, então o contorno translúcido morreu. Passou por elipse preenchida e terminou em filete de `bg-ink` cheio, ver §15.7 |
+| nomes inativos da lista | **1.64:1** | 3.44:1 | ink/25 passa a ink/55. São rótulos de sete `<button>` reais; acima de 32 px o piso correto é 3:1 |
+| tile de selo | tile invisível | 9.34:1 | sand/40 passa a sand cheio |
+| caps do sabor no card | **3.55:1** | 6.64:1 | ink/55 passa a ink/75 |
+| anotação do hero | **3.40:1** | 6.50:1 | Script 18 px passa a Poppins 15 px em ink/85 |
+| faixa da assinatura | **3.35:1** | 4.52:1 | Superfície passa de rosewood puro a rosewood-forte. Passar raspando no piso mais permissivo é o pior lugar possível para a única faixa colorida da página. O display uniforme ajudou de graça aqui: o que a razão de contraste não media era a haste fina do didone em caixa alta, que sumia sobre o rosa antes de o número reprovar |
+| aviso de contato | **3.96:1** | 6.50:1 | cream/45 passa a cream/65 |
+
+Consequências para a disciplina de cor da §5.1:
+
+- **rosewood puro deixa de pintar qualquer coisa.** O token continua definido
+  porque é da paleta do cliente, e `tests/tokens.test.ts` guarda o hex; o que
+  o guarda de `tests/pagina.test.tsx` proíbe agora é usá-lo como tinta.
+- **blush cai de 2 lugares para 1**, a borda de hover do card. O outro uso era
+  a seta do hero, a 1.22:1.
+- **`--color-papel` (`#FFFDFA`)** entra como superfície dos cards no lugar do
+  branco puro, que não estava na paleta e lia frio encostado no cream.
+
+### 15.4 Estrutura
+
+- **Faixas do hero em sangria total** (substitui §4a). Limitadas à largura do
+  texto, elas liam como marca-texto e desalinhavam quando a primeira linha
+  quebrava. Agora atravessam a janela e a foto cruza as três, que é o que as
+  camadas fazem no vidro. A faixa é exatamente a caixa de linha (`inset-y-0`),
+  e duas coisas dependem disso: caixas de linha se ladrilham por definição, e
+  qualquer inset negativo volta a sobrepor as vizinhas (com `inset-y-[-0.06em]`
+  elas se sobrepunham em 0.12em, 11 px medidos, e sendo cream translúcido cada
+  emenda pintava cream duas vezes e virava uma tarja mais escura); e, medida a
+  tinta real da Bree Serif com `actualBoundingBox`, a folga acima e a abaixo
+  ficam iguais com deslocamento zero. O número é propriedade da família: se o
+  display trocar, re-medir.
+- **Nav opaca** (substitui §6.3 e §7.2). Era `bg-transparent` virando
+  `bg-sage/95` com blur; sage translúcido por cima das fotos borrava foto e
+  barra num cinza sem forma, e o contraste do rótulo mudava conforme o que
+  passava por baixo. Agora é cream com filete sand, e o que muda ao rolar é a
+  sombra, só. Cream e não ink porque a arte do logo é cobre sobre
+  transparência e desaparece sobre escuro, que era o bug do rodapé.
+- **A nav flutua sobre o hero de verdade**, via margem negativa. Antes ela
+  ocupava 88 px de fluxo entre a barra ink e o hero, e aparecia uma tarja
+  cream que ninguém desenhou.
+- **Lista pinada em três colunas com filetes e rótulo lateral fixo**, e a
+  troca de foto virou cortina (`clip-path`) em duas camadas, com a foto
+  anterior parada por baixo. Com uma camada só, a parte ainda não revelada
+  mostraria o fundo e a troca leria como buraco. Tudo isso vem da referência.
+- **Parallax de 6% ao rolar** nas fotos do hero, de A marca e do CTA final.
+- **Logo do rodapé sobre painel cream.** Sem inventar uma versão clara da
+  marca que o cliente não entregou, a saída honesta é dar ao logo o fundo para
+  o qual ele foi desenhado. De quebra o painel arredondado cita a etiqueta de
+  papel pendurada no pote.
+- **Fim do `justify-between` na célula sand do bento**, que deixava um vazio de
+  uns 200 px no meio, e do fantasma AMO cortado pelo canto.
+- **Frases dos cards alinhadas no pé da linha**, via `mt-auto`, para o sabor de
+  duas linhas de Encontro parar de desalinhar a linha inteira.
+
+### 15.5 Travessão
+
+Nenhum, em nenhum lugar: nem em texto visível, nem em `alt`, nem em `title`,
+nem em comentário. `tests/travessao.test.ts` varre `src/`, `tests/` e o README
+e reprova o travessão (U+2014) e a meia-risca (U+2013). Este documento e os
+demais em `docs/` são registro histórico e ficaram fora da varredura.
+
+### 15.6 Next 16
+
+- `priority` do `next/image` está deprecado em favor de `preload`. A foto do
+  hero passou a usar `preload`, e o guarda de "exatamente uma imagem" seguiu.
+- Os dois PNGs de logo passaram a declarar as dimensões intrínsecas. Com
+  149x44 a proporção declarada (3.3864) divergia da real (3.3806) e, na altura
+  de 44 px, a largura calculada caía em 148.75 contra o atributo 149: o
+  next/image lia uma das dimensões como não modificada por CSS e avisava no
+  console.
+
+### 15.7 Segunda rodada de revisão do cliente
+
+**Display: Bodoni Moda para Bree Serif.** O cliente rejeitou o contraste
+grosso-fino ("fonte que é fina e grossa ao mesmo tempo"), que é a definição de
+um didone. Bree Serif tem traço praticamente uniforme, peso único, e continua
+serifada. Consequências no código, todas registradas nos arquivos: o eixo
+`opsz` e o `font-optical-sizing: auto` saíram (Bree não tem eixo variável),
+`font-medium` e `font-semibold` saíram de cima do display, o tracking negativo
+foi de `-0.02em`/`-0.015em` para `-0.01em`/`-0.008em` (slab tem espaçamento mais
+justo e o negativo fechava as serifas uma na outra), e o corpo do H1 caiu de
+`5.75rem` para `5rem` porque a Bree é mais larga e "Um abraço em" passava da
+coluna.
+
+Koulen, o display da referência, continua fora, mas o motivo foi reconfirmado
+com evidência melhor. A primeira medição que justificou o descarte estava
+errada: ela media largura de avanço no canvas sem aplicar a família, então tudo
+caía no serif de fallback e batia trivialmente. Refeito visualmente em corpo de
+90 px, o resultado é inequívoco: em "ZERO AÇÚCAR" o `Ç` e o `Ú` saem de um
+serif fino no meio das letras pesadas do Koulen, e o mesmo em ABRAÇO, MARACUJÁ
+e RAÍZES. A sonda por largura só funciona com um fallback bem distinto
+(`"Familia", monospace` contra `monospace`), e mesmo assim ela não distingue
+"glifo ausente" de "família não carregada".
+
+**Etiqueta: elipse para filete.** `border-radius: 50%` numa caixa larga e baixa
+não dá uma elipse de etiqueta, dá uma lente, e o cliente rejeitou a forma. A
+regra da §4 ("elipse é rótulo, pill é ação") continua valendo, só mudou de
+eixo: **quem não é clicável não tem caixa nenhuma, quem é clicável tem.** A
+distinção ficou mais forte do que com duas formas arredondadas competindo,
+porque não depende mais de comparar raios de canto. A pill foi descartada de
+propósito para o rótulo: usar a forma do CTA num rótulo faria o rótulo parecer
+um botão que não clica. O filete também não é ornamento solto, é a mesma régua
+que separa os passos do ritual e as colunas da lista pinada.
+
+### 15.8 O recorte do logo da nav estava cortando a arte
+
+Bug real no gerador do asset, não no CSS. `scripts/recortar-logo.py` isolava a
+faixa "A m [pote]" com um corte fixo em `int(A * 0.46)` da altura da origem, e
+a faixa termina em 49%: linhas 133 a 813 de 1664. O corte entrava 48 linhas
+dentro do desenho e decepava a base do "A", a cauda do "m" e o fundo do pote.
+
+O erro não se denunciava porque o `MARGEM` de respiro é clampado no limite do
+próprio corte (`min(A, y1 + MARGEM)`): com a arte encostada na borda de baixo,
+o clamp devolvia zero de margem ali, então nem sobrava moldura transparente
+para acusar. Medido no PNG que estava em produção: 693 px opacos na última
+linha, em quatro linhas seguidas.
+
+A fração chutada virou `fim_da_faixa_superior()`, que mede o primeiro vale de
+linhas vazias depois da primeira faixa e corta no meio dele. O asset da nav foi
+de 2194x649 para 2245x714, com 16 px de margem transparente exatos nos quatro
+lados; o lockup do rodapé saiu com o mesmo tamanho de antes, o que confirma que
+a correção mexeu só no recorte curto.
+
+**O teste que faltava.** `tests/logo.test.ts` afirmava em comentário "sem
+clipping em nenhuma das 8 bordas", mas nenhuma asserção olhava um pixel: as que
+existiam liam bytes do IHDR, proporção e tamanho em disco, e um recorte que
+decepa a base do desenho não move nenhum dos três de forma detectável. Foi
+exatamente assim que isto chegou em produção com a suíte verde. O arquivo passou
+a decodificar o alpha do PNG (inflate do IDAT e desfiltro sequencial, porque os
+filtros Up/Average/Paeth referenciam a linha anterior e não há como ler só as
+bordas) e exige zero pixel opaco nas quatro bordas, mais moldura transparente
+entre 8 e 24 px por lado. Verificado contra o asset antigo antes de fechar: ele
+reprova com `arte saindo pela base: expected 693 to be +0`.
+
+Dimensões conhecidas-boas em `tests/logo.test.ts` foram **re-medidas**, não
+alargadas, como o próprio arquivo exige.
+
+### 15.9 Travessão, cobertura da varredura
+
+`scripts/` estava fora dos alvos de `tests/travessao.test.ts` e tinha seis
+travessões. Diretório e extensão `.py` entraram na varredura. Alvos atuais:
+`src/`, `tests/`, `scripts/` e o README.

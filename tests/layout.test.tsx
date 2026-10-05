@@ -17,7 +17,7 @@ describe('AnnouncementBar', () => {
     expect(texto.textContent).toMatch(/pote de[\s ]vidro reutilizável/i)
   })
 
-  it('não tem botão de fechar — não há o que fechar', () => {
+  it('não tem botão de fechar, não há o que fechar', () => {
     render(<AnnouncementBar />)
     expect(screen.queryByRole('button')).toBeNull()
   })
@@ -39,7 +39,7 @@ describe('Nav', () => {
     }
   })
 
-  it('não tem carrinho, busca nem login — não existem ainda', () => {
+  it('não tem carrinho, busca nem login, não existem ainda', () => {
     render(<Nav />)
     const rotulos = screen
       .getAllByRole('link')
@@ -62,19 +62,31 @@ describe('Nav', () => {
     expect(screen.getByAltText(/amo/i)).toBeInTheDocument()
   })
 
-  it('a nav nunca redimensiona ao rolar — só o fundo muda', () => {
+  it('a nav é opaca desde o primeiro pixel: ao rolar só a sombra muda', () => {
+    // O contrato mudou. Antes a nav era bg-transparent e virava bg-sage/95
+    // com backdrop-blur ao rolar. Isso trazia dois problemas reais: sage
+    // translúcido por cima das fotos dos potes borrava foto e barra num
+    // cinza-esverdeado sem forma, e o contraste do rótulo mudava conforme o
+    // que passava por baixo. A referência nunca faz isso, a barra dela é
+    // chapada do começo ao fim.
+    //
+    // O que este teste sempre protegeu continua protegido, e é a parte que
+    // importa: a altura não pode entrar no ramo condicional, porque nav que
+    // muda de tamanho ao rolar desloca o layout.
     render(<Nav />)
     const nav = screen.getByRole('navigation')
-    expect(nav.className).toContain('h-[88px]')
-    expect(nav.className).toContain('bg-transparent')
+    expect(nav.style.height).toBe('88px')
+    expect(nav.className).toContain('bg-cream')
+    expect(nav.className).toContain('shadow-none')
+    expect(nav.className).not.toContain('backdrop-blur')
 
     Object.defineProperty(window, 'scrollY', { value: 80, configurable: true })
     fireEvent.scroll(window)
 
-    // A altura não pode migrar para o ramo condicional: só bg-*/shadow-*/backdrop-blur-* mudam.
-    expect(nav.className).toContain('h-[88px]')
-    expect(nav.className).not.toContain('bg-transparent')
-    expect(nav.className).toContain('bg-sage/95')
+    expect(nav.style.height).toBe('88px')
+    expect(nav.className).toContain('bg-cream')
+    expect(nav.className).not.toContain('shadow-none')
+    expect(nav.className).toMatch(/shadow-\[/)
 
     Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
   })

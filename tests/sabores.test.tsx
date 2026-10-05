@@ -15,7 +15,7 @@ describe('SaborCard', () => {
     expect(screen.getByText(s.frase)).toBeInTheDocument()
   })
 
-  it('não é link nem botão — nada acontece ainda, e botão morto é pior', () => {
+  it('não é link nem botão, nada acontece ainda, e botão morto é pior', () => {
     render(<SaborCard sabor={s} />)
     expect(screen.queryByRole('link')).toBeNull()
     expect(screen.queryByRole('button')).toBeNull()
@@ -40,7 +40,7 @@ describe('SaborCard', () => {
     expect(container.querySelector('[translate="no"]')?.textContent).toBe(s.nome)
   })
 
-  it('usa proporção 3:4 na foto — o menor corte medido nas 7 fotos', () => {
+  it('usa proporção 3:4 na foto, o menor corte medido nas 7 fotos', () => {
     const { container } = render(<SaborCard sabor={s} />)
     expect(container.querySelector('.aspect-\\[3\\/4\\]')).toBeTruthy()
   })

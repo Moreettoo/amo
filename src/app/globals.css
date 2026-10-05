@@ -9,26 +9,58 @@
   --color-rosewood-forte: #9B5E66;
   --color-blush: #D9ACA6;
 
-  --font-display: var(--fonte-bodoni), Georgia, "Times New Roman", serif;
+  /* Branco quente derivado do cream. Substitui o #FFF puro dos cards, que
+     lia frio e sujo encostado no cream. Nao e cor nova de marca: e a
+     superficie de papel dos cards, e ink sobre ela mede 14.9:1. */
+  --color-papel: #FFFDFA;
+
+  --font-display: var(--fonte-bree), Rockwell, Georgia, serif;
   --font-script: var(--fonte-parisienne), "Brush Script MT", cursive;
-  --font-sans: var(--fonte-jost), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--fonte-poppins), system-ui, -apple-system, sans-serif;
 
   --ease-amo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Fora de @layer base de propósito: no Tailwind v4, @keyframes dentro de uma
-   cascade layer perde para a ordem de precedência das layers e a animação
-   não dispara. Nome global, então não repetir "fadeIn" em outro lugar. */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+/* Fora de @layer base de proposito: no Tailwind v4, @keyframes dentro de uma
+   cascade layer perde para a ordem de precedencia das layers e a animacao
+   nao dispara. Nomes globais, entao nao repetir em outro lugar. */
+@keyframes revelaCortina {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0 0); }
 }
 
 @layer base {
   html {
-    scroll-behavior: smooth;
-    /* o deslocamento de âncora vive nos alvos, como scroll-mt-*, não aqui —
-       scroll-padding no container soma com scroll-margin no alvo */
+    /* Sem scroll-behavior: smooth. O Lenis (src/components/RolagemSuave.tsx)
+       e quem conduz a rolagem, inclusive de ancora, e as duas coisas
+       brigariam pelo scrollTop no mesmo frame. Sem JS a ancora ainda funciona,
+       so salta em vez de deslizar. */
+
+    /* Regras minimas que o Lenis precisa, copiadas de lenis/dist/lenis.css.
+       Inline aqui em vez de importadas do pacote pra manter uma unica folha
+       global e nao depender da resolucao de node_modules pelo PostCSS. */
+    &.lenis,
+    &.lenis body {
+      height: auto;
+    }
+
+    &.lenis.lenis-smooth iframe {
+      pointer-events: none;
+    }
+
+    &.lenis.lenis-autoToggle {
+      transition-property: overflow;
+      transition-duration: 1ms;
+      transition-behavior: allow-discrete;
+    }
+  }
+
+  .lenis:not(.lenis-autoToggle).lenis-stopped {
+    overflow: clip;
+  }
+
+  .lenis [data-lenis-prevent] {
+    overscroll-behavior: contain;
   }
 
   body {
@@ -41,6 +73,9 @@
   h1, h2, h3 {
     font-family: var(--font-display);
     text-wrap: balance;
+    /* Bree Serif tem um peso so e nenhum eixo variavel, entao nao ha optical
+       sizing a pedir aqui: a espessura da letra e uniforme por desenho, que e
+       o ponto de ter saido do didone. */
   }
 
   p {
@@ -57,7 +92,6 @@
   }
 
   @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
     *, *::before, *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;

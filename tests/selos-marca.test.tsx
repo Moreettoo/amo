@@ -18,7 +18,7 @@ describe('Selos', () => {
     expect(container.querySelector('#selos')).toBeTruthy()
   })
 
-  it('esconde todo ícone de leitor de tela — o nome já carrega o sentido', () => {
+  it('esconde todo ícone de leitor de tela, o nome já carrega o sentido', () => {
     const { container } = render(<Selos />)
     const svgs = container.querySelectorAll('svg')
     expect(svgs.length).toBeGreaterThanOrEqual(6)
@@ -27,7 +27,7 @@ describe('Selos', () => {
     }
   })
 
-  it('não introduz <h1> — o único da página é o do Hero', () => {
+  it('não introduz <h1>, o único da página é o do Hero', () => {
     render(<Selos />)
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
   })
@@ -56,7 +56,7 @@ describe('AMarca', () => {
   it('afirma só o que o rótulo afirma', () => {
     render(<AMarca />)
     const texto = document.body.textContent ?? ''
-    // U+00A0 é exigido pelo rótulo — uma quebra de linha nesse ponto arruína
+    // U+00A0 é exigido pelo rótulo, uma quebra de linha nesse ponto arruína
     // a leitura. A asserção é sobre o codepoint exato (não um \s* frouxo,
     // que casa com espaço normal, NBSP ou nada) porque esse caractere já foi
     // derrubado em silêncio antes neste projeto.
@@ -64,7 +64,7 @@ describe('AMarca', () => {
     expect(texto).toMatch(/cozido a vapor/i)
     // Guarda jurídica, não capricho de copywriter: AMO é marca real de
     // alimento, e um claim médico ou nutricional que o rótulo não sustenta é
-    // exposição legal. Lista agrupada por categoria de claim — emagrecimento,
+    // exposição legal. Lista agrupada por categoria de claim, emagrecimento,
     // calorias, ação fisiológica, halo nutricional, endosso profissional,
     // glicemia/diabetes. Se este teste disparar, a resposta é mudar o texto,
     // nunca alargar a regex para o texto passar.
@@ -78,7 +78,7 @@ describe('AMarca', () => {
     expect(screen.getByRole('img')).toHaveAttribute('alt', expect.stringMatching(/pote/i))
   })
 
-  it('não introduz <h1> — o único da página é o do Hero', () => {
+  it('não introduz <h1>, o único da página é o do Hero', () => {
     render(<AMarca />)
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
   })

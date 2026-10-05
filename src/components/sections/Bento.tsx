@@ -4,8 +4,8 @@ import { SELOS } from '@/data/selos'
 import { ICONES_SELO } from '@/components/icons/selos'
 import { Reveal } from '@/components/ui/Reveal'
 
-const FOTO_INK = SABORES[5]  // Intensamente / Chocolate — escura, casa com ink
-const FOTO_SAGE = SABORES[2] // Leveza / Maracujá — clara, casa com sage
+const FOTO_INK = SABORES[5]  // Intensamente / Chocolate, escura, casa com ink
+const FOTO_SAGE = SABORES[2] // Leveza / Maracujá, clara, casa com sage
 
 export function Bento() {
   return (
@@ -15,14 +15,22 @@ export function Bento() {
     >
       <div className="mx-auto grid max-w-[1280px] gap-4 lg:grid-cols-3">
         <Reveal className="lg:col-span-2">
+          {/* Sem ring. O `ring-cream/12` media 1.43:1 sobre ink: nao chegava
+              nem perto dos 3:1 que uma borda precisa pra delimitar, e como a
+              celula e ink sobre uma secao ink, ele era a unica coisa
+              separando as duas. Quem separa agora e o respiro interno e a
+              foto, que e o que a celula tem de verdade. */}
           <div
             data-celula
-            className="relative h-full overflow-hidden rounded-[24px] bg-ink ring-1 ring-cream/12"
+            className="relative h-full overflow-hidden rounded-[24px] bg-ink"
           >
+            {/* Ancorado dentro da celula. Antes ficava em -top-6 e o topo das
+                letras era cortado pelo raio do canto, o que lia como sobra de
+                render em vez de marca d'agua. */}
             <span
               data-fantasma
               aria-hidden="true"
-              className="pointer-events-none absolute -left-2 -top-6 select-none font-display text-[clamp(6rem,16vw,13rem)] leading-none tracking-[-0.04em] text-transparent [-webkit-text-stroke:1px_rgb(250_242_233_/_0.13)]"
+              className="pointer-events-none absolute left-6 top-5 select-none font-display text-[clamp(4.5rem,12vw,10rem)] leading-none tracking-[-0.04em] text-transparent [-webkit-text-stroke:1px_rgb(250_242_233_/_0.22)]"
             >
               AMO
             </span>
@@ -49,26 +57,33 @@ export function Bento() {
         </Reveal>
 
         <Reveal delay={0.08}>
+          {/* justify-center, nao justify-between. A celula estica pra altura da
+              celula ink ao lado, e com between os quatro tiles ficavam no topo
+              e a assinatura no rodape, com um vazio de uns 200px no meio que
+              lia como bug de layout. Centrado, o bloco e um bloco. */}
           <div
             data-celula
-            className="flex h-full flex-col justify-between gap-8 rounded-[24px] bg-sand p-8"
+            className="flex h-full flex-col justify-center gap-10 rounded-[24px] bg-sand p-8"
           >
-            <ul className="grid grid-cols-2 gap-4">
+            <ul className="grid grid-cols-2 gap-5">
               {SELOS.slice(0, 4).map((s) => {
                 const Icone = ICONES_SELO[s.id]
                 return (
                   <li key={s.id} className="flex flex-col gap-2.5">
-                    <span className="text-ink/70">
+                    <span className="text-ink">
                       <Icone />
                     </span>
-                    <span className="font-sans text-[0.6875rem] font-medium uppercase leading-[1.3] tracking-[0.1em] text-ink/70">
+                    <span className="font-sans text-[0.6875rem] font-semibold uppercase leading-[1.35] tracking-[0.1em] text-ink/85">
                       {s.nome}
                     </span>
                   </li>
                 )
               })}
             </ul>
-            <p className="font-script text-[clamp(1.5rem,2.4vw,2.125rem)] leading-tight text-rosewood-forte">
+            {/* Nao e o script: e display. O script tem dois lugares na pagina
+                (hero e A marca) e um terceiro em 24px sobre sand, a 3.10:1,
+                seria justo o caso onde ele nao aguenta. */}
+            <p className="font-display text-[clamp(1.375rem,2.2vw,1.875rem)] leading-tight tracking-[-0.01em] text-ink">
               <span translate="no">AMO</span> por você. Por seu <span translate="no">AMO</span>.
             </p>
           </div>

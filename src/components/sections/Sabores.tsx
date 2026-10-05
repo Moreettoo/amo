@@ -16,11 +16,11 @@ export function Sabores() {
           <Etiqueta>Os sabores</Etiqueta>
           <h2
             id="sabores-titulo"
-            className="mt-6 max-w-[22ch] text-[clamp(1.875rem,4vw,3.5rem)] leading-[1.05] tracking-[-0.015em] text-ink"
+            className="mt-6 max-w-[22ch] text-[clamp(1.875rem,4vw,3.5rem)] leading-[1.1] tracking-[-0.008em] text-ink"
           >
             Cada pote tem um nome
           </h2>
-          <p className="mt-4 max-w-[46ch] font-sans text-[1.0625rem] leading-[1.65] text-ink/70">
+          <p className="mt-4 max-w-[46ch] font-sans text-[1.0625rem] leading-[1.7] text-ink/85">
             Escolha pelo sabor, ou pelo que você está sentindo.
           </p>
         </Reveal>
@@ -33,7 +33,7 @@ export function Sabores() {
 
             <div
               data-painel
-              className="flex flex-col justify-center gap-3 rounded-[24px] bg-sage p-8 md:col-span-2 lg:col-span-1"
+              className="flex flex-col justify-center gap-4 rounded-[24px] bg-sage p-8 md:col-span-2 lg:col-span-1"
             >
               <p className="font-display text-[clamp(1.5rem,2.4vw,2rem)] leading-[1.15] tracking-[-0.01em] text-ink">
                 Um abraço em forma de sobremesa

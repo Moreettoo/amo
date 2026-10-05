@@ -20,10 +20,10 @@ describe('Reveal', () => {
     // cacheado module-level em prefersReducedMotion.current. O teste anterior
     // ('renderiza os filhos') já disparou essa inicialização usando o stub
     // global de tests/setup.ts (matches: false), então trocar
-    // window.matchMedia aqui sozinho não teria efeito nenhum — é preciso
+    // window.matchMedia aqui sozinho não teria efeito nenhum, é preciso
     // zerar hasReducedMotionListener.current para forçar uma nova leitura.
     // A query real consultada por dentro é "(prefers-reduced-motion)", em
-    // contexto booleano — não "(prefers-reduced-motion: reduce)".
+    // contexto booleano, não "(prefers-reduced-motion: reduce)".
     const originalMatchMedia = window.matchMedia
     const originalHasListener = hasReducedMotionListener.current
     const originalPrefersReduced = prefersReducedMotion.current
@@ -89,7 +89,7 @@ describe('Estrato', () => {
     expect(container.querySelector('path')).toHaveClass('fill-sage')
   })
 
-  it('as 5 fronteiras têm curvas diferentes — nenhuma repetida', () => {
+  it('as 5 fronteiras têm curvas diferentes, nenhuma repetida', () => {
     const ds = ([1, 2, 3, 4, 5] as const).map((n) => {
       const { container } = render(<Estrato n={n} corDestino="fill-cream" />)
       return container.querySelector('path')!.getAttribute('d')!
@@ -120,7 +120,7 @@ describe('Pill', () => {
 })
 
 describe('Etiqueta', () => {
-  it('não é interativa — é rótulo, não botão', () => {
+  it('não é interativa, é rótulo, não botão', () => {
     render(<Etiqueta>Zero açúcar</Etiqueta>)
     expect(screen.queryByRole('button')).toBeNull()
     expect(screen.queryByRole('link')).toBeNull()

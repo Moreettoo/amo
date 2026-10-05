@@ -31,7 +31,7 @@ const Vapor = () => (
   </svg>
 )
 
-/** o pote de vidro com coração — o próprio ícone da marca */
+/** o pote de vidro com coração, o próprio ícone da marca */
 const Vidro = () => (
   <svg {...base}>
     <path d="M7 4h10M8 4v2.5L7 8v10a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V8l-1-1.5V4" />

@@ -1,7 +1,7 @@
 /**
  * A fronteira curva entre dois estratos da página.
  *
- * Cinco fronteiras, cinco curvas, nenhuma repetida — é a assinatura da spec
+ * Cinco fronteiras, cinco curvas, nenhuma repetida: é a assinatura da spec
  * (§4): camada de sobremesa assenta torta, não reta. As três fronteiras que
  * ficam retas de propósito (anúncio→hero, bento→faixa, faixa→CTA) simplesmente
  * não usam este componente: tarja tem borda reta.
@@ -21,7 +21,7 @@ const CURVAS = {
 
 type Props = {
   n: keyof typeof CURVAS
-  /** classe Tailwind de fill, ex. "fill-cream" — a cor do estrato de baixo */
+  /** classe Tailwind de fill, ex. "fill-cream", a cor do estrato de baixo */
   corDestino: string
   className?: string
 }

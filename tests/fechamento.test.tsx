@@ -13,7 +13,7 @@ describe('Bento', () => {
 
   it('traz a linha secundária do rótulo', () => {
     // container.textContent, não getByText: mesma razão do teste equivalente
-    // de AMarca (tests/selos-marca.test.tsx) — cada "AMO" da linha agora vive
+    // de AMarca (tests/selos-marca.test.tsx), cada "AMO" da linha agora vive
     // no seu próprio <span translate="no"> (revisão da Task 12, Important 3),
     // e getByText não atravessa elementos filhos por padrão.
     const { container } = render(<Bento />)
@@ -35,9 +35,14 @@ describe('FaixaAssinatura', () => {
     ).toBeInTheDocument()
   })
 
-  it('usa rosewood puro como superfície — o texto é display grande', () => {
+  it('usa rosewood-forte como superfície, nunca o rosewood puro', () => {
+    // Cream sobre #B9707A dá 3.35:1: passa só o piso de texto grande.
+    // Sobre #9B5E66 dá 4.52:1, AA em qualquer corpo. Ver o guarda de
+    // disciplina do token em tests/pagina.test.tsx.
     const { container } = render(<FaixaAssinatura />)
-    expect(container.firstElementChild).toHaveClass('bg-rosewood')
+    const raiz = container.firstElementChild!
+    expect(raiz).toHaveClass('bg-rosewood-forte')
+    expect(raiz.className).not.toMatch(/bg-rosewood(?!-forte)/)
   })
 
   it('é estática: sem marquee, sem animação em loop', () => {

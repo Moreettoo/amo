@@ -20,7 +20,7 @@ describe('tokens de cor', () => {
   })
 })
 
-describe('contraste de texto — WCAG AA', () => {
+describe('contraste de texto, WCAG AA', () => {
   const normal = 4.5
   it.each([
     ['ink', 'sage'],
@@ -48,7 +48,7 @@ describe('anel de foco', () => {
     },
   )
 
-  it('rosewood puro reprovaria sobre sage — por isso existe o forte', () => {
+  it('rosewood puro reprovaria sobre sage, por isso existe o forte', () => {
     expect(contraste(t.rosewood, t.sage)).toBeLessThan(3)
   })
 })

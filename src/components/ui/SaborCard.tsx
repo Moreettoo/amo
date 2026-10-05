@@ -11,7 +11,13 @@ const TAMPA: Record<CorTampa, string> = {
 
 export function SaborCard({ sabor }: { sabor: Sabor }) {
   return (
-    <article className="group overflow-hidden rounded-[24px] border border-transparent bg-white transition-[border-color,transform,box-shadow] duration-200 hover:border-blush hover:shadow-[0_8px_32px_-8px_rgb(46_36_31_/_0.12)] motion-safe:hover:-translate-y-[3px]">
+    // flex-col com a frase em mt-auto: a grade já estica todos os cards da
+    // linha pra mesma altura, e sem isso a frase de "Encontro" (cujo sabor
+    // ocupa duas linhas) descia sozinha e desalinhava o pe da linha inteira.
+    //
+    // bg-papel, nao bg-white. #FFF puro nao esta na paleta e encostado no
+    // cream lia frio e acinzentado, como se o card fosse de outro projeto.
+    <article className="group flex h-full flex-col overflow-hidden rounded-[24px] border border-transparent bg-papel transition-[border-color,transform,box-shadow] duration-200 hover:border-blush hover:shadow-[0_8px_32px_-8px_rgb(46_36_31_/_0.12)] motion-safe:hover:-translate-y-[3px]">
       <div className="aspect-[3/4] overflow-hidden">
         <Image
           src={sabor.imagem}
@@ -24,22 +30,27 @@ export function SaborCard({ sabor }: { sabor: Sabor }) {
         />
       </div>
 
-      <div className="flex flex-col gap-2 p-5">
+      <div className="flex flex-1 flex-col gap-2 p-5">
         <div className="flex items-center gap-2.5">
           <span
             aria-hidden="true"
             className={`h-1.5 w-1.5 shrink-0 rounded-full ${TAMPA[sabor.corTampa]}`}
           />
-          <h3 className="font-script text-[clamp(1.5rem,2.2vw,2rem)] leading-none text-ink">
+          {/* O nome saiu do script. Ele e o identificador principal do card, e
+              Parisienne em 24px e um traco fio de cabelo: dava pra ler, mas
+              lendo com esforco, no lugar onde a pessoa mais precisa nao ter
+              esforco. O script continua na pagina, nas duas linhas de
+              assinatura da marca, onde passa dos 28px. */}
+          <h3 className="font-display text-[1.375rem] leading-tight tracking-[-0.005em] text-ink">
             <span translate="no">{sabor.nome}</span>
           </h3>
         </div>
 
-        <p className="font-sans text-[0.8125rem] font-medium uppercase tracking-[0.14em] text-ink/55">
+        <p className="font-sans text-[0.78125rem] font-semibold uppercase leading-[1.35] tracking-[0.1em] text-ink/75">
           {sabor.sabor}
         </p>
 
-        <p className="mt-1 font-sans text-sm leading-[1.55] text-ink/70">
+        <p className="mt-auto pt-3 font-sans text-sm leading-[1.6] text-ink/80">
           {sabor.frase}
         </p>
       </div>

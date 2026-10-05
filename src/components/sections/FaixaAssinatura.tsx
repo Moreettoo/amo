@@ -1,18 +1,23 @@
 /**
- * A tarja de rodapé impressa no rótulo, citada em cheio.
+ * A tarja de rodape impressa no rotulo, citada em cheio.
  *
- * Estática de propósito. Marquee é autoplay acima de 5 s — exigiria controle
- * de pausa pelas guidelines — e é tell de template. Tarja tem borda reta e
- * texto parado; é o que a embalagem faz.
+ * Estatica de proposito. Marquee e autoplay acima de 5 s (exigiria controle de
+ * pausa pelas guidelines) e e tell de template. Tarja tem borda reta e texto
+ * parado, que e o que a embalagem faz.
  *
- * Superfície em rosewood puro (#B9707A): o texto aqui é Bodoni caps grande,
- * então cream sobre rosewood a 3.35:1 satisfaz o limite de texto grande (3:1).
- * Em texto de tamanho normal seria rosewood-forte.
+ * A superficie e rosewood-forte, nao rosewood puro. Cream sobre #B9707A media
+ * 3.35:1: passa o piso de 3:1 de texto grande e reprova o de 4.5:1, e passar
+ * raspando no piso mais permissivo e o pior lugar pra deixar a unica faixa
+ * colorida da pagina. Em #9B5E66 da 4.52:1, AA cheio em qualquer corpo.
+ *
+ * O display uniforme ajuda aqui de graca: o que a razao de contraste nao media
+ * era a haste fina do didone em caixa alta, que sumia sobre o rosa antes de o
+ * numero reprovar. Um slab de espessura unica nao tem haste fina pra sumir.
  */
 export function FaixaAssinatura() {
   return (
-    <div className="bg-rosewood px-5 py-9 text-center md:py-12">
-      <p className="font-display text-[clamp(1.125rem,2.6vw,2.25rem)] uppercase leading-tight tracking-[0.06em] text-cream">
+    <div className="bg-rosewood-forte px-5 py-10 text-center md:py-14">
+      <p className="font-display text-[clamp(1.125rem,2.4vw,2rem)] uppercase leading-tight tracking-[0.06em] text-cream">
         Um abraço em forma de sobremesa{' '}
         <span aria-hidden="true" className="opacity-70">
           ✦

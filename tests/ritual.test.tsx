@@ -11,7 +11,7 @@ describe('Ritual', () => {
     ).toBeInTheDocument()
   })
 
-  it('é uma lista ordenada — a ordem carrega informação de verdade', () => {
+  it('é uma lista ordenada, a ordem carrega informação de verdade', () => {
     const { container } = render(<Ritual />)
     const ol = container.querySelector('ol')
     expect(ol).toBeTruthy()
@@ -29,7 +29,7 @@ describe('Ritual', () => {
     expect(itens[3]).toContain('Cuide do pote de vidro')
   })
 
-  it('esconde o numeral decorativo do leitor de tela — o <ol> já numera', () => {
+  it('esconde o numeral decorativo do leitor de tela, o <ol> já numera', () => {
     const { container } = render(<Ritual />)
     const numerais = container.querySelectorAll('[data-numeral]')
     expect(numerais).toHaveLength(4)

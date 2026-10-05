@@ -12,7 +12,7 @@ describe('Hero', () => {
     // Via nome acessível computado, não textContent bruto: um espaço preso
     // dentro do span de uma linha (em vez de como irmão de DOM entre as
     // linhas) produz o mesmo textContent mas um nome acessível diferente
-    // ("Um abraço emforma desobremesa") — ver task-6-report.md.
+    // ("Um abraço emforma desobremesa"), ver task-6-report.md.
     expect(
       screen.getByRole('heading', {
         level: 1,
@@ -21,7 +21,7 @@ describe('Hero', () => {
     ).toBeInTheDocument()
   })
 
-  it('quebra o h1 em 3 faixas — a tese da secção transversal', () => {
+  it('quebra o h1 em 3 faixas, a tese da secção transversal', () => {
     const { container } = render(<Hero />)
     expect(container.querySelectorAll('[data-faixa]')).toHaveLength(3)
   })
@@ -60,16 +60,16 @@ describe('Hero', () => {
     // useReducedMotion() (motion@13.1.1) só lê window.matchMedia uma vez por
     // arquivo de teste: initPrefersReducedMotion() roda apenas enquanto
     // hasReducedMotionListener.current for falso, e o resultado fica
-    // cacheado module-level em prefersReducedMotion.current — a primeira
+    // cacheado module-level em prefersReducedMotion.current, a primeira
     // renderização de <Hero /> acima já disparou essa inicialização usando o
     // stub global de tests/setup.ts (matches: false). Trocar
     // window.matchMedia aqui sozinho não teria efeito nenhum; é preciso
     // zerar hasReducedMotionListener.current para forçar uma nova leitura.
     // A query real consultada por dentro é "(prefers-reduced-motion)", em
-    // contexto booleano — não "(prefers-reduced-motion: reduce)". Mesma
+    // contexto booleano, não "(prefers-reduced-motion: reduce)". Mesma
     // técnica de tests/ui.test.tsx (ver task-4-report.md).
     //
-    // Hero não delega a um Reveal já coberto alhures — ele chama
+    // Hero não delega a um Reveal já coberto alhures, ele chama
     // useReducedMotion() diretamente pelos próprios anim()/animFaixa(), um
     // caminho de código separado que precisa da própria cobertura.
     const originalMatchMedia = window.matchMedia
@@ -101,7 +101,7 @@ describe('Hero', () => {
       })
 
       // Varredura geral: nenhum elemento do Hero carrega opacity/transform
-      // inline — a marca que anim()/animFaixa() deixam quando ativos.
+      // inline, a marca que anim()/animFaixa() deixam quando ativos.
       // (O <img> do next/image tem seu próprio style="color:transparent",
       // sem relação com o Motion, por isso o filtro é por opacity/transform
       // e não por presença de qualquer atributo style.)
