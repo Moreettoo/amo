@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "./estilos/pecas.css";
+@import "./estilos/movimento.css";
 
 /* `static`: os tokens viram variavel CSS mesmo sem utilitario que os use,
    porque os arquivos de src/app/estilos leem var(--color-*) direto. */

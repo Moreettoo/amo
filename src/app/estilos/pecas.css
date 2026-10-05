@@ -1,0 +1,120 @@
+/* Pecas da home v2. Camada `components`: utilitario do Tailwind ainda pode
+   ajustar layout por cima. Efeito de mouse so dentro de @media (hover:
+   hover); o mesmo efeito vale em :focus-visible no que e focavel. */
+@layer components {
+  .wrap { max-width: 1240px; margin-inline: auto; padding-inline: var(--gutter); }
+
+  .rotulo-secao { margin: 0; font-size: 15px; font-weight: 700; color: var(--color-cobre-texto); }
+  .superficie-escura .rotulo-secao { color: var(--color-caramelo); }
+  .titulo-secao { margin-top: 12px; font-size: clamp(40px, 5vw, 60px); line-height: 1.02; }
+  .texto { margin: 16px 0 0; max-width: 46ch; font-size: 18px; line-height: 1.65; color: var(--color-suave); }
+
+  .grao {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .11 0 0 0 0 .08 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* botao retro */
+  .btn-retro {
+    display: inline-flex; align-items: center; gap: 0; min-height: 44px;
+    padding: 15px 30px; border-radius: 999px;
+    background: var(--color-creme); color: var(--color-expresso);
+    font: 700 17px/1.2 var(--font-sans); text-decoration: none; white-space: nowrap;
+    box-shadow: 0 5px 0 var(--color-cobre); cursor: pointer;
+    transition: transform .14s ease, box-shadow .14s ease, gap .3s var(--ease-amo);
+  }
+  .btn-retro--escuro { background: var(--color-expresso); color: var(--color-creme); }
+  .btn-retro--compacto { padding: 11px 20px; font-size: 15px; box-shadow: 0 4px 0 var(--color-cobre); }
+  .btn-retro__cor {
+    display: inline-block; width: 0; overflow: hidden; color: var(--color-vinho); transform: scale(0);
+    transition: transform .35s cubic-bezier(.34, 1.6, .64, 1), width .3s var(--ease-amo);
+  }
+  .btn-retro--escuro .btn-retro__cor { color: var(--color-caramelo); }
+  .btn-retro:focus-visible { transform: translateY(2px); box-shadow: 0 3px 0 var(--color-cobre); gap: 9px; }
+  .btn-retro:focus-visible .btn-retro__cor { width: 16px; transform: scale(1); }
+  @media (hover: hover) {
+    .btn-retro:hover { transform: translateY(2px); box-shadow: 0 3px 0 var(--color-cobre); gap: 9px; }
+    .btn-retro:hover .btn-retro__cor { width: 16px; transform: scale(1); }
+  }
+  .btn-retro:active { transform: translateY(5px); box-shadow: 0 0 0 var(--color-cobre); }
+  @media (max-width: 820px) {
+    .btn-retro--compacto { padding: 10px 14px; font-size: 14px; }
+  }
+
+  /* pilula que enche de baixo */
+  .pilula {
+    position: relative; isolation: isolate; overflow: hidden;
+    display: inline-flex; align-items: center; gap: 6px; min-height: 44px;
+    padding: 9px 17px; border: 2px solid var(--color-expresso); border-radius: 999px;
+    background: transparent; color: var(--color-expresso);
+    font: 600 15.5px/1.2 var(--font-sans); text-decoration: none; cursor: pointer;
+    transition: color .3s ease;
+  }
+  .pilula::before {
+    content: ""; position: absolute; inset: -2px; z-index: -1;
+    background: var(--color-expresso); border-radius: 40% 40% 0 0 / 30% 30% 0 0;
+    transform: translateY(102%);
+    transition: transform .42s cubic-bezier(.65, 0, .35, 1), border-radius .42s ease;
+  }
+  .pilula em { font-style: normal; font-size: 13px; font-weight: 500; }
+  .pilula small { font-size: 12px; font-weight: 700; }
+  .pilula[aria-pressed="true"], .pilula[aria-selected="true"], .pilula.ativa, .pilula:focus-visible { color: var(--color-creme); }
+  .pilula[aria-pressed="true"]::before, .pilula[aria-selected="true"]::before, .pilula.ativa::before, .pilula:focus-visible::before {
+    transform: translateY(0); border-radius: 0;
+  }
+  @media (hover: hover) {
+    .pilula:hover { color: var(--color-creme); }
+    .pilula:hover::before { transform: translateY(0); border-radius: 0; }
+  }
+  .pilula--selo { border-style: dashed; border-color: var(--color-cobre); color: var(--color-cobre-texto); }
+  .pilula--selo::before { background: var(--color-cobre); }
+  .pilula--selo[aria-pressed="true"], .pilula--selo:focus-visible { color: var(--color-expresso); }
+  @media (hover: hover) { .pilula--selo:hover { color: var(--color-expresso); } }
+  .pilula--clara { border-color: var(--color-creme); color: var(--color-creme); }
+  .pilula--clara::before { background: var(--color-creme); }
+  .pilula--clara.ativa, .pilula--clara:focus-visible { color: var(--color-expresso); }
+  @media (hover: hover) { .pilula--clara:hover { color: var(--color-expresso); } }
+
+  /* link com sublinhado a mao */
+  .link-sub { position: relative; display: inline-block; color: inherit; font-size: 15.5px; font-weight: 500; text-decoration: none; cursor: pointer; }
+  .link-sub svg { position: absolute; left: -3px; bottom: -9px; width: calc(100% + 6px); height: 9px; overflow: visible; pointer-events: none; }
+  .link-sub path {
+    fill: none; stroke: var(--color-cobre); stroke-width: 3; stroke-linecap: round;
+    stroke-dasharray: 1 2; stroke-dashoffset: 1.1;
+    transition: stroke-dashoffset .38s cubic-bezier(.65, 0, .35, 1);
+  }
+  .link-sub:focus-visible path { stroke-dashoffset: 0; }
+  @media (hover: hover) { .link-sub:hover path { stroke-dashoffset: 0; } }
+
+  /* foto em arco: hover decorativo, cursor normal */
+  .arco-foto {
+    position: relative; overflow: hidden; background: var(--color-chocolate);
+    box-shadow: 0 0 0 var(--color-cobre);
+    transition: box-shadow .4s var(--ease-amo), transform .4s var(--ease-amo);
+  }
+  .arco-foto img { width: 100%; height: 100%; object-fit: cover; transition: transform .7s var(--ease-amo); }
+  @media (hover: hover) {
+    .arco-foto:hover { box-shadow: 10px 10px 0 var(--color-cobre); transform: translate(-5px, -5px); }
+    .arco-foto:hover img { transform: scale(1.07); }
+  }
+
+  /* selo carimbo */
+  .selo-carimbo {
+    position: relative; display: grid; place-items: center;
+    width: clamp(84px, 10.5vw, 128px); aspect-ratio: 1; margin: 0; padding: 14px;
+    border-radius: 50%; background: var(--color-cobre); color: var(--color-expresso);
+    font: 400 clamp(15px, 1.8vw, 22px)/1.02 var(--font-display); text-align: center; text-wrap: balance;
+    transform: rotate(-10deg);
+  }
+  .selo-carimbo::before {
+    content: ""; position: absolute; inset: 7px; border-radius: 50%;
+    border: 1.5px dashed rgb(43 27 22 / .55); transition: transform .9s var(--ease-amo);
+  }
+  @media (hover: hover) {
+    .selo-carimbo:hover { animation: recarimbar .45s cubic-bezier(.2, .8, .3, 1.2); }
+    .selo-carimbo:hover::before { transform: rotate(120deg); }
+  }
+
+  /* estratos */
+  .camadas { position: relative; height: 64px; overflow: hidden; }
+  .camadas svg { position: absolute; left: -2%; bottom: 0; width: 104%; height: 100%; }
+}
