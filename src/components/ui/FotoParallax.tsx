@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useRef } from 'react'
 import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import type { ImagemProduto } from '@/lib/catalogo'
 
 /**
  * A foto que anda um pouco mais devagar que a pagina.
@@ -16,7 +17,7 @@ import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
  * nada (tests/ssr.test.tsx).
  */
 type Props = {
-  imagem: { src: string; alt: string; largura: number; altura: number }
+  imagem: ImagemProduto
   sizes: string
   /** verdadeiro apenas na foto do destaque no hero, o elemento de LCP */
   preload?: boolean

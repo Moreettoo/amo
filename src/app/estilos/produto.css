@@ -1,0 +1,84 @@
+/* Moldura por formato e o card do cardapio. */
+@layer components {
+  .moldura { position: relative; }
+  .moldura__janela {
+    position: relative; height: 280px; overflow: hidden; background: var(--color-chocolate);
+    transition: box-shadow .35s var(--ease-amo);
+  }
+  .moldura--pote .moldura__janela { border-radius: 999px 999px 22px 22px; }
+  .moldura--inteiro .moldura__janela { width: 250px; height: 250px; max-width: 100%; margin: 15px auto; border-radius: 50%; }
+  .moldura--unidade .moldura__janela { border-radius: 28px; }
+  .moldura--neutra .moldura__janela { border-radius: 16px; }
+  .moldura__foto { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease-amo); }
+  .liq { width: 100%; height: 100%; }
+
+  .selos-foto {
+    position: absolute; z-index: 2; left: 10px; bottom: 10px;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
+    max-width: 62%; margin: 0; padding: 0; list-style: none;
+  }
+  .selos-foto li {
+    padding: 4px 10px; border-radius: 999px; background: rgb(255 251 245 / .95);
+    color: var(--color-chocolate); font-size: 12.5px; font-weight: 700;
+    transition: opacity .25s ease, transform .35s cubic-bezier(.34, 1.5, .64, 1);
+  }
+  .selos-foto li:nth-child(2) { transition-delay: .06s; }
+  .moldura--inteiro .selos-foto { left: 50%; bottom: 26px; align-items: center; max-width: 80%; transform: translateX(-50%); }
+
+  /* etiqueta oval do pote */
+  .etiqueta {
+    position: absolute; z-index: 3; right: -8px; top: 152px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    width: 134px; height: 158px; padding: 14px; border-radius: 50%;
+    background: var(--color-papel); color: var(--color-expresso); text-align: center;
+    box-shadow: 0 12px 26px -12px rgb(43 27 22 / .55), inset 0 0 0 1px rgb(43 27 22 / .12);
+    transform: rotate(-8deg);
+  }
+  .etiqueta::before {
+    content: ""; position: absolute; top: 12px; left: 50%; width: 10px; height: 10px; margin-left: -5px;
+    border-radius: 50%; background: var(--color-caramelo);
+  }
+  .etiqueta b { margin-top: 8px; font: 400 17px/1.08 var(--font-display); text-wrap: balance; }
+  .etiqueta--longa b { font-size: 13.5px; }
+  .etiqueta small { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--color-cobre-texto); }
+  .etiqueta i { margin-top: 4px; font-style: normal; font-size: 12px; color: var(--color-vinho); }
+
+  /* fita do bolo inteiro */
+  .fita {
+    position: absolute; z-index: 3; left: 50%; top: 226px; padding: 8px 22px;
+    background: var(--color-vinho); color: var(--color-papel);
+    font: 400 17px/1.2 var(--font-display); white-space: nowrap;
+    clip-path: polygon(0 0, 100% 0, 94% 50%, 100% 100%, 0 100%, 6% 50%);
+    transform: translateX(-50%) rotate(-3deg);
+  }
+
+  /* carimbo kraft da unidade */
+  .carimbo {
+    position: absolute; z-index: 3; left: 14px; top: 200px; padding: 9px 14px; border-radius: 4px;
+    background: var(--color-kraft); color: var(--color-expresso); font: 400 17px/1.2 var(--font-display);
+    box-shadow: inset 0 0 0 2px rgb(43 27 22 / .25), inset 0 0 0 5px var(--color-kraft), inset 0 0 0 6.5px rgb(43 27 22 / .35);
+    transform: rotate(-6deg);
+  }
+
+  /* card */
+  .card-produto { position: relative; transition: transform .35s var(--ease-amo); }
+  .card-produto__tipo { margin: 18px 0 0; font-size: 13.5px; font-weight: 700; color: var(--color-cobre-texto); }
+  .card-produto h3 { margin-top: 4px; font-size: 24px; line-height: 1.1; }
+  .card-produto__frase { margin: 8px 0 0; font-size: 16px; line-height: 1.5; color: var(--color-suave); }
+  @media (hover: hover) {
+    .selos-foto li { opacity: 0; transform: translateY(10px); }
+    .card-produto:hover { transform: translateY(-6px); }
+    .card-produto:hover .moldura__janela { box-shadow: 8px 8px 0 var(--color-caramelo); }
+    .card-produto:hover .moldura__foto { transform: scale(1.06); }
+    .card-produto:hover .selos-foto li { opacity: 1; transform: none; }
+  }
+
+  @media (max-width: 520px) {
+    .moldura__janela { height: 210px; }
+    .moldura--inteiro .moldura__janela { width: 150px; height: 150px; }
+    .etiqueta { top: 118px; width: 100px; height: 120px; padding: 10px; }
+    .etiqueta b, .etiqueta--longa b { font-size: 12.5px; }
+    .fita { top: 160px; font-size: 14px; }
+    .carimbo { top: 150px; font-size: 14px; }
+  }
+}
