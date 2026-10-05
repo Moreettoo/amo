@@ -172,7 +172,9 @@ type Catalogo = { linhas: Linha[]; produtos: Produto[]; selos: Selo[]; vontades:
   - produto sem `imagem.src` começando em `/`, sem `alt`, ou com
     largura ou altura menor ou igual a zero;
   - mais de um produto com `destaque`;
-  - catálogo sem produto.
+  - catálogo sem produto;
+  - catálogo sem nenhum produto com vontade (o Hoje o dia pede ficaria vazio
+    e os links para `#hoje` ficariam mortos).
 - Sem foto não há produto: um item novo só entra no cadastro quando tiver foto.
 
 ### 3.3 Os dados de hoje
@@ -354,7 +356,9 @@ Textos marcados com **(P)** são redação minha e dependem do aval do cliente
 Seção pinada: um trilho com altura de `100svh + n · 55svh` (n = vontades
 visíveis; hoje, 4) e, dentro dele, um painel `sticky` de `100svh` (mínimo
 620 px). O progresso da rolagem no trilho escolhe a vontade pelo
-`indicePorProgresso`.
+`indicePorProgresso`. O pino só vale com janela de 700 px de altura ou mais:
+abaixo disso o conteúdo não cabe em `100svh` e seria cortado, então a seção
+fica com altura normal e as abas só trocam o conteúdo.
 
 - Coluna do texto:
   - rótulo "Não sabe o que escolher?" **(P)** e h2 "Hoje o dia pede";
@@ -471,12 +475,14 @@ cubic-bezier(.34,1.4,.64,1)`.
   hero em branco da v1.1: o `whileInView` do Motion deixava `opacity: 0`
   inline no HTML do servidor.
 - Nenhum elemento sai do servidor com estado inicial escondido inline:
-  nenhum `opacity`, `visibility` ou `clip-path` no atributo `style`, e nenhum
-  `transform` fora dos invólucros de parallax (marcados com
-  `data-parallax`, cujo `transform` é o deslocamento de rolagem e não esconde
-  nada).
+  nenhum `opacity: 0`, `visibility: hidden` ou `clip-path` no atributo
+  `style`, e nenhum `transform` diferente de `none` fora dos invólucros de
+  parallax (marcados com `data-parallax`, cujo `transform` é o deslocamento
+  de rolagem e não esconde nada). O `opacity: 1; transform: none` que o
+  Motion grava nos cards do cardápio é o estado final e é aceito.
 - As animações 1, 2, 3, 4, 6 e 7 são CSS (keyframes e estados iniciais em
-  `src/app/movimento.css`; o aperto, junto dos hovers, em `componentes.css`).
+  `src/app/estilos/movimento.css`; o aperto, junto dos hovers, nos arquivos
+  de cada parte em `src/app/estilos/`).
   A entrada do hero começa sozinha ao carregar, sem classe disparada por JS.
   As que dependem de entrar na tela usam o hook `useNaTela`, um
   IntersectionObserver (margem inferior de −12%) que só adiciona a classe
@@ -547,7 +553,8 @@ Regras:
 ```
 src/data/        linhas.ts · produtos.ts · selos.ts · vontades.ts
 src/lib/         catalogo.ts · visao.ts · vontade.ts   (contraste.ts e motion.ts ficam)
-src/app/         layout.tsx · page.tsx · globals.css · movimento.css · componentes.css
+src/app/         layout.tsx · page.tsx · globals.css
+  estilos/       pecas · produto · hero · cardapio · hoje · rotulos · marca · rodape · movimento (.css)
 src/components/  RolagemSuave.tsx · FiltroProvider.tsx · InlineScript.tsx
   layout/        Nav.tsx · Footer.tsx
   sections/      Hero · Cardapio · HojeODiaPede · Rotulos · AMarca · FaixaCobre · Final
@@ -558,11 +565,12 @@ src/components/  RolagemSuave.tsx · FiltroProvider.tsx · InlineScript.tsx
 public/produtos/ <slug>.webp   (as 7 fotos, renomeadas)
 ```
 
-- `globals.css`: tokens, base e o `@import` dos outros dois.
-- `componentes.css`: as classes de hover com pseudo-elementos, porque
-  `::before` com `hover`, `focus-visible` e `@media` juntos ficam ilegíveis em
-  utilitários.
-- `movimento.css`: keyframes e estados iniciais escondidos.
+- `globals.css`: tokens, base e o `@import` dos arquivos de `estilos/`.
+- `estilos/*.css`, um por parte: as classes com pseudo-elementos e hover,
+  porque `::before` com `hover`, `focus-visible` e `@media` juntos ficam
+  ilegíveis em utilitários.
+- `estilos/movimento.css`: keyframes e estados iniciais escondidos, e mais
+  nada.
 - Layout e espaçamento seguem em Tailwind.
 
 **Saem:** AnnouncementBar, Selos, Ritual, Sabores, ListaPinada, Bento,
