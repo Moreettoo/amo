@@ -1,8 +1,20 @@
+import { FiltroProvider } from '@/components/FiltroProvider'
+import { Footer } from '@/components/layout/Footer'
+import { Nav } from '@/components/layout/Nav'
+import { carregarCatalogo } from '@/lib/catalogo'
+import { montarVisao } from '@/lib/visao'
+
 /**
- * A home v2 cresce secao por secao no plano
- * (docs/superpowers/plans/2026-10-05-amo-home-v2-retro.md). Por enquanto, so o
- * alvo do "Pular para o conteudo".
+ * A home. Server Component: carrega o cadastro, decide uma vez o que
+ * aparece (montarVisao) e entrega dados prontos para as secoes.
  */
-export default function Home() {
-  return <main id="conteudo" className="scroll-mt-24" />
+export default async function Home() {
+  const visao = montarVisao(await carregarCatalogo())
+  return (
+    <FiltroProvider>
+      <Nav />
+      <main id="conteudo" className="scroll-mt-24" />
+      <Footer linhas={visao.rotulos} filtraLinha={visao.filtrosLinha.length > 0} />
+    </FiltroProvider>
+  )
 }
