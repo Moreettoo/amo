@@ -1,6 +1,7 @@
 import { FiltroProvider } from '@/components/FiltroProvider'
 import { Footer } from '@/components/layout/Footer'
 import { Nav } from '@/components/layout/Nav'
+import { Cardapio } from '@/components/sections/Cardapio'
 import { Hero } from '@/components/sections/Hero'
 import { Camadas } from '@/components/ui/Camadas'
 import { carregarCatalogo } from '@/lib/catalogo'
@@ -18,6 +19,15 @@ export default async function Home() {
       <main id="conteudo" className="scroll-mt-24">
         <Hero palco={visao.palco} destaque={visao.destaque} regra={visao.regraDoDestaque} />
         <Camadas estrato="heroCardapio" />
+        <Cardapio
+          produtos={visao.produtos}
+          tipos={visao.tipos}
+          nomesDosSelos={visao.nomesDosSelos}
+          filtrosLinha={visao.filtrosLinha}
+          filtrosSelo={visao.filtrosSelo}
+          vontades={visao.vontades}
+        />
+        <Camadas estrato="cardapioHoje" />
       </main>
       <Footer linhas={visao.rotulos} filtraLinha={visao.filtrosLinha.length > 0} />
     </FiltroProvider>

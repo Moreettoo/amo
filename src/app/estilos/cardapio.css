@@ -1,0 +1,27 @@
+/* Cardapio, creme com grao. `overflow-x: clip` segura fita e etiqueta que
+   saem da borda do card na ultima coluna, sem criar rolagem horizontal. */
+@layer components {
+  .cardapio { overflow-x: clip; padding: 80px 0 96px; }
+  .cardapio__topo { display: grid; gap: 20px; align-items: end; }
+  .cardapio__topo .texto { margin: 0; }
+  @media (min-width: 821px) {
+    .cardapio__topo--duplo { grid-template-columns: 1fr 1fr; gap: 48px; }
+  }
+  .filtros {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    margin-top: 40px; padding-bottom: 22px; border-bottom: 1.5px dashed rgb(43 27 22 / .2);
+  }
+  .filtros__sep { width: 1.5px; height: 28px; margin: 0 6px; background: rgb(43 27 22 / .2); }
+  .grade {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 56px 26px;
+    margin: 44px 0 0; padding: 0; list-style: none;
+  }
+  .cardapio__vazio { margin-top: 40px; font-size: 18px; color: var(--color-suave); }
+  .cardapio__vazio button {
+    padding: 0; border: 0; border-bottom: 2px solid var(--color-cobre); background: none;
+    color: var(--color-cobre-texto); font: inherit; font-weight: 700; cursor: pointer;
+  }
+  @media (max-width: 520px) {
+    .grade { grid-template-columns: 1fr 1fr; gap: 40px 14px; }
+  }
+}
