@@ -1,26 +1,39 @@
 'use client'
 
-import { useEffect } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, type ReactNode } from 'react'
 import Lenis from 'lenis'
 
 /**
- * A rolagem que desliza, igual a da referencia.
+ * A rolagem que desliza, igual a da referencia (o lunarossa.framer.website
+ * roda esta mesma biblioteca).
  *
- * O lunarossa.framer.website roda esta mesma biblioteca: inspecionando a
- * pagina, o <html> dela carrega as classes `lenis lenis-autoToggle`. Entao
- * aqui nao e aproximacao do efeito, e a mesma engrenagem.
+ * O Lenis nao sequestra o scroll com transform num wrapper: ele move o
+ * scrollTop real do documento, um frame por vez. Isso mantem intactos
+ * `position: sticky` (a nav e o Hoje o dia pede dependem disso),
+ * `getBoundingClientRect` e o `useScroll` do Motion.
  *
- * O Lenis nao sequestra o scroll com transform num wrapper: ele continua
- * movendo o scrollTop real do documento, um frame por vez, interpolado. Isso
- * e o que mantem intactos `position: sticky` (a Nav e a ListaPinada dependem
- * disso), `getBoundingClientRect` (a ListaPinada calcula o indice ativo com
- * ele) e os eventos nativos de `scroll` que a Nav escuta.
+ * Alem de ligar o Lenis, oferece `useRolagem().rolarPara`, para quem precisa
+ * rolar ate um ponto exato (as abas do Hoje o dia pede).
  */
 
-/** Nav grudada: 12px de topo + 88px de altura. 112 deixa uma folga e e o
- *  mesmo numero do `scroll-mt-28` das secoes, que continua sendo o caminho
- *  sem JavaScript. Um numero so pra ancora, nao dois. */
-const DESLOCAMENTO_NAV = -112
+/** Nav: 12px de `top-3` + 64px de altura + 20 de folga. O mesmo numero do
+ *  `scroll-mt-24` das secoes, que continua sendo o caminho sem JavaScript. */
+export const DESLOCAMENTO_NAV = -96
+
+type OpcoesRolagem = { aoTerminar?: () => void }
+type Rolagem = { rolarPara: (y: number, opcoes?: OpcoesRolagem) => void }
+
+/** Sem Lenis (movimento reduzido, ou antes de montar): salto nativo. */
+function rolarNativo(y: number, opcoes?: OpcoesRolagem) {
+  window.scrollTo({ top: y })
+  opcoes?.aoTerminar?.()
+}
+
+const ContextoRolagem = createContext<Rolagem>({ rolarPara: rolarNativo })
+
+export function useRolagem(): Rolagem {
+  return useContext(ContextoRolagem)
+}
 
 /**
  * A ancora e conduzida aqui, e nao pela opcao `anchors` do Lenis, por dois
@@ -30,7 +43,7 @@ const DESLOCAMENTO_NAV = -112
  *    navegador roda depois dele e salta pro alvo na hora; no frame seguinte
  *    o Lenis reescreve a posicao interpolada dele e a pagina pula pro
  *    destino, volta pro inicio e so entao desliza.
- * 2. Foco. Prevenindo o default, o navegador tambem deixa de mover o foco de
+ * 2. Foco. Prevenindo o default, o navegador deixa de mover o foco de
  *    teclado pro alvo, e o "Pular para o conteudo" viraria um link que rola a
  *    tela e nao leva ninguem a lugar nenhum. Como o default e nosso, o foco
  *    tambem tem que ser.
@@ -56,10 +69,9 @@ function conduzirAncora(lenis: Lenis, evento: MouseEvent) {
   window.history.pushState(null, '', url.hash)
   lenis.scrollTo(alvo, { offset: DESLOCAMENTO_NAV })
 
-  // <main> e <section> nao sao focaveis por natureza. tabindex -1 e temporario
-  // de proposito: deixá-lo no DOM poria os alvos numa ordem de tabulacao que
-  // ninguem pediu. preventScroll e obrigatorio: sem ele o navegador rola pro
-  // elemento focado e atropela a interpolacao do Lenis no mesmo frame.
+  // tabindex -1 temporario: deixa-lo no DOM poria os alvos numa ordem de
+  // tabulacao que ninguem pediu. preventScroll e obrigatorio: sem ele o
+  // navegador rola pro elemento focado e atropela a interpolacao do Lenis.
   const jaFocavel = alvo.matches('a[href], button, input, select, textarea, [tabindex]')
   if (!jaFocavel) {
     alvo.setAttribute('tabindex', '-1')
@@ -68,37 +80,37 @@ function conduzirAncora(lenis: Lenis, evento: MouseEvent) {
   alvo.focus({ preventScroll: true })
 }
 
-export function RolagemSuave() {
+export function RolagemSuave({ children }: { children: ReactNode }) {
+  const lenisRef = useRef<Lenis | null>(null)
+
   useEffect(() => {
     const consulta = window.matchMedia('(prefers-reduced-motion: reduce)')
-    let lenis: Lenis | null = null
     let aoClicar: ((evento: MouseEvent) => void) | null = null
 
     const desmontar = () => {
       if (aoClicar) document.removeEventListener('click', aoClicar)
       aoClicar = null
-      lenis?.destroy()
-      lenis = null
+      lenisRef.current?.destroy()
+      lenisRef.current = null
     }
 
     const sincronizar = () => {
       // Sob prefers-reduced-motion a instancia nao existe: a rolagem volta a
-      // ser a nativa do navegador, sem interpolacao nenhuma, e a ancora volta
-      // a ser a do proprio navegador (o `scroll-mt-28` das secoes cuida do
-      // deslocamento). Destruir em vez de `stop()`, que congelaria a pagina
-      // em vez de liberá-la.
+      // ser a nativa e a ancora volta a ser a do navegador (o `scroll-mt-24`
+      // das secoes cuida do deslocamento). Destruir em vez de `stop()`, que
+      // congelaria a pagina em vez de libera-la.
       if (consulta.matches) return desmontar()
-      if (lenis) return
+      if (lenisRef.current) return
 
-      lenis = new Lenis({
+      const lenis = new Lenis({
         autoRaf: true,
         autoToggle: true,
         lerp: 0.1,
         duration: 1.2,
         smoothWheel: true,
       })
-      const instancia = lenis
-      aoClicar = (evento) => conduzirAncora(instancia, evento)
+      lenisRef.current = lenis
+      aoClicar = (evento) => conduzirAncora(lenis, evento)
       document.addEventListener('click', aoClicar)
     }
 
@@ -110,5 +122,12 @@ export function RolagemSuave() {
     }
   }, [])
 
-  return null
+  const rolarPara = useCallback((y: number, opcoes?: OpcoesRolagem) => {
+    const lenis = lenisRef.current
+    if (!lenis) return rolarNativo(y, opcoes)
+    lenis.scrollTo(y, { onComplete: () => opcoes?.aoTerminar?.() })
+  }, [])
+
+  const valor = useMemo(() => ({ rolarPara }), [rolarPara])
+  return <ContextoRolagem.Provider value={valor}>{children}</ContextoRolagem.Provider>
 }

@@ -1724,7 +1724,8 @@ describe('useNaTela', () => {
       observe() {}
       disconnect = desligar
     }
-    vi.stubGlobal('IntersectionObserver', IOFalso)
+    const original = window.IntersectionObserver
+    window.IntersectionObserver = IOFalso as unknown as typeof IntersectionObserver
 
     function Caixa() {
       const [ref, visto] = useNaTela<HTMLDivElement>()
@@ -1738,7 +1739,7 @@ describe('useNaTela', () => {
     act(() => avisar([{ isIntersecting: true }]))
     expect(caixa).toHaveClass('play')
     expect(desligar).toHaveBeenCalled()
-    vi.unstubAllGlobals()
+    window.IntersectionObserver = original
   })
 })
 

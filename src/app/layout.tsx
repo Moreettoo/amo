@@ -53,14 +53,15 @@ export default function RootLayout({
         <InlineScript html={MARCAR_JS} />
       </head>
       <body>
-        <RolagemSuave />
-        <a
-          href="#conteudo"
-          className="superficie-escura sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-expresso focus:px-5 focus:py-3 focus:text-sm focus:text-creme"
-        >
-          Pular para o conteúdo
-        </a>
-        {children}
+        <RolagemSuave>
+          <a
+            href="#conteudo"
+            className="superficie-escura sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[60] focus:rounded-full focus:bg-expresso focus:px-5 focus:py-3 focus:text-sm focus:text-creme"
+          >
+            Pular para o conteúdo
+          </a>
+          {children}
+        </RolagemSuave>
       </body>
     </html>
   )
