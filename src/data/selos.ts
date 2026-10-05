@@ -1,14 +1,16 @@
-export type Selo = {
-  /** casa com a chave em components/icons/selos.tsx */
-  id: 'ingredientes' | 'vapor' | 'vidro' | 'fibras' | 'adocante' | 'artesanal'
-  nome: string
-}
+import type { Selo } from '@/lib/catalogo'
 
+/**
+ * Os selos do rotulo, mais o "Zero açúcar" dos produtos. O id casa com a
+ * chave em components/icons/selos.tsx; selo sem icone desenhado cai no
+ * icone generico.
+ */
 export const SELOS: readonly Selo[] = [
-  { id: 'ingredientes', nome: 'Ingredientes selecionados' },
-  { id: 'vapor', nome: 'Cozido a vapor' },
-  { id: 'vidro', nome: 'Pote de vidro reutilizável' },
-  { id: 'fibras', nome: 'Fonte de fibras' },
+  { id: 'zero-acucar', nome: 'Zero açúcar' },
   { id: 'adocante', nome: 'Adoçado com eritritol e stevia' },
+  { id: 'vapor', nome: 'Cozido a vapor' },
+  { id: 'fibras', nome: 'Fonte de fibras' },
+  { id: 'vidro', nome: 'Pote de vidro reutilizável' },
+  { id: 'ingredientes', nome: 'Ingredientes selecionados' },
   { id: 'artesanal', nome: 'Produzido artesanalmente' },
-] as const
+]

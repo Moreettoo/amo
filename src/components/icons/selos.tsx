@@ -1,5 +1,3 @@
-import type { Selo } from '@/data/selos'
-
 const base = {
   width: 24,
   height: 24,
@@ -67,11 +65,24 @@ const Artesanal = () => (
   </svg>
 )
 
-export const ICONES_SELO: Record<Selo['id'], () => React.JSX.Element> = {
+/** circulo simples: o selo novo que ainda nao ganhou desenho */
+const Generico = () => (
+  <svg {...base}>
+    <circle cx="12" cy="12" r="7.5" />
+  </svg>
+)
+
+export const ICONES_SELO: Readonly<Record<string, () => React.JSX.Element>> = {
   ingredientes: Ingredientes,
   vapor: Vapor,
   vidro: Vidro,
   fibras: Fibras,
   adocante: Adocante,
   artesanal: Artesanal,
+}
+
+/** O icone do selo pelo id; selo sem desenho cai no generico. */
+export function IconeSelo({ id }: { id: string }) {
+  const Icone = ICONES_SELO[id] ?? Generico
+  return <Icone />
 }
