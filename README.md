@@ -1,26 +1,30 @@
 # AMO, Sabores Saudáveis
 
-Home v1 da AMO, marca de bolos no pote zero açúcar. Página institucional,
-visual completo, sem carrinho, sem preço e sem checkout; essas partes vêm em
-rodadas seguintes sobre Supabase. O documento de especificação completo está
-em `docs/superpowers/specs/2026-08-22-amo-home-design.md`.
+Home v2 da AMO, direção "Retrô doce". Página institucional dirigida por um
+cadastro (linhas, produtos, selos, vontades), sem carrinho, sem preço e sem
+checkout; essas partes vêm em rodadas seguintes sobre Supabase. A
+especificação está em `docs/superpowers/specs/2026-10-05-amo-home-v2-retro-design.md`
+e o plano em `docs/superpowers/plans/2026-10-05-amo-home-v2-retro.md`.
 
 ## Stack
 
 - **Next.js (App Router)** com TypeScript em modo `strict`
 - **Tailwind CSS v4**, tokens de cor e tipografia como variáveis CSS
-- **Motion** (ex-Framer Motion), coreografia do hero, reveal ao rolar, nav
-  sticky, parallax das fotos de seção
+- **Motion** (ex-Framer Motion), só o FLIP do cardápio e o parallax das
+  fotos; as entradas são CSS, atrás da classe `html.js`
 - **Lenis**, a rolagem interpolada. É a mesma biblioteca que a referência de
   animação do projeto usa, e é conduzida por `src/components/RolagemSuave.tsx`,
   que também trata as âncoras (o Lenis move o scrollTop real, então `sticky` e
   `getBoundingClientRect` seguem funcionando)
-- **next/font**, Bodoni Moda (display, com o eixo `opsz` pedido para o
-  optical sizing funcionar), Parisienne (script) e Poppins (sans),
+- **next/font**, Caprasimo (display) e DM Sans (texto, com o eixo `opsz`),
   self-hosted via Google Fonts, sem requisição a terceiros
-- **next/image**, otimização das fotos dos 7 sabores
+- **next/image**, as fotos dos produtos em `public/produtos`
 - **Vitest + Testing Library + jsdom**, testes, incluindo `axe` para
   acessibilidade
+
+O cadastro mora em `src/data/` e passa por `carregarCatalogo()`
+(`src/lib/catalogo.ts`), que valida e derruba o build se algo estiver errado.
+Para trocar pelo Supabase, troca só essa função.
 
 ## Como rodar
 
