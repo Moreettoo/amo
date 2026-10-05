@@ -7,48 +7,86 @@ const css = readFileSync(resolve(import.meta.dirname, '../src/app/globals.css'),
 const t = lerTokens(css)
 
 describe('tokens de cor', () => {
-  it('define os 7 tokens com os hex exatos da spec', () => {
-    expect(t).toMatchObject({
-      cream: '#FAF2E9',
-      sage: '#C3CDB4',
-      sand: '#DCC9A8',
-      ink: '#2E241F',
-      rosewood: '#B9707A',
-      'rosewood-forte': '#9B5E66',
-      blush: '#D9ACA6',
+  it('define os 12 tokens com os hex exatos da spec', () => {
+    expect(t).toEqual({
+      expresso: '#2B1B16',
+      chocolate: '#4A2E25',
+      cobre: '#C9784A',
+      'cobre-texto': '#9A5530',
+      caramelo: '#E2BF96',
+      creme: '#FAF2E9',
+      papel: '#FFFBF5',
+      linho: '#F6EBDD',
+      kraft: '#D9BE98',
+      suave: '#5E4A40',
+      'claro-suave': '#EADDD0',
+      vinho: '#8E2F3C',
     })
   })
+
+  it('não sobra token da v1', () => {
+    expect(css).not.toMatch(/--color-(cream|sage|sand|ink|rosewood|blush)\b/)
+  })
 })
 
-describe('contraste de texto, WCAG AA', () => {
-  const normal = 4.5
+describe('contraste de texto, WCAG AA (spec §9.2)', () => {
   it.each([
-    ['ink', 'sage'],
-    ['ink', 'cream'],
-    ['ink', 'sand'],
-    ['ink', 'blush'],
-    ['cream', 'ink'],
-    ['cream', 'rosewood-forte'],
-  ])('%s sobre %s passa 4.5:1 para texto normal', (fg, bg) => {
-    expect(contraste(t[fg], t[bg])).toBeGreaterThanOrEqual(normal)
+    ['expresso', 'creme'],
+    ['expresso', 'papel'],
+    ['expresso', 'linho'],
+    ['expresso', 'kraft'],
+    ['expresso', 'caramelo'],
+    ['expresso', 'cobre'],
+    ['chocolate', 'caramelo'],
+    ['chocolate', 'kraft'],
+    ['chocolate', 'papel'],
+    ['suave', 'creme'],
+    ['suave', 'papel'],
+    ['suave', 'linho'],
+    ['suave', 'kraft'],
+    ['cobre-texto', 'creme'],
+    ['cobre-texto', 'papel'],
+    ['cobre-texto', 'linho'],
+    ['creme', 'expresso'],
+    ['claro-suave', 'expresso'],
+    ['caramelo', 'expresso'],
+    ['cobre', 'expresso'],
+    ['papel', 'vinho'],
+    ['papel', 'chocolate'],
+    ['vinho', 'papel'],
+  ])('%s sobre %s passa 4.5:1', (texto, fundo) => {
+    expect(contraste(t[texto], t[fundo])).toBeGreaterThanOrEqual(4.5)
   })
 
-  it('cream sobre rosewood passa 3:1, o limite de texto grande', () => {
-    const r = contraste(t.cream, t.rosewood)
-    expect(r).toBeGreaterThanOrEqual(3)
-    expect(r).toBeLessThan(4.5)
+  it.each([
+    ['cobre-texto', 'kraft'],
+    ['cobre-texto', 'caramelo'],
+    ['cobre', 'creme'],
+    ['cobre', 'caramelo'],
+  ])('%s sobre %s reprova, por isso é proibido como texto', (texto, fundo) => {
+    expect(contraste(t[texto], t[fundo])).toBeLessThan(4.5)
   })
 })
 
-describe('anel de foco', () => {
-  it.each(['cream', 'sage', 'sand', 'ink'])(
-    'rosewood-forte passa 3:1 sobre %s',
-    (bg) => {
-      expect(contraste(t['rosewood-forte'], t[bg])).toBeGreaterThanOrEqual(3)
+describe('anel de foco (spec §9.3)', () => {
+  it('é uma variável que aponta para expresso, e cobre nas superfícies escuras', () => {
+    expect(css).toMatch(/--foco:\s*var\(--color-expresso\)/)
+    expect(css).toMatch(/\.superficie-escura\s*\{\s*--foco:\s*var\(--color-cobre\)/)
+    expect(css).toMatch(/:focus-visible\s*\{[^}]*outline:\s*2\.5px solid var\(--foco\)/)
+  })
+
+  it.each(['creme', 'papel', 'linho', 'kraft', 'caramelo', 'cobre'])(
+    'expresso passa 3:1 sobre %s',
+    (fundo) => {
+      expect(contraste(t.expresso, t[fundo])).toBeGreaterThanOrEqual(3)
     },
   )
 
-  it('rosewood puro reprovaria sobre sage, por isso existe o forte', () => {
-    expect(contraste(t.rosewood, t.sage)).toBeLessThan(3)
+  it('cobre passa 3:1 sobre expresso', () => {
+    expect(contraste(t.cobre, t.expresso)).toBeGreaterThanOrEqual(3)
+  })
+
+  it('cobre reprovaria sobre caramelo, por isso o foco não é cobre em toda parte', () => {
+    expect(contraste(t.cobre, t.caramelo)).toBeLessThan(3)
   })
 })

@@ -1,44 +1,43 @@
 @import "tailwindcss";
 
-@theme {
-  --color-cream: #FAF2E9;
-  --color-sage: #C3CDB4;
-  --color-sand: #DCC9A8;
-  --color-ink: #2E241F;
-  --color-rosewood: #B9707A;
-  --color-rosewood-forte: #9B5E66;
-  --color-blush: #D9ACA6;
+/* `static`: os tokens viram variavel CSS mesmo sem utilitario que os use,
+   porque os arquivos de src/app/estilos leem var(--color-*) direto. */
+@theme static {
+  --color-expresso: #2B1B16;
+  --color-chocolate: #4A2E25;
+  --color-cobre: #C9784A;
+  --color-cobre-texto: #9A5530;
+  --color-caramelo: #E2BF96;
+  --color-creme: #FAF2E9;
+  --color-papel: #FFFBF5;
+  --color-linho: #F6EBDD;
+  --color-kraft: #D9BE98;
+  --color-suave: #5E4A40;
+  --color-claro-suave: #EADDD0;
+  --color-vinho: #8E2F3C;
 
-  /* Branco quente derivado do cream. Substitui o #FFF puro dos cards, que
-     lia frio e sujo encostado no cream. Nao e cor nova de marca: e a
-     superficie de papel dos cards, e ink sobre ela mede 14.9:1. */
-  --color-papel: #FFFDFA;
-
-  --font-display: var(--fonte-bree), Rockwell, Georgia, serif;
-  --font-script: var(--fonte-parisienne), "Brush Script MT", cursive;
-  --font-sans: var(--fonte-poppins), system-ui, -apple-system, sans-serif;
+  --font-display: var(--fonte-caprasimo), Georgia, serif;
+  --font-sans: var(--fonte-dm-sans), system-ui, -apple-system, sans-serif;
 
   --ease-amo: cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Fora de @layer base de proposito: no Tailwind v4, @keyframes dentro de uma
-   cascade layer perde para a ordem de precedencia das layers e a animacao
-   nao dispara. Nomes globais, entao nao repetir em outro lugar. */
-@keyframes revelaCortina {
-  from { clip-path: inset(0 0 100% 0); }
-  to   { clip-path: inset(0 0 0 0); }
+  --ease-mola: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 @layer base {
+  :root {
+    --gutter: clamp(20px, 5vw, 56px);
+    /* Cor do anel de foco. Expresso nas superficies claras; as escuras
+       (.superficie-escura) trocam por cobre. Cobre em toda parte reprovaria
+       no caramelo (1.93:1). */
+    --foco: var(--color-expresso);
+  }
+
   html {
     /* Sem scroll-behavior: smooth. O Lenis (src/components/RolagemSuave.tsx)
-       e quem conduz a rolagem, inclusive de ancora, e as duas coisas
-       brigariam pelo scrollTop no mesmo frame. Sem JS a ancora ainda funciona,
-       so salta em vez de deslizar. */
+       conduz a rolagem, inclusive de ancora, e as duas coisas brigariam pelo
+       scrollTop no mesmo frame. */
 
-    /* Regras minimas que o Lenis precisa, copiadas de lenis/dist/lenis.css.
-       Inline aqui em vez de importadas do pacote pra manter uma unica folha
-       global e nao depender da resolucao de node_modules pelo PostCSS. */
+    /* Regras minimas que o Lenis precisa, copiadas de lenis/dist/lenis.css. */
     &.lenis,
     &.lenis body {
       height: auto;
@@ -64,18 +63,19 @@
   }
 
   body {
-    background-color: var(--color-cream);
-    color: var(--color-ink);
+    background-color: var(--color-creme);
+    color: var(--color-expresso);
     font-family: var(--font-sans);
-    -webkit-tap-highlight-color: color-mix(in srgb, var(--color-rosewood) 24%, transparent);
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: color-mix(in srgb, var(--color-cobre) 24%, transparent);
   }
 
+  /* Caprasimo tem um peso so: pedir outro faria o navegador engordar o
+     desenho por sintese. */
   h1, h2, h3 {
     font-family: var(--font-display);
+    font-weight: 400;
     text-wrap: balance;
-    /* Bree Serif tem um peso so e nenhum eixo variavel, entao nao ha optical
-       sizing a pedir aqui: a espessura da letra e uniforme por desenho, que e
-       o ponto de ter saido do didone. */
   }
 
   p {
@@ -83,9 +83,15 @@
   }
 
   :focus-visible {
-    outline: 2px solid var(--color-rosewood-forte);
-    outline-offset: 2px;
+    outline: 2.5px solid var(--foco);
+    outline-offset: 3px;
   }
+
+  .superficie-escura { --foco: var(--color-cobre); }
+
+  /* Filtros, abas e regiao viva so funcionam com JS. Sem ele, somem, em vez
+     de virar botao que nao faz nada. */
+  html:not(.js) .so-js { display: none !important; }
 
   button, a, summary, [role="tab"] {
     touch-action: manipulation;
