@@ -1,0 +1,18 @@
+/* A marca, a faixa cobre e o final. */
+@layer components {
+  .marca { padding: 90px 0; }
+  .marca__grade { display: grid; gap: 28px; align-items: center; }
+  @media (min-width: 821px) {
+    .marca__grade { grid-template-columns: .9fr 1.1fr; gap: 64px; }
+  }
+  .marca__foto { justify-self: center; width: min(400px, 100%); height: clamp(380px, 40vw, 500px); border-radius: 999px 999px 28px 28px; }
+
+  .faixa-cobre { padding: 34px var(--gutter); background: var(--color-cobre); color: var(--color-expresso); text-align: center; }
+  .faixa-cobre p { margin: 0; font: 400 clamp(28px, 4vw, 46px)/1.1 var(--font-display); text-wrap: balance; }
+
+  .final { padding: 96px 0 90px; background: var(--color-expresso); color: var(--color-creme); text-align: center; }
+  .final h2 { font-size: clamp(48px, 7vw, 84px); line-height: 1; }
+  .final p { max-width: 44ch; margin: 18px auto 0; font-size: 19px; color: var(--color-claro-suave); }
+  .final__linhas { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 34px; }
+  .final__botao { margin-top: 40px; }
+}

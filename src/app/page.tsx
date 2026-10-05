@@ -1,16 +1,21 @@
 import { FiltroProvider } from '@/components/FiltroProvider'
 import { Footer } from '@/components/layout/Footer'
 import { Nav } from '@/components/layout/Nav'
+import { AMarca } from '@/components/sections/AMarca'
 import { Cardapio } from '@/components/sections/Cardapio'
+import { FaixaCobre } from '@/components/sections/FaixaCobre'
+import { Final } from '@/components/sections/Final'
 import { Hero } from '@/components/sections/Hero'
 import { HojeODiaPede } from '@/components/sections/HojeODiaPede'
+import { Rotulos } from '@/components/sections/Rotulos'
 import { Camadas } from '@/components/ui/Camadas'
 import { carregarCatalogo } from '@/lib/catalogo'
 import { montarVisao } from '@/lib/visao'
 
 /**
  * A home. Server Component: carrega o cadastro, decide uma vez o que
- * aparece (montarVisao) e entrega dados prontos para as secoes.
+ * aparece (montarVisao) e entrega dados prontos para as secoes. O
+ * FiltroProvider envolve o <main> e o rodape, que tambem filtra.
  */
 export default async function Home() {
   const visao = montarVisao(await carregarCatalogo())
@@ -31,6 +36,11 @@ export default async function Home() {
         <Camadas estrato="cardapioHoje" />
         <HojeODiaPede vontades={visao.vontades} tipos={visao.tipos} />
         <Camadas estrato="hojeRotulos" />
+        <Rotulos linhas={visao.rotulos} nomesDosSelos={visao.nomesDosSelos} />
+        <Camadas estrato="rotulosMarca" />
+        <AMarca foto={visao.fotoDaMarca} />
+        <FaixaCobre />
+        <Final linhas={visao.linhasNoFinal} />
       </main>
       <Footer linhas={visao.rotulos} filtraLinha={visao.filtrosLinha.length > 0} />
     </FiltroProvider>

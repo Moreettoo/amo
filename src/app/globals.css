@@ -5,6 +5,8 @@
 @import "./estilos/hero.css";
 @import "./estilos/cardapio.css";
 @import "./estilos/hoje.css";
+@import "./estilos/rotulos.css";
+@import "./estilos/marca.css";
 @import "./estilos/movimento.css";
 
 /* `static`: os tokens viram variavel CSS mesmo sem utilitario que os use,
