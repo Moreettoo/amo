@@ -3,6 +3,7 @@ import { Footer } from '@/components/layout/Footer'
 import { Nav } from '@/components/layout/Nav'
 import { Cardapio } from '@/components/sections/Cardapio'
 import { Hero } from '@/components/sections/Hero'
+import { HojeODiaPede } from '@/components/sections/HojeODiaPede'
 import { Camadas } from '@/components/ui/Camadas'
 import { carregarCatalogo } from '@/lib/catalogo'
 import { montarVisao } from '@/lib/visao'
@@ -28,6 +29,8 @@ export default async function Home() {
           vontades={visao.vontades}
         />
         <Camadas estrato="cardapioHoje" />
+        <HojeODiaPede vontades={visao.vontades} tipos={visao.tipos} />
+        <Camadas estrato="hojeRotulos" />
       </main>
       <Footer linhas={visao.rotulos} filtraLinha={visao.filtrosLinha.length > 0} />
     </FiltroProvider>
