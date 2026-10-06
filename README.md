@@ -1,17 +1,21 @@
 # AMO, Sabores Saudáveis
 
-Home v2 da AMO, direção "Retrô doce". Página institucional dirigida por um
-cadastro (linhas, produtos, selos, vontades), sem carrinho, sem preço e sem
-checkout; essas partes vêm em rodadas seguintes sobre Supabase. A
-especificação está em `docs/superpowers/specs/2026-10-05-amo-home-v2-retro-design.md`
-e o plano em `docs/superpowers/plans/2026-10-05-amo-home-v2-retro.md`.
+Home v2 da AMO, direção "Retrô doce", e o catálogo. Páginas institucionais
+dirigidas por um cadastro (linhas, produtos, selos, vontades), sem carrinho,
+sem preço e sem checkout; essas partes vêm em rodadas seguintes sobre
+Supabase. A home tem uma vitrine e a gaveta do catálogo na nav; o catálogo
+mora em `/catalogo` ("Tudo") e `/catalogo/<linha>`, uma página estática por
+linha com produto. As especificações estão em
+`docs/superpowers/specs/2026-10-05-amo-home-v2-retro-design.md` e
+`docs/superpowers/specs/2026-10-06-amo-catalogo-design.md`; os planos, em
+`docs/superpowers/plans/`.
 
 ## Stack
 
 - **Next.js (App Router)** com TypeScript em modo `strict`
 - **Tailwind CSS v4**, tokens de cor e tipografia como variáveis CSS
-- **Motion** (ex-Framer Motion), só o FLIP do cardápio e o parallax das
-  fotos; as entradas são CSS, atrás da classe `html.js`
+- **Motion** (ex-Framer Motion), só o FLIP da grade do catálogo e o parallax
+  das fotos; as entradas e a gaveta são CSS, atrás da classe `html.js`
 - **Lenis**, a rolagem interpolada. É a mesma biblioteca que a referência de
   animação do projeto usa, e é conduzida por `src/components/RolagemSuave.tsx`,
   que também trata as âncoras (o Lenis move o scrollTop real, então `sticky` e
