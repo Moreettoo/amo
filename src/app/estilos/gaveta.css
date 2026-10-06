@@ -1,0 +1,157 @@
+/* A gaveta do catalogo: <dialog> modal vindo da esquerda, creme com grao,
+   com a borda ondulada das camadas do bolo. Os keyframes da abertura e da
+   saida moram em movimento.css. Aqui tambem o botao que a abre, na nav. */
+@layer components {
+  .botao-catalogo {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: none;
+    height: 44px; min-width: 44px; padding: 0 18px 0 13px;
+    border: 2px solid var(--color-expresso); border-radius: 999px;
+    background: transparent; color: var(--color-expresso);
+    font: 600 15.5px/1 var(--font-sans); cursor: pointer;
+    transition: background-color .25s ease, color .25s ease;
+  }
+  .botao-catalogo svg { width: 22px; height: 22px; }
+  .botao-catalogo:focus-visible { background: var(--color-expresso); color: var(--color-creme); }
+  @media (hover: hover) {
+    .botao-catalogo:hover { background: var(--color-expresso); color: var(--color-creme); }
+  }
+  @media (max-width: 820px) {
+    .botao-catalogo { width: 44px; padding: 0; }
+  }
+
+  /* o <dialog> sem a margem, a borda, o fundo e o limite de altura do navegador */
+  .gaveta {
+    --painel: min(400px, calc(100vw - 72px));
+    --borda: 28px;
+    position: fixed; inset: 0 auto 0 0;
+    width: calc(var(--painel) + var(--borda)); height: 100%;
+    max-width: none; max-height: none; margin: 0; padding: 0; border: 0;
+    overflow: visible; background: transparent; color: var(--color-expresso);
+  }
+  .gaveta::backdrop { background: rgb(43 27 22 / .6); backdrop-filter: blur(2px); }
+  .gaveta__onda { position: absolute; top: 0; right: 0; width: var(--borda); height: 100%; }
+  .gaveta__painel {
+    position: absolute; inset: 0 var(--borda) 0 0;
+    display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain;
+    padding: 24px 22px 24px 26px; background-color: var(--color-creme);
+  }
+
+  .gaveta__topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .gaveta__topo h2 { margin: 0; font-size: 40px; line-height: 1; }
+  .gaveta__fechar {
+    display: grid; place-items: center; flex: none; width: 44px; height: 44px; padding: 0;
+    border: 2px solid var(--color-expresso); border-radius: 50%;
+    background: transparent; color: var(--color-expresso); cursor: pointer;
+    transition: background-color .2s ease, color .2s ease;
+  }
+  .gaveta__fechar svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+  .gaveta__fechar:focus-visible { background: var(--color-expresso); color: var(--color-creme); }
+  .gaveta__icone {
+    width: 16px; height: 16px; flex: none;
+    fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .gaveta__frase { margin: 10px 0 16px; font-size: 16px; line-height: 1.5; color: var(--color-suave); }
+
+  /* com duas ou mais linhas */
+  .gaveta__linhas { margin: 0 -12px; padding: 0; list-style: none; }
+  .gaveta__linhas li { padding: 6px 0; border-top: 1.5px dashed rgb(43 27 22 / .22); }
+  .gaveta__linha {
+    display: flex; align-items: center; gap: 16px; padding: 12px; border-radius: 22px;
+    color: var(--color-expresso); text-decoration: none;
+    transition: background-color .25s ease, box-shadow .25s ease;
+  }
+  .gaveta__linha[aria-current="page"] { background: var(--color-linho); }
+  .gaveta__moldura { display: grid; place-items: center; flex: none; width: 68px; height: 78px; }
+  .gaveta__capa { display: block; overflow: hidden; background: var(--color-chocolate); }
+  .gaveta__capa img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .gaveta__capa--pote { width: 62px; height: 78px; border-radius: 999px 999px 10px 10px; }
+  .gaveta__capa--inteiro { width: 68px; height: 68px; border-radius: 50%; }
+  .gaveta__capa--unidade { width: 64px; height: 64px; border-radius: 16px; }
+  .gaveta__capa--neutra { width: 64px; height: 64px; border-radius: 12px; }
+  .gaveta__texto { display: flex; flex: 1; flex-direction: column; gap: 3px; min-width: 0; }
+  .gaveta__regra { font-size: 13.5px; font-weight: 700; color: var(--color-cobre-texto); }
+  .gaveta__nome { font: 400 25px/1.08 var(--font-display); }
+  .gaveta__conta { font-size: 15px; color: var(--color-suave); }
+  .gaveta__seta {
+    display: grid; place-items: center; flex: none; width: 40px; height: 40px;
+    border: 2px solid var(--color-expresso); border-radius: 50%;
+    transition: background-color .25s ease, color .25s ease;
+  }
+  .gaveta__tudo { justify-content: center; width: 100%; margin: 18px 0 24px; }
+  .gaveta__total { margin-left: 8px; font-weight: 500; color: var(--color-caramelo); }
+
+  /* com uma linha so */
+  .gaveta__unica {
+    display: flex; align-items: center; gap: 16px; padding: 18px 18px 18px 20px; border-radius: 24px;
+    background: var(--color-papel); box-shadow: 6px 6px 0 var(--color-caramelo);
+    color: var(--color-expresso); text-decoration: none;
+    transition: box-shadow .25s ease, transform .25s ease;
+  }
+  .gaveta__unica .gaveta__nome { font-size: 30px; }
+  .gaveta__ver { display: flex; align-items: center; gap: 8px; margin-top: 2px; font-size: 15px; font-weight: 600; }
+  .gaveta__arcos { display: flex; align-items: flex-end; flex: none; }
+  .gaveta__arcos img {
+    width: 46px; height: 64px; object-fit: cover; border-radius: 999px 999px 8px 8px;
+    background: var(--color-chocolate); box-shadow: 0 0 0 3px var(--color-papel);
+  }
+  .gaveta__arcos img + img { margin-left: -12px; }
+  .gaveta__arcos img:nth-child(2) { width: 54px; height: 78px; }
+  .gaveta__rotulo { margin: 28px 0 6px; font-size: 14px; font-weight: 700; color: var(--color-cobre-texto); }
+  .gaveta__sabores { margin: 0 -10px 24px; padding: 0; list-style: none; }
+  .gaveta__sabores li { border-top: 1.5px dashed rgb(43 27 22 / .22); }
+  .gaveta__sabores a {
+    display: flex; align-items: center; gap: 14px; min-height: 52px; padding: 5px 10px; border-radius: 16px;
+    color: var(--color-expresso); font-size: 16.5px; font-weight: 600; text-decoration: none;
+    transition: background-color .25s ease;
+  }
+  .gaveta__sabores img { width: 38px; height: 38px; flex: none; border-radius: 50%; object-fit: cover; background: var(--color-chocolate); }
+  .gaveta__sabores .gaveta__icone { margin-left: auto; }
+
+  /* o pe: no desktop o cartao do Hoje o dia pede; no celular os links da home */
+  .gaveta__hoje {
+    display: block; margin-top: auto; padding: 18px 22px; border-radius: 24px;
+    background: var(--color-caramelo); color: var(--color-expresso); text-decoration: none;
+    transition: box-shadow .25s ease;
+  }
+  .gaveta__hoje span { display: block; font-size: 14px; font-weight: 700; color: var(--color-chocolate); }
+  .gaveta__hoje b { display: flex; align-items: center; gap: 10px; margin-top: 4px; font: 400 27px/1.1 var(--font-display); }
+  .gaveta__hoje .gaveta__icone { width: 22px; height: 22px; }
+  .gaveta__casa { margin-top: 26px; padding-top: 16px; border-top: 1.5px dashed rgb(43 27 22 / .22); }
+  .gaveta__casa p { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: var(--color-cobre-texto); }
+  .gaveta__casa ul { margin: 0; padding: 0; list-style: none; }
+  .gaveta__casa a {
+    display: flex; align-items: center; min-height: 46px;
+    color: var(--color-expresso); font-size: 17px; font-weight: 600; text-decoration: none;
+  }
+
+  .gaveta__linha:focus-visible, .gaveta__unica:focus-visible { background: var(--color-papel); box-shadow: 6px 6px 0 var(--color-caramelo); }
+  .gaveta__linha:focus-visible .gaveta__seta { background: var(--color-expresso); color: var(--color-creme); }
+  .gaveta__sabores a:focus-visible { background: var(--color-papel); }
+  .gaveta__hoje:focus-visible { box-shadow: 6px 6px 0 var(--color-cobre); }
+  @media (hover: hover) {
+    .gaveta__linha:hover { background: var(--color-papel); box-shadow: 6px 6px 0 var(--color-caramelo); }
+    .gaveta__linha:hover .gaveta__seta { background: var(--color-expresso); color: var(--color-creme); }
+    .gaveta__unica:hover { box-shadow: 8px 8px 0 var(--color-caramelo); transform: translate(-2px, -2px); }
+    .gaveta__sabores a:hover { background: var(--color-papel); }
+    .gaveta__hoje:hover { box-shadow: 6px 6px 0 var(--color-cobre); }
+    .gaveta__fechar:hover { background: var(--color-expresso); color: var(--color-creme); }
+  }
+
+  @media (min-width: 821px) {
+    .gaveta__casa { display: none; }
+  }
+  @media (max-width: 820px) {
+    .gaveta { --borda: 22px; }
+    .gaveta__painel { padding: 20px 16px 22px 20px; }
+    .gaveta__topo h2 { font-size: 34px; }
+    .gaveta__linhas { margin-inline: -8px; }
+    .gaveta__linha { gap: 12px; padding: 9px 8px; }
+    .gaveta__moldura { width: 54px; height: 62px; }
+    .gaveta__capa--pote { width: 50px; height: 62px; border-radius: 999px 999px 8px 8px; }
+    .gaveta__capa--inteiro { width: 54px; height: 54px; }
+    .gaveta__capa--unidade, .gaveta__capa--neutra { width: 52px; height: 52px; border-radius: 13px; }
+    .gaveta__nome { font-size: 21px; }
+    .gaveta__seta { width: 34px; height: 34px; }
+    .gaveta__hoje { display: none; }
+  }
+}

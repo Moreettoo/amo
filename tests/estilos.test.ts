@@ -53,4 +53,18 @@ describe('estilos', () => {
     expect(CONSULTA_PINO).toContain('(max-width: 820px) and (min-height: 800px)')
     expect(CONSULTA_PINO).toContain('(min-width: 821px) and (min-height: 700px)')
   })
+
+  it('a gaveta aberta trava a página de trás sem pular a barra de rolagem', () => {
+    const trava = regra(ler('../globals.css'), 'html:has(.gaveta[open])')
+    expect(ultimo(trava, 'overflow')).toBe('hidden')
+    expect(ultimo(trava, 'scrollbar-gutter')).toBe('stable')
+  })
+
+  it('o <dialog> da gaveta perde a margem, a borda e o limite de altura do navegador', () => {
+    const gaveta = regra(ler('gaveta.css'), '.gaveta')
+    expect(ultimo(gaveta, 'margin')).toBe('0')
+    expect(ultimo(gaveta, 'border')).toBe('0')
+    expect(ultimo(gaveta, 'max-height')).toBe('none')
+    expect(ultimo(gaveta, 'height')).toBe('100%')
+  })
 })

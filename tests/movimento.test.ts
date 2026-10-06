@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { DURACAO_SAIDA } from '@/components/layout/Gaveta'
 
 /**
  * Guardas estaticos do CSS. O hero em branco da v1.1 nasceu de estado
@@ -89,5 +90,43 @@ describe('todo o CSS', () => {
       const foraDoHover = css.replace(/@media \(hover: hover\) \{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '')
       expect(foraDoHover, nome).not.toMatch(/:hover/)
     }
+  })
+})
+
+describe('a abertura leve da gaveta (spec §4.7)', () => {
+  const segundos = (v: string) => (v.endsWith('ms') ? parseFloat(v) / 1000 : parseFloat(v))
+  const regras = () =>
+    [...blocoDoPortao().matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+      .filter(([, seletor]) => seletor.includes('.gaveta'))
+      .map(([, seletor, corpo]) => ({
+        seletor: seletor.trim(),
+        animacao: /animation:\s*([^;]+);/.exec(corpo)?.[1].trim() ?? '',
+      }))
+
+  it('entra sob [open] com fill backwards e sai sob [data-fechando] com forwards', () => {
+    const r = regras()
+    expect(r).toHaveLength(8)
+    for (const { seletor, animacao } of r) {
+      expect(animacao, seletor).toMatch(seletor.includes('[data-fechando]') ? /forwards$/ : /backwards$/)
+    }
+  })
+
+  it('cada regra termina antes de 0.8 s, somando duração e atraso base', () => {
+    for (const { seletor, animacao } of regras()) {
+      const [duracao, atraso = '0s'] = animacao.match(/\d*\.?\d+m?s\b/g)!
+      expect(segundos(duracao) + segundos(atraso), seletor).toBeLessThan(0.8)
+    }
+  })
+
+  it('a lista entra 35 ms depois do item anterior, contado por --i', () => {
+    const item = regras().find((r) => r.seletor.endsWith('.gaveta__item'))!
+    expect(item.animacao).toContain('calc(.12s + var(--i, 0) * 35ms)')
+  })
+
+  it('a saída dura o que o JS espera antes do close()', () => {
+    expect(DURACAO_SAIDA).toBe(250)
+    const saidas = regras().filter((r) => r.seletor.includes('[data-fechando]'))
+    expect(saidas).toHaveLength(2)
+    for (const { animacao } of saidas) expect(animacao).toMatch(/^[\w-]+ \.25s /)
   })
 })

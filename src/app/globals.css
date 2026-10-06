@@ -7,6 +7,7 @@
 @import "./estilos/hoje.css";
 @import "./estilos/rotulos.css";
 @import "./estilos/marca.css";
+@import "./estilos/gaveta.css";
 @import "./estilos/movimento.css";
 
 /* `static`: os tokens viram variavel CSS mesmo sem utilitario que os use,
@@ -69,6 +70,13 @@
 
   .lenis [data-lenis-prevent] {
     overscroll-behavior: contain;
+  }
+
+  /* A gaveta aberta trava a pagina de tras. O Lenis (autoToggle) para
+     sozinho quando o overflow some, e o gutter evita o pulo da barra. */
+  html:has(.gaveta[open]) {
+    overflow: hidden;
+    scrollbar-gutter: stable;
   }
 
   body {

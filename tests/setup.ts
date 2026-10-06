@@ -38,4 +38,34 @@ if (typeof window !== 'undefined') {
     thresholds = []
   }
   Object.defineProperty(window, 'IntersectionObserver', { writable: true, value: IO })
+
+  // jsdom tem o <dialog> (e o esconde fechado), mas nao o modal: aqui o
+  // minimo que o navegador faz, inclusive o Esc virar o evento cancel.
+  const dialogo = HTMLDialogElement.prototype
+  if (typeof dialogo.showModal !== 'function') {
+    dialogo.showModal = function (this: HTMLDialogElement) {
+      this.setAttribute('open', '')
+    }
+    dialogo.close = function (this: HTMLDialogElement) {
+      if (!this.hasAttribute('open')) return
+      this.removeAttribute('open')
+      this.dispatchEvent(new Event('close'))
+    }
+    if (!Object.getOwnPropertyDescriptor(dialogo, 'open')) {
+      Object.defineProperty(dialogo, 'open', {
+        configurable: true,
+        get(this: HTMLDialogElement) {
+          return this.hasAttribute('open')
+        },
+        set(this: HTMLDialogElement, valor: boolean) {
+          this.toggleAttribute('open', valor)
+        },
+      })
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape') return
+      const aberto = [...document.querySelectorAll<HTMLDialogElement>('dialog[open]')].at(-1)
+      if (aberto && aberto.dispatchEvent(new Event('cancel', { cancelable: true }))) aberto.close()
+    })
+  }
 }

@@ -69,7 +69,10 @@ function conduzirAncora(lenis: Lenis, evento: MouseEvent) {
 
   evento.preventDefault()
   window.history.pushState(null, '', url.hash)
-  lenis.scrollTo(alvo)
+  // Parado (a gaveta acabou de soltar a pagina e o Lenis ainda nao voltou):
+  // o scrollTo dele seria ignorado, entao a rolagem vai pelo navegador.
+  if (lenis.isStopped) alvo.scrollIntoView({ behavior: 'smooth' })
+  else lenis.scrollTo(alvo)
 
   // tabindex -1 temporario: deixa-lo no DOM poria os alvos numa ordem de
   // tabulacao que ninguem pediu. preventScroll e obrigatorio: sem ele o
