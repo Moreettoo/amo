@@ -92,7 +92,7 @@ describe('Cardápio com o catálogo misto', () => {
 
     await user.click(screen.getByRole('button', { name: 'sonda: vontade chocolate' }))
     await user.click(screen.getByRole('button', { name: 'Bolos inteiros 2' }))
-    expect(filtro()).toHaveTextContent('inteiro|-|chocolate')
+    expect(filtro()).toHaveTextContent('bolos-inteiros|-|chocolate')
     await waitFor(() => expect(cards()).toHaveLength(2))
   })
 

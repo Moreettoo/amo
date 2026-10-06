@@ -102,6 +102,6 @@ describe('Final', () => {
     montar(misto.linhasNoFinal)
     await user.click(screen.getByRole('button', { name: 'sonda: tudo ligado' }))
     await user.click(screen.getByRole('link', { name: 'Salgados' }))
-    expect(screen.getByTestId('filtro')).toHaveTextContent('salgado|-|-')
+    expect(screen.getByTestId('filtro')).toHaveTextContent('salgados|-|-')
   })
 })

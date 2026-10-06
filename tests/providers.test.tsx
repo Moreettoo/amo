@@ -45,7 +45,7 @@ describe('FiltroProvider', () => {
     await user.click(screen.getByRole('button', { name: 'sonda: vontade chocolate' }))
     expect(saida).toHaveTextContent('-|-|chocolate')
     await user.click(screen.getByRole('button', { name: 'sonda: tudo ligado' }))
-    expect(saida).toHaveTextContent('pote|fibras|fruta')
+    expect(saida).toHaveTextContent('bolos-no-pote|fibras|fruta')
     await user.click(screen.getByRole('button', { name: 'limpar' }))
     expect(saida).toHaveTextContent('-|-|-')
   })

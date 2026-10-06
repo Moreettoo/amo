@@ -111,7 +111,7 @@ describe('Nav', () => {
 })
 
 describe('Footer', () => {
-  const montar = (filtraLinha: boolean, linhas = [{ slug: 'pote', nome: 'Bolos no pote' }]) =>
+  const montar = (filtraLinha: boolean, linhas = [{ slug: 'bolos-no-pote', nome: 'Bolos no pote' }]) =>
     render(
       <FiltroProvider>
         <Footer linhas={linhas} filtraLinha={filtraLinha} />
@@ -140,12 +140,12 @@ describe('Footer', () => {
   it('com filtro de linha na tela, o link escolhe a linha e limpa selo e vontade', async () => {
     const user = userEvent.setup()
     montar(true, [
-      { slug: 'pote', nome: 'Bolos no pote' },
-      { slug: 'salgado', nome: 'Salgados' },
+      { slug: 'bolos-no-pote', nome: 'Bolos no pote' },
+      { slug: 'salgados', nome: 'Salgados' },
     ])
     await user.click(screen.getByRole('button', { name: 'sonda: tudo ligado' }))
     await user.click(screen.getByRole('link', { name: 'Salgados' }))
-    expect(screen.getByTestId('filtro')).toHaveTextContent('salgado|-|-')
+    expect(screen.getByTestId('filtro')).toHaveTextContent('salgados|-|-')
   })
 
   it('a coluna A marca leva às seções da página', () => {

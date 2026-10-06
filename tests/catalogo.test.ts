@@ -20,7 +20,7 @@ const publico = (src: string) => resolve(import.meta.dirname, '../public', src.s
 describe('carregarCatalogo', () => {
   it('entrega o cadastro de hoje: 1 linha, 7 produtos, 7 selos, 5 vontades', async () => {
     const c = await carregarCatalogo()
-    expect(c.linhas.map((l) => l.slug)).toEqual(['pote'])
+    expect(c.linhas.map((l) => l.slug)).toEqual(['bolos-no-pote'])
     expect(c.produtos).toHaveLength(7)
     expect(c.selos).toHaveLength(7)
     expect(c.vontades.map((v) => v.slug)).toEqual(['chocolate', 'fruta', 'coco', 'classico', 'salgado'])
@@ -38,7 +38,7 @@ describe('validarCatalogo', () => {
     ['produto com linha inexistente', (c) => { c.produtos[0].linha = 'torta' }, /linha inexistente torta/],
     ['produto com selo inexistente', (c) => { c.produtos[0].selos.push('vegano') }, /selo inexistente vegano/],
     ['produto com vontade inexistente', (c) => { c.produtos[0].vontades.push('azedo') }, /vontade inexistente azedo/],
-    ['linha com selo inexistente', (c) => { c.linhas[0].selos.push('organico') }, /linha pote: selo inexistente organico/],
+    ['linha com selo inexistente', (c) => { c.linhas[0].selos.push('organico') }, /linha bolos-no-pote: selo inexistente organico/],
     ['imagem sem caminho absoluto', (c) => { c.produtos[0].imagem.src = 'produtos/x.webp' }, /caminho absoluto/],
     ['imagem sem alt', (c) => { c.produtos[0].imagem.alt = '  ' }, /sem alt/],
     ['imagem sem dimensões', (c) => { c.produtos[0].imagem.largura = 0 }, /sem dimensões/],

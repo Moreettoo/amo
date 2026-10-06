@@ -17,7 +17,7 @@ export const CATALOGO_MISTO: Catalogo = {
   linhas: [
     ...LINHAS,
     {
-      slug: 'inteiro',
+      slug: 'bolos-inteiros',
       nome: 'Bolos inteiros',
       tipo: 'Bolo inteiro',
       regra: 'Zero açúcar',
@@ -27,7 +27,7 @@ export const CATALOGO_MISTO: Catalogo = {
       ordem: 2,
     },
     {
-      slug: 'salgado',
+      slug: 'salgados',
       nome: 'Salgados',
       tipo: 'Salgado',
       regra: 'Massa integral',
@@ -48,7 +48,7 @@ export const CATALOGO_MISTO: Catalogo = {
     exemplo({
       slug: 'torta-de-frango',
       nome: 'Torta de frango',
-      linha: 'salgado',
+      linha: 'salgados',
       formato: 'unidade',
       selos: ['integral', 'sem-conservante'],
       vontades: ['salgado'],
@@ -57,7 +57,7 @@ export const CATALOGO_MISTO: Catalogo = {
     exemplo({
       slug: 'cenoura-com-cacau',
       nome: 'Cenoura com cacau',
-      linha: 'inteiro',
+      linha: 'bolos-inteiros',
       formato: 'inteiro',
       selos: ['zero-acucar'],
       vontades: ['chocolate', 'classico'],
@@ -66,7 +66,7 @@ export const CATALOGO_MISTO: Catalogo = {
     exemplo({
       slug: 'quiche-de-alho-poro',
       nome: 'Quiche de alho-poró',
-      linha: 'salgado',
+      linha: 'salgados',
       formato: 'unidade',
       selos: ['integral'],
       vontades: ['salgado'],
@@ -75,7 +75,7 @@ export const CATALOGO_MISTO: Catalogo = {
     exemplo({
       slug: 'chocolate-com-morango',
       nome: 'Chocolate com morango',
-      linha: 'inteiro',
+      linha: 'bolos-inteiros',
       formato: 'inteiro',
       selos: ['zero-acucar'],
       vontades: ['chocolate', 'fruta'],

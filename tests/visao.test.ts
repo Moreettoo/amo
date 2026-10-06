@@ -42,13 +42,13 @@ describe('montarVisao com o cadastro de hoje', () => {
 
   it('um rótulo só, e a foto da marca é a do Beijinho', async () => {
     const v = montarVisao(await carregarCatalogo())
-    expect(slugs(v.rotulos)).toEqual(['pote'])
+    expect(slugs(v.rotulos)).toEqual(['bolos-no-pote'])
     expect(v.fotoDaMarca.src).toBe('/produtos/beijinho.webp')
   })
 
   it('tipos e nomes dos selos por chave', async () => {
     const v = montarVisao(await carregarCatalogo())
-    expect(v.tipos.pote).toBe('Bolo no pote')
+    expect(v.tipos['bolos-no-pote']).toBe('Bolo no pote')
     expect(v.nomesDosSelos.fibras).toBe('Fonte de fibras')
   })
 })
@@ -61,9 +61,9 @@ describe('montarVisao com o catálogo misto', () => {
   it('volta o filtro de linha, com a contagem de cada uma', () => {
     const v = montarVisao(CATALOGO_MISTO)
     expect(v.filtrosLinha).toEqual([
-      { slug: 'pote', nome: 'Bolos no pote', contagem: 7 },
-      { slug: 'inteiro', nome: 'Bolos inteiros', contagem: 2 },
-      { slug: 'salgado', nome: 'Salgados', contagem: 2 },
+      { slug: 'bolos-no-pote', nome: 'Bolos no pote', contagem: 7 },
+      { slug: 'bolos-inteiros', nome: 'Bolos inteiros', contagem: 2 },
+      { slug: 'salgados', nome: 'Salgados', contagem: 2 },
     ])
   })
 
@@ -75,8 +75,8 @@ describe('montarVisao com o catálogo misto', () => {
   it('Algo salgado volta, e as linhas aparecem no rótulo e no final', () => {
     const v = montarVisao(CATALOGO_MISTO)
     expect(v.vontades.at(-1)?.slug).toBe('salgado')
-    expect(slugs(v.rotulos)).toEqual(['pote', 'inteiro', 'salgado'])
-    expect(slugs(v.linhasNoFinal)).toEqual(['pote', 'inteiro', 'salgado'])
+    expect(slugs(v.rotulos)).toEqual(['bolos-no-pote', 'bolos-inteiros', 'salgados'])
+    expect(slugs(v.linhasNoFinal)).toEqual(['bolos-no-pote', 'bolos-inteiros', 'salgados'])
   })
 
   it('o palco prefere linha ou formato diferente do destaque', () => {
@@ -108,17 +108,17 @@ describe('filtrar', () => {
   })
 
   it('linha, selo e vontade se combinam com E', () => {
-    expect(slugs(filtrar(v.produtos, { linha: 'inteiro', selo: null, vontade: 'fruta' }))).toEqual([
+    expect(slugs(filtrar(v.produtos, { linha: 'bolos-inteiros', selo: null, vontade: 'fruta' }))).toEqual([
       'chocolate-com-morango',
     ])
-    expect(slugs(filtrar(v.produtos, { linha: 'salgado', selo: 'integral', vontade: null }))).toEqual([
+    expect(slugs(filtrar(v.produtos, { linha: 'salgados', selo: 'integral', vontade: null }))).toEqual([
       'torta-de-frango',
       'quiche-de-alho-poro',
     ])
   })
 
   it('combinação sem produto devolve vazio', () => {
-    expect(filtrar(v.produtos, { linha: 'salgado', selo: 'fibras', vontade: null })).toEqual([])
+    expect(filtrar(v.produtos, { linha: 'salgados', selo: 'fibras', vontade: null })).toEqual([])
   })
 })
 

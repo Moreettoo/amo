@@ -9,7 +9,7 @@ export function Sonda() {
       <button type="button" onClick={() => f.definir({ vontade: 'chocolate' })}>
         sonda: vontade chocolate
       </button>
-      <button type="button" onClick={() => f.definir({ linha: 'pote', selo: 'fibras', vontade: 'fruta' })}>
+      <button type="button" onClick={() => f.definir({ linha: 'bolos-no-pote', selo: 'fibras', vontade: 'fruta' })}>
         sonda: tudo ligado
       </button>
     </div>

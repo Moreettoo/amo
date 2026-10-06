@@ -8,7 +8,7 @@ export const PRODUTOS: readonly Produto[] = [
   {
     slug: 'prestigio',
     nome: 'Prestígio',
-    linha: 'pote',
+    linha: 'bolos-no-pote',
     formato: 'pote',
     frase: 'Um abraço em forma de sobremesa',
     imagem: {
@@ -25,7 +25,7 @@ export const PRODUTOS: readonly Produto[] = [
   {
     slug: 'pacoca',
     nome: 'Paçoca',
-    linha: 'pote',
+    linha: 'bolos-no-pote',
     formato: 'pote',
     frase: 'O sabor que desperta boas lembranças',
     imagem: {
@@ -41,7 +41,7 @@ export const PRODUTOS: readonly Produto[] = [
   {
     slug: 'mousse-de-maracuja',
     nome: 'Mousse de maracujá',
-    linha: 'pote',
+    linha: 'bolos-no-pote',
     formato: 'pote',
     frase: 'Para dias mais leves',
     imagem: {
@@ -57,7 +57,7 @@ export const PRODUTOS: readonly Produto[] = [
   {
     slug: 'ninho-com-frutas-vermelhas',
     nome: 'Ninho com frutas vermelhas',
-    linha: 'pote',
+    linha: 'bolos-no-pote',
     formato: 'pote',
     frase: 'Quando o doce encontra o azedinho perfeito',
     imagem: {
@@ -73,7 +73,7 @@ export const PRODUTOS: readonly Produto[] = [
   {
     slug: 'beijinho',
     nome: 'Beijinho',
-    linha: 'pote',
+    linha: 'bolos-no-pote',
     formato: 'pote',
     frase: 'Para adoçar o coração',
     imagem: {
@@ -89,7 +89,7 @@ export const PRODUTOS: readonly Produto[] = [
   {
     slug: 'chocolate',
     nome: 'Chocolate',
-    linha: 'pote',
+    linha: 'bolos-no-pote',
     formato: 'pote',
     frase: 'Para os apaixonados por chocolate',
     imagem: {
@@ -105,7 +105,7 @@ export const PRODUTOS: readonly Produto[] = [
   {
     slug: 'frutas-amarelas',
     nome: 'Frutas amarelas',
-    linha: 'pote',
+    linha: 'bolos-no-pote',
     formato: 'pote',
     frase: 'Manga, pêssego e maracujá',
     imagem: {
