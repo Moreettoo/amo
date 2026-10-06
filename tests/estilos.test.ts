@@ -77,4 +77,8 @@ describe('estilos', () => {
     expect(ultimo(foco, 'box-shadow')).toBe(ultimo(hover, 'box-shadow'))
     expect(ultimo(foco, 'transform')).toBe(ultimo(hover, 'transform'))
   })
+
+  it('no celular a fileira de pílulas das linhas rola de lado e não estica a grade do catálogo', () => {
+    expect(ultimo(regra(ler('catalogo.css'), '.catalogo__corpo'), 'grid-template-columns')).toBe('minmax(0, 1fr)')
+  })
 })

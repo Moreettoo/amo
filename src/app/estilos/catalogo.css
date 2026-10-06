@@ -3,7 +3,7 @@
    da linha. `overflow-x: clip` segura fita e etiqueta da ultima coluna. */
 @layer components {
   .catalogo { overflow-x: clip; padding: 40px 0 110px; }
-  .catalogo__corpo { display: grid; gap: 48px; align-items: start; }
+  .catalogo__corpo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 48px; align-items: start; }
   @media (min-width: 821px) {
     .catalogo__corpo:has(.catalogo__lado) { grid-template-columns: 260px minmax(0, 1fr); }
     .catalogo__lado { position: sticky; top: 96px; }
