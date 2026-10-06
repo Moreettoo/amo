@@ -146,4 +146,22 @@ describe('estilos', () => {
     // ate tres capas, de qualquer formato: o pior caso e tres da mais larga
     expect(3 * Math.max(...larguras) + 2 * vao).toBeLessThanOrEqual(coluna)
   })
+
+  it.each([
+    ['catalogo.css', '.catalogo__grupo-topo .link-sub', '"Ver só <linha>" nos grupos de "Tudo"'],
+    ['catalogo.css', '.topo-catalogo__acoes .link-sub', '"Voltar ao início" no 404'],
+    ['cardapio.css', '.cardapio__vazio button', '"Ver todas" no estado vazio'],
+  ])('%s: %s tem alvo de 44 px, invisível (%s)', (arquivo, seletor) => {
+    const css = ler(arquivo)
+    const dono = seletor.endsWith('.link-sub') ? regra(ler('pecas.css'), '.link-sub') : regra(css, seletor)
+    expect(ultimo(dono, 'position')).toBe('relative')
+    const alvo = regra(css, `${seletor}::before`)
+    expect(ultimo(alvo, 'content')).toBe('""')
+    expect(ultimo(alvo, 'position')).toBe('absolute')
+    expect(ultimo(alvo, 'height')).toBe('44px')
+    expect(ultimo(alvo, 'top')).toBe('50%')
+    expect(ultimo(alvo, 'margin-top')).toBe('-22px')
+    // nada que pinte: e so area de clique
+    expect(alvo).not.toMatch(/background|border|box-shadow|outline|color/)
+  })
 })

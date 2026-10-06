@@ -14,8 +14,10 @@ linha com produto. As especificações estão em
 
 - **Next.js (App Router)** com TypeScript em modo `strict`
 - **Tailwind CSS v4**, tokens de cor e tipografia como variáveis CSS
-- **Motion** (ex-Framer Motion), só o FLIP da grade do catálogo e o parallax
-  das fotos; as entradas e a gaveta são CSS, atrás da classe `html.js`
+- **Motion** (ex-Framer Motion), só o FLIP da grade do catálogo, o parallax
+  das fotos e o progresso da rolagem do Hoje o dia pede (`useScroll` e
+  `useMotionValueEvent`, que trocam a vontade); as entradas e a gaveta são
+  CSS, atrás da classe `html.js`
 - **Lenis**, a rolagem interpolada. É a mesma biblioteca que a referência de
   animação do projeto usa, e é conduzida por `src/components/RolagemSuave.tsx`,
   que também trata as âncoras (o Lenis move o scrollTop real, então `sticky` e

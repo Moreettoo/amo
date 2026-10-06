@@ -52,6 +52,8 @@
     margin-bottom: 26px;
   }
   .catalogo__grupo-topo h2 { margin: 0; font-size: 36px; line-height: 1.05; }
+  /* "Ver so <linha>": alvo de toque de 44 px, invisivel, centrado no texto */
+  .catalogo__grupo-topo .link-sub::before { content: ""; position: absolute; inset-inline: -4px; top: 50%; height: 44px; margin-top: -22px; }
   .catalogo .grade { margin-top: 0; }
 
   .catalogo__rotulo-linha { display: grid; justify-items: center; gap: 18px; margin-top: 96px; }

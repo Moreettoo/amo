@@ -232,6 +232,13 @@ describe('Gaveta: o conteúdo', () => {
     expect(ordem).toEqual(['0', '1', '2', '3', '4', '4'])
   })
 
+  it('o Lenis ignora a roda na gaveta inteira, inclusive no fundo, cujo alvo é o próprio <dialog>', () => {
+    // sem allow-discrete (Safari ate 17.3) o autoToggle nao para o Lenis, e a
+    // roda sobre o fundo rolaria a pagina de tras
+    render(<Bancada dados={misto} linhaAtual={null} aoFechar={() => {}} />)
+    expect(dialogo()).toHaveAttribute('data-lenis-prevent')
+  })
+
   it('a borda ondulada é decorativa, três camadas', () => {
     render(<Bancada dados={misto} linhaAtual={null} aoFechar={() => {}} />)
     const onda = dialogo().querySelector('.gaveta__onda')!

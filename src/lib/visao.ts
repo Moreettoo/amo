@@ -105,9 +105,16 @@ export const contarReceitas = (n: number) => `${n} ${n === 1 ? 'receita' : 'rece
 /** A chamada para o catalogo: "Ver a receita", "Ver as 11 receitas". */
 export const textoVerReceitas = (n: number) => (n === 1 ? 'Ver a receita' : `Ver as ${n} receitas`)
 
+/** A frase do cadastro fechada por um ponto so: ! e ? do fim ficam; ponto,
+ *  virgula, reticencias e espaco do fim viram um ponto. */
+function comPontoFinal(frase: string): string {
+  const limpa = frase.replace(/[\s.,;:…]+$/, '')
+  return /[!?]$/.test(limpa) ? limpa : `${limpa}.`
+}
+
 /** A descricao da pagina da linha: nome, regra e, quando ha, a frase. */
 export const descricaoDaLinha = (l: Linha) =>
-  `${l.nome}, ${l.regra.toLowerCase()}.${l.frase ? ` ${l.frase}.` : ''}`
+  `${l.nome}, ${l.regra.toLowerCase()}.${l.frase ? ` ${comPontoFinal(l.frase)}` : ''}`
 
 export const TITULO_TUDO = 'O catálogo inteiro'
 export const LEAD_TUDO = 'Cada linha com a sua regra no rótulo.'
@@ -227,7 +234,7 @@ export function montarCatalogo(c: Catalogo, slug: string | null): VistaCatalogo 
   return {
     linha,
     titulo: linha ? linha.nome : TITULO_TUDO,
-    lead: linha ? (linha.frase ? `${linha.frase}.` : null) : LEAD_TUDO,
+    lead: linha ? (linha.frase ? comPontoFinal(linha.frase) : null) : LEAD_TUDO,
     contagem: daVista.length,
     capas: (linha ? [linha] : linhas.slice(0, 3)).map((l) => capaDaLinha(produtos, l.slug)),
     itensLinha:

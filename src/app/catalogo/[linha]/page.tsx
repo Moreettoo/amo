@@ -6,7 +6,7 @@ import { descricaoDaLinha, linhasComProduto, montarCatalogo, montarGaveta } from
 
 type Props = { params: Promise<{ linha: string }> }
 
-/** So as linhas do cadastro existem; qualquer outro slug cai no 404. */
+/** So as linhas com produto existem; qualquer outro slug cai no 404. */
 export const dynamicParams = false
 
 /** Uma pagina estatica por linha com produto. */

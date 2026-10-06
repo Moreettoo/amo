@@ -21,7 +21,7 @@
 
   /* o <dialog> sem a margem, a borda, o fundo e o limite de altura do navegador */
   .gaveta {
-    --painel: min(400px, calc(100vw - 72px));
+    --painel: 400px;
     --borda: 28px;
     position: fixed; inset: 0 auto 0 0;
     width: calc(var(--painel) + var(--borda)); height: 100%;

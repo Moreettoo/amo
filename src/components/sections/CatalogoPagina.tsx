@@ -117,7 +117,7 @@ export function CatalogoPagina({ vista }: Props) {
         ) : null}
 
         <div className="catalogo__receitas">
-          <h2 ref={tituloRef} tabIndex={-1} className="sr-only">
+          <h2 ref={tituloRef} tabIndex={-1} className="sr-only scroll-mt-24">
             Receitas
           </h2>
 

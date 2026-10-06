@@ -118,9 +118,13 @@ describe('a abertura leve da gaveta (spec §4.7)', () => {
     }
   })
 
-  it('a lista entra 35 ms depois do item anterior, contado por --i', () => {
+  it('a lista entra 35 ms depois do item anterior, contado por --i, com teto', () => {
     const item = regras().find((r) => r.seletor.endsWith('.gaveta__item'))!
-    expect(item.animacao).toContain('calc(.12s + var(--i, 0) * 35ms)')
+    expect(item.animacao).toContain('calc(.12s + min(var(--i, 0), 9) * 35ms)')
+    // com 10 ou mais itens o ultimo ainda para antes de 0.8 s (spec 4.7)
+    const [duracao, base] = item.animacao.match(/\d*\.?\d+m?s\b/g)!
+    const [, teto, passo] = /min\(var\(--i, 0\), (\d+)\) \* (\d+)ms/.exec(item.animacao)!
+    expect(segundos(duracao) + segundos(base) + (Number(teto) * Number(passo)) / 1000).toBeLessThan(0.8)
   })
 
   it('a saída dura o que o JS espera antes do close()', () => {

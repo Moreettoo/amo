@@ -27,9 +27,11 @@
   }
   .cardapio__vazio { margin-top: 40px; font-size: 18px; color: var(--color-suave); }
   .cardapio__vazio button {
-    padding: 0; border: 0; border-bottom: 2px solid var(--color-cobre); background: none;
+    position: relative; padding: 0; border: 0; border-bottom: 2px solid var(--color-cobre); background: none;
     color: var(--color-cobre-texto); font: inherit; font-weight: 700; cursor: pointer;
   }
+  /* alvo de toque de 44 px, invisivel: o visual segue o do texto sublinhado */
+  .cardapio__vazio button::before { content: ""; position: absolute; inset-inline: -4px; top: 50%; height: 44px; margin-top: -22px; }
   @media (max-width: 520px) {
     .grade { grid-template-columns: 1fr 1fr; gap: 40px 14px; }
     .vitrine__botao { margin-left: 0; }

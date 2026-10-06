@@ -49,7 +49,8 @@ describe('Catálogo de uma linha (o cadastro de hoje)', () => {
 
   it('o título das receitas existe para leitor de tela, e o h3 dos cards não pula nível', () => {
     montar('bolos-no-pote')
-    expect(screen.getByRole('heading', { level: 2, name: 'Receitas' })).toHaveClass('sr-only')
+    // recebe foco do "Ver todas": como alvo, desconta a nav ao rolar
+    expect(screen.getByRole('heading', { level: 2, name: 'Receitas' })).toHaveClass('sr-only', 'scroll-mt-24')
   })
 
   it('a vontade filtra, marca a pílula e anuncia; clicar de novo desliga', async () => {

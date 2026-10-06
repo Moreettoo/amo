@@ -206,6 +206,17 @@ describe('caminhos e textos', () => {
     expect(descricaoDaLinha(pote)).toBe('Bolos no pote, zero açúcar. Um abraço em forma de sobremesa.')
     expect(descricaoDaLinha({ ...pote, frase: undefined })).toBe('Bolos no pote, zero açúcar.')
   })
+
+  it('frase do cadastro que já tem pontuação no fim não ganha outro ponto', async () => {
+    const [pote] = (await carregarCatalogo()).linhas
+    const comFrase = (frase: string) => descricaoDaLinha({ ...pote, frase })
+    expect(comFrase('Um abraço.')).toBe('Bolos no pote, zero açúcar. Um abraço.')
+    expect(comFrase('Um abraço!')).toBe('Bolos no pote, zero açúcar. Um abraço!')
+    expect(comFrase('Um abraço?')).toBe('Bolos no pote, zero açúcar. Um abraço?')
+    // virgula, espaco e reticencias no fim viram um ponto so
+    expect(comFrase('Um abraço, ')).toBe('Bolos no pote, zero açúcar. Um abraço.')
+    expect(comFrase('Um abraço...')).toBe('Bolos no pote, zero açúcar. Um abraço.')
+  })
 })
 
 describe('linhasComProduto', () => {
@@ -346,6 +357,14 @@ describe('montarCatalogo', () => {
     expect(v.vontades).toEqual([])
     expect(v.selos.map((s) => s.id)).toEqual(['sem-conservante'])
     expect(v.itensLinha.filter((i) => i.atual).map((i) => i.href)).toEqual(['/catalogo/salgados'])
+  })
+
+  it('o lead não dobra a pontuação que a frase do cadastro já tem', () => {
+    const c = copia(CATALOGO_MISTO)
+    c.linhas[1].frase = 'Assado na hora.'
+    expect(montarCatalogo(c, 'bolos-inteiros').lead).toBe('Assado na hora.')
+    c.linhas[1].frase = 'Assado na hora!'
+    expect(montarCatalogo(c, 'bolos-inteiros').lead).toBe('Assado na hora!')
   })
 
   it('linha sem frase não tem lead', () => {

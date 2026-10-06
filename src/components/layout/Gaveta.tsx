@@ -138,6 +138,10 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
     if (!(link instanceof HTMLAnchorElement)) return
     // Mesma pagina: fecha ja, sem animacao, para o RolagemSuave rolar ate o
     // alvo e levar o foco. Outra pagina: a navegacao troca o documento.
+    // A ordem importa: este onClick (o React ouve na raiz) roda antes do
+    // ouvinte de bolha do RolagemSuave no document. Se ela virasse, o foco
+    // iria para um alvo ainda inerte atras do modal, e o close() depois o
+    // devolveria a quem abriu a gaveta.
     if (new URL(link.href).pathname === window.location.pathname) concluir(false)
   }
 
@@ -146,12 +150,17 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
   const pe = unica ? dados.sabores.length + 1 : dados.linhas.length + 1
   const atual = (slug: string) => (slug === linhaAtual ? ('page' as const) : undefined)
 
+  // data-lenis-prevent no proprio <dialog>: o alvo da roda sobre o fundo
+  // (::backdrop) e ele. Sem allow-discrete (Safari ate 17.3) o autoToggle
+  // nao para o Lenis, e a roda ali rolaria a pagina de tras. O painel, que
+  // rola sozinho, herda.
   return (
     <dialog
       id={id}
       ref={ref}
       aria-labelledby={`${id}-titulo`}
       className="gaveta"
+      data-lenis-prevent
       onCancel={aoCancelar}
       onClose={aoFecharNativo}
       onClick={aoClicar}
@@ -162,7 +171,7 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
         ))}
       </svg>
 
-      <div className="gaveta__painel grao" data-lenis-prevent>
+      <div className="gaveta__painel grao">
         <div className="gaveta__topo">
           <h2 id={`${id}-titulo`}>Catálogo</h2>
           <button
