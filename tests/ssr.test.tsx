@@ -43,8 +43,8 @@ describe('o HTML do servidor', () => {
     expect(preloads[0]).toContain('prestigio')
   })
 
-  it('a página inteira está no HTML: as 5 seções e os 7 cards', () => {
+  it('a página inteira está no HTML: as 5 seções e os 4 cards da vitrine', () => {
     expect(doc.querySelectorAll('section[id]')).toHaveLength(5)
-    expect(doc.querySelectorAll('#cardapio article')).toHaveLength(7)
+    expect(doc.querySelectorAll('#cardapio article')).toHaveLength(4)
   })
 })

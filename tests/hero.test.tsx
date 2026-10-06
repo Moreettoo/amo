@@ -33,7 +33,7 @@ describe('Hero', () => {
 
   it('as ações levam ao cardápio e ao Hoje o dia pede', () => {
     montar()
-    expect(screen.getByRole('link', { name: 'Ver o cardápio' })).toHaveAttribute('href', '#cardapio')
+    expect(screen.getByRole('link', { name: 'Ver o cardápio' })).toHaveAttribute('href', '/catalogo')
     expect(screen.getByRole('link', { name: 'Escolher pela vontade' })).toHaveAttribute('href', '#hoje')
   })
 

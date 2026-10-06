@@ -15,8 +15,6 @@ export type OpcaoSelo = { id: string; nome: string }
 export type GrupoVontade = { slug: string; palavra: string; produtos: Produto[] }
 
 export type Visao = {
-  /** todos, por ordem */
-  produtos: Produto[]
   destaque: Produto
   /** da esquerda para a direita, o destaque no meio */
   palco: Produto[]
@@ -26,10 +24,6 @@ export type Visao = {
   tipos: Record<string, string>
   /** id do selo para o nome */
   nomesDosSelos: Record<string, string>
-  /** vazio quando ha menos de 2 linhas com produto */
-  filtrosLinha: OpcaoLinha[]
-  /** so os selos que alguns produtos tem e outros nao */
-  filtrosSelo: OpcaoSelo[]
   /** so as vontades com produto */
   vontades: GrupoVontade[]
   /** as linhas com produto, por ordem */
@@ -37,6 +31,12 @@ export type Visao = {
   /** as mesmas, so quando ha 2 ou mais */
   linhasNoFinal: Linha[]
   fotoDaMarca: ImagemProduto
+  /** a vitrine da home (montarVitrine) */
+  vitrine: Produto[]
+  /** as linhas com a contagem, para os atalhos da vitrine; vazio com uma so */
+  linhasNaVitrine: OpcaoLinha[]
+  /** quantas receitas ha */
+  total: number
 }
 
 export const porOrdem = (a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem
@@ -54,18 +54,11 @@ export function montarVisao(c: Catalogo): Visao {
 
   const contar = (pred: (p: Produto) => boolean) => produtos.filter(pred).length
 
-  const rotulos = [...c.linhas].sort(porOrdem).filter((l) => produtos.some((p) => p.linha === l.slug))
-  const filtrosLinha =
+  const rotulos = linhasComProduto(c)
+  const linhasNaVitrine =
     rotulos.length >= 2
       ? rotulos.map((l) => ({ slug: l.slug, nome: l.nome, contagem: contar((p) => p.linha === l.slug) }))
       : []
-
-  const filtrosSelo = c.selos
-    .filter((s) => {
-      const n = contar((p) => p.selos.includes(s.id))
-      return n > 0 && n < produtos.length
-    })
-    .map((s) => ({ id: s.id, nome: s.nome }))
 
   const vontades = [...c.vontades]
     .sort(porOrdem)
@@ -77,18 +70,18 @@ export function montarVisao(c: Catalogo): Visao {
     .filter((g) => g.produtos.length > 0)
 
   return {
-    produtos,
     destaque,
     palco,
     regraDoDestaque: c.linhas.find((l) => l.slug === destaque.linha)?.regra ?? '',
     tipos: Object.fromEntries(c.linhas.map((l) => [l.slug, l.tipo])),
     nomesDosSelos: Object.fromEntries(c.selos.map((s) => [s.id, s.nome])),
-    filtrosLinha,
-    filtrosSelo,
     vontades,
     rotulos,
     linhasNoFinal: rotulos.length >= 2 ? rotulos : [],
     fotoDaMarca: (produtos.find((p) => p.slug === 'beijinho') ?? destaque).imagem,
+    vitrine: montarVitrine(c),
+    linhasNaVitrine,
+    total: produtos.length,
   }
 }
 

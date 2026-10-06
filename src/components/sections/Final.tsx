@@ -1,17 +1,15 @@
-'use client'
-
-import { useFiltro } from '@/components/FiltroProvider'
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
 import { PilulaLink } from '@/components/ui/Pilula'
+import { CAMINHO_CATALOGO, caminhoDaLinha } from '@/lib/visao'
 
 type Props = {
   /** vazio quando ha uma linha so (montarVisao decide) */
   linhas: readonly { slug: string; nome: string }[]
 }
 
-/** O fecho, expresso: chamada final e, com varias linhas, um atalho por linha. */
+/** O fecho, expresso: chamada final e, com varias linhas, um atalho para a
+ *  pagina de cada uma no catalogo. */
 export function Final({ linhas }: Props) {
-  const { definir } = useFiltro()
   return (
     <section aria-labelledby="titulo-final" className="final superficie-escura">
       <div className="wrap">
@@ -22,18 +20,13 @@ export function Final({ linhas }: Props) {
         {linhas.length > 0 ? (
           <div className="final__linhas">
             {linhas.map((l) => (
-              <PilulaLink
-                key={l.slug}
-                href="#cardapio"
-                variante="clara"
-                onClick={() => definir({ linha: l.slug, selo: null, vontade: null })}
-              >
+              <PilulaLink key={l.slug} href={caminhoDaLinha(l.slug)} variante="clara">
                 {l.nome}
               </PilulaLink>
             ))}
           </div>
         ) : null}
-        <BotaoRetro href="#cardapio" className="final__botao">
+        <BotaoRetro href={CAMINHO_CATALOGO} className="final__botao">
           Ver o cardápio
         </BotaoRetro>
       </div>

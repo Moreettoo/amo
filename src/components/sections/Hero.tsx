@@ -4,6 +4,7 @@ import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
 import { classeDoFormato } from '@/components/ui/MolduraProduto'
 import { SeloCarimbo } from '@/components/ui/SeloCarimbo'
 import type { Produto } from '@/lib/catalogo'
+import { CAMINHO_CATALOGO } from '@/lib/visao'
 
 type Props = {
   /** da esquerda para a direita, com o destaque no meio */
@@ -42,7 +43,7 @@ export function Hero({ palco, destaque, regra }: Props) {
           Receitas em versão saudável. Cada uma diz no rótulo o que tem e o que não tem.
         </p>
         <div className="hero__acoes">
-          <BotaoRetro href="#cardapio">Ver o cardápio</BotaoRetro>
+          <BotaoRetro href={CAMINHO_CATALOGO}>Ver o cardápio</BotaoRetro>
           <LinkSublinhado href="#hoje" traco={1}>
             Escolher pela vontade
           </LinkSublinhado>

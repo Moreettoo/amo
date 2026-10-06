@@ -4,13 +4,12 @@ import userEvent from '@testing-library/user-event'
 import { renderToString } from 'react-dom/server'
 import { HojeODiaPede, CONSULTA_PINO } from '@/components/sections/HojeODiaPede'
 import { PalavraTroca } from '@/components/ui/PalavraTroca'
-import { FiltroProvider } from '@/components/FiltroProvider'
 import { carregarCatalogo } from '@/lib/catalogo'
 import { montarVisao, type GrupoVontade } from '@/lib/visao'
 import { posicaoDoIndice } from '@/lib/vontade'
-import { Sonda } from './fixtures/sonda'
 
-const visao = montarVisao(await carregarCatalogo())
+const catalogo = await carregarCatalogo()
+const visao = montarVisao(catalogo)
 const matchMediaOriginal = window.matchMedia
 
 afterEach(() => {
@@ -21,12 +20,7 @@ afterEach(() => {
 })
 
 function montar(vontades: readonly GrupoVontade[] = visao.vontades) {
-  return render(
-    <FiltroProvider>
-      <HojeODiaPede vontades={vontades} tipos={visao.tipos} />
-      <Sonda />
-    </FiltroProvider>,
-  )
+  return render(<HojeODiaPede vontades={vontades} tipos={visao.tipos} />)
 }
 
 const letras = (raiz: ParentNode) =>
@@ -47,7 +41,7 @@ describe('Hoje o dia pede', () => {
     const painel = screen.getByRole('tabpanel', { name: 'Chocolate 2' })
     expect(within(painel).getByText('Chocolate.')).toHaveClass('sr-only')
     expect(within(painel).getByText(/Prestígio e Chocolate\./).textContent).toBe('2 opções: Prestígio e Chocolate.')
-    expect(within(painel).getByRole('link', { name: 'Ver as 2 no cardápio' })).toHaveAttribute('href', '#cardapio')
+    expect(within(painel).getByRole('link', { name: 'Ver as 2 no cardápio' })).toHaveAttribute('href', '/catalogo?vontade=chocolate')
     expect(screen.getByAltText(visao.vontades[0].produtos[0].imagem.alt)).toBeInTheDocument()
     expect(container.querySelector('.hoje__lado .etiqueta')).toHaveAttribute('aria-hidden', 'true')
     const minis = container.querySelectorAll('.hoje__pilha img')
@@ -84,17 +78,18 @@ describe('Hoje o dia pede', () => {
     expect(within(painel).getByText(/Beijinho\./).textContent).toBe('2 opções: Prestígio e Beijinho.')
   })
 
-  it('"Ver as 3 no cardápio" aplica a vontade e limpa linha e selo', async () => {
+  it('"Ver as 3 no cardápio" leva ao catálogo com a vontade escolhida', async () => {
     const user = userEvent.setup()
     montar()
-    await user.click(screen.getByRole('button', { name: 'sonda: tudo ligado' }))
     await user.click(screen.getByRole('tab', { name: 'Fruta 3' }))
-    await user.click(screen.getByRole('link', { name: 'Ver as 3 no cardápio' }))
-    expect(screen.getByTestId('filtro')).toHaveTextContent('-|-|fruta')
+    expect(screen.getByRole('link', { name: 'Ver as 3 no cardápio' })).toHaveAttribute(
+      'href',
+      '/catalogo?vontade=fruta',
+    )
   })
 
   it('com um produto só: "1 opção" e "Ver no cardápio"', () => {
-    const beijinho = visao.produtos.find((p) => p.slug === 'beijinho')!
+    const beijinho = catalogo.produtos.find((p) => p.slug === 'beijinho')!
     montar([{ slug: 'coco', palavra: 'Coco', produtos: [beijinho] }])
     const painel = screen.getByRole('tabpanel')
     expect(within(painel).getByText(/Beijinho\./).textContent).toBe('1 opção: Beijinho.')

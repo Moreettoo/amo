@@ -3,13 +3,12 @@
 import Image from 'next/image'
 import { useMotionValueEvent, useScroll } from 'motion/react'
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
-import { useFiltro } from '@/components/FiltroProvider'
 import { useRolagem } from '@/components/RolagemSuave'
 import { PalavraTroca } from '@/components/ui/PalavraTroca'
 import { Pilula, PilulaLink } from '@/components/ui/Pilula'
 import { PoteEnche } from '@/components/ui/PoteEnche'
 import { useTrava } from '@/components/ui/useTrava'
-import type { GrupoVontade } from '@/lib/visao'
+import { CAMINHO_CATALOGO, type GrupoVontade } from '@/lib/visao'
 import {
   contarOpcoes,
   indicePorProgresso,
@@ -52,7 +51,6 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
   const abasRef = useRef<(HTMLButtonElement | null)[]>([])
   const { travar, soltar, travada } = useTrava(1600, sincronizarComRolagem)
   const { rolarPara } = useRolagem()
-  const { definir } = useFiltro()
 
   function mudar(i: number) {
     if (i === indiceRef.current) return
@@ -133,10 +131,7 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
                   <b>{contarOpcoes(quantos)}:</b> {listarNomes(grupo.produtos.map((p) => p.nome))}.
                 </p>
                 <div className="hoje__opcoes">
-                  <PilulaLink
-                    href="#cardapio"
-                    onClick={() => definir({ vontade: grupo.slug, linha: null, selo: null })}
-                  >
+                  <PilulaLink href={`${CAMINHO_CATALOGO}?vontade=${grupo.slug}`}>
                     {textoVerNoCardapio(quantos)}
                   </PilulaLink>
                 </div>

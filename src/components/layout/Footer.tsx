@@ -1,18 +1,14 @@
-'use client'
-
 import Image from 'next/image'
-import { useFiltro } from '@/components/FiltroProvider'
+import { caminhoDaLinha } from '@/lib/visao'
 
 const ANCORAS = [
-  { href: '#marca', rotulo: 'A marca' },
-  { href: '#rotulos', rotulo: 'O que é saudável aqui' },
-  { href: '#hoje', rotulo: 'Hoje o dia pede' },
+  { href: '/#marca', rotulo: 'A marca' },
+  { href: '/#rotulos', rotulo: 'O que é saudável aqui' },
+  { href: '/#hoje', rotulo: 'Hoje o dia pede' },
 ] as const
 
 type Props = {
   linhas: readonly { slug: string; nome: string }[]
-  /** so aplica o filtro de linha quando ele existe na tela */
-  filtraLinha: boolean
 }
 
 /** O coracao que cresce na frente do link. Decorativo: fica fora do nome. */
@@ -24,8 +20,7 @@ function Coracao() {
   )
 }
 
-export function Footer({ linhas, filtraLinha }: Props) {
-  const { definir } = useFiltro()
+export function Footer({ linhas }: Props) {
   return (
     <footer className="rodape grao">
       <div className="wrap">
@@ -47,11 +42,7 @@ export function Footer({ linhas, filtraLinha }: Props) {
             <ul aria-labelledby="rodape-linhas">
               {linhas.map((l) => (
                 <li key={l.slug}>
-                  <a
-                    href="#cardapio"
-                    className="rodape-link"
-                    onClick={filtraLinha ? () => definir({ linha: l.slug, selo: null, vontade: null }) : undefined}
-                  >
+                  <a href={caminhoDaLinha(l.slug)} className="rodape-link">
                     <Coracao />
                     {l.nome}
                   </a>

@@ -1,11 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { act, render, renderHook, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { FiltroProvider, useFiltro } from '@/components/FiltroProvider'
 import { RolagemSuave, useRolagem, DESLOCAMENTO_NAV } from '@/components/RolagemSuave'
 import { useNaTela } from '@/components/ui/useNaTela'
 import { useTrava } from '@/components/ui/useTrava'
-import { Sonda } from './fixtures/sonda'
 
 const matchMediaOriginal = window.matchMedia
 afterEach(() => {
@@ -26,35 +23,6 @@ function reduzirMovimento() {
     dispatchEvent: () => false,
   })) as typeof window.matchMedia
 }
-
-describe('FiltroProvider', () => {
-  it('definir junta o parcial ao que já havia; limpar zera tudo', async () => {
-    const user = userEvent.setup()
-    function Limpar() {
-      const { limpar } = useFiltro()
-      return <button type="button" onClick={limpar}>limpar</button>
-    }
-    render(
-      <FiltroProvider>
-        <Sonda />
-        <Limpar />
-      </FiltroProvider>,
-    )
-    const saida = screen.getByTestId('filtro')
-    expect(saida).toHaveTextContent('-|-|-')
-    await user.click(screen.getByRole('button', { name: 'sonda: vontade chocolate' }))
-    expect(saida).toHaveTextContent('-|-|chocolate')
-    await user.click(screen.getByRole('button', { name: 'sonda: tudo ligado' }))
-    expect(saida).toHaveTextContent('bolos-no-pote|fibras|fruta')
-    await user.click(screen.getByRole('button', { name: 'limpar' }))
-    expect(saida).toHaveTextContent('-|-|-')
-  })
-
-  it('useFiltro fora do provider é erro de programação', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {})
-    expect(() => renderHook(() => useFiltro())).toThrow(/FiltroProvider/)
-  })
-})
 
 describe('RolagemSuave', () => {
   it('o deslocamento da âncora é o da nav nova: 12 + 64 + 20', () => {

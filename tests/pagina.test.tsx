@@ -46,12 +46,15 @@ describe('a página completa', () => {
     ])
   })
 
-  it('os 7 produtos aparecem pelo nome do produto, sem nome poético', () => {
+  it('a vitrine mostra 4 produtos pelo nome do produto, sem nome poético', () => {
     const { container } = montar()
     const cardapio = container.querySelector('#cardapio') as HTMLElement
-    for (const p of PRODUTOS) {
-      expect(within(cardapio).getByRole('heading', { level: 3, name: p.nome })).toBeInTheDocument()
-    }
+    expect(within(cardapio).getAllByRole('heading', { level: 3 }).map((h) => h.textContent)).toEqual([
+      'Prestígio',
+      'Paçoca',
+      'Mousse de maracujá',
+      'Ninho com frutas vermelhas',
+    ])
     expect(container.textContent).not.toMatch(/Aconchego|Raízes|Leveza|Encontro|Carinho|Intensamente|Energia/)
   })
 

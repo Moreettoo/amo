@@ -3,11 +3,9 @@ import { render, screen, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { Nav } from '@/components/layout/Nav'
 import { Footer } from '@/components/layout/Footer'
-import { FiltroProvider } from '@/components/FiltroProvider'
 import { carregarCatalogo } from '@/lib/catalogo'
 import { montarGaveta, type DadosGaveta } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
-import { Sonda } from './fixtures/sonda'
 
 const gaveta = montarGaveta(await carregarCatalogo())
 const montarNav = (dados: DadosGaveta = gaveta, linhaAtual: string | null = null) =>
@@ -122,61 +120,43 @@ describe('Nav', () => {
 })
 
 describe('Footer', () => {
-  const montar = (filtraLinha: boolean, linhas = [{ slug: 'bolos-no-pote', nome: 'Bolos no pote' }]) =>
-    render(
-      <FiltroProvider>
-        <Footer linhas={linhas} filtraLinha={filtraLinha} />
-        <Sonda />
-      </FiltroProvider>,
-    )
+  const montar = (linhas = [{ slug: 'bolos-no-pote', nome: 'Bolos no pote' }]) => render(<Footer linhas={linhas} />)
 
   it('é um landmark contentinfo', () => {
-    montar(false)
+    montar()
     expect(screen.getByRole('contentinfo')).toBeInTheDocument()
   })
 
-  it('lista as linhas com link para o cardápio', () => {
-    montar(false)
-    const lista = screen.getByRole('list', { name: 'Linhas' })
-    expect(within(lista).getByRole('link', { name: 'Bolos no pote' })).toHaveAttribute('href', '#cardapio')
-  })
-
-  it('com uma linha só, o link não mexe no filtro (não há filtro de linha na tela)', async () => {
-    const user = userEvent.setup()
-    montar(false)
-    await user.click(screen.getByRole('link', { name: 'Bolos no pote' }))
-    expect(screen.getByTestId('filtro')).toHaveTextContent('-|-|-')
-  })
-
-  it('com filtro de linha na tela, o link escolhe a linha e limpa selo e vontade', async () => {
-    const user = userEvent.setup()
-    montar(true, [
+  it('cada linha leva à sua página no catálogo', () => {
+    montar([
       { slug: 'bolos-no-pote', nome: 'Bolos no pote' },
       { slug: 'salgados', nome: 'Salgados' },
     ])
-    await user.click(screen.getByRole('button', { name: 'sonda: tudo ligado' }))
-    await user.click(screen.getByRole('link', { name: 'Salgados' }))
-    expect(screen.getByTestId('filtro')).toHaveTextContent('salgados|-|-')
+    const lista = screen.getByRole('list', { name: 'Linhas' })
+    expect(within(lista).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual([
+      '/catalogo/bolos-no-pote',
+      '/catalogo/salgados',
+    ])
   })
 
-  it('a coluna A marca leva às seções da página', () => {
-    montar(false)
+  it('a coluna A marca leva às seções da home, de qualquer página', () => {
+    montar()
     const lista = screen.getByRole('list', { name: 'A marca' })
     expect(within(lista).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual([
-      '#marca',
-      '#rotulos',
-      '#hoje',
+      '/#marca',
+      '/#rotulos',
+      '/#hoje',
     ])
   })
 
   it('usa placeholder de contato visivelmente falso e avisa que é provisório', () => {
-    montar(false)
+    montar()
     expect(screen.getByText('(00) 00000-0000')).toBeInTheDocument()
     expect(screen.getByText(/contato provisório/i)).toBeInTheDocument()
   })
 
   it('o AMO do copyright está blindado contra tradutor', () => {
-    montar(false)
+    montar()
     expect(screen.getByText('AMO')).toHaveAttribute('translate', 'no')
   })
 })

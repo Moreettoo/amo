@@ -1,15 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
 import { Rotulos } from '@/components/sections/Rotulos'
 import { AMarca } from '@/components/sections/AMarca'
 import { FaixaCobre } from '@/components/sections/FaixaCobre'
 import { Final } from '@/components/sections/Final'
-import { FiltroProvider } from '@/components/FiltroProvider'
 import { carregarCatalogo } from '@/lib/catalogo'
 import { montarVisao } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
-import { Sonda } from './fixtures/sonda'
 
 const real = montarVisao(await carregarCatalogo())
 const misto = montarVisao(CATALOGO_MISTO)
@@ -82,26 +79,16 @@ describe('Faixa cobre', () => {
 })
 
 describe('Final', () => {
-  const montar = (linhas = real.linhasNoFinal) =>
-    render(
-      <FiltroProvider>
-        <Final linhas={linhas} />
-        <Sonda />
-      </FiltroProvider>,
-    )
-
-  it('com uma linha só, só o título e o botão', () => {
-    montar()
+  it('com uma linha só, só o título e o botão para o catálogo', () => {
+    render(<Final linhas={real.linhasNoFinal} />)
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Escolha o seu AMO.')
-    expect(screen.getByRole('link', { name: 'Ver o cardápio' })).toHaveAttribute('href', '#cardapio')
+    expect(screen.getByRole('link', { name: 'Ver o cardápio' })).toHaveAttribute('href', '/catalogo')
     expect(screen.getAllByRole('link')).toHaveLength(1)
   })
 
-  it('com várias linhas, uma pílula por linha que escolhe a linha e limpa o resto', async () => {
-    const user = userEvent.setup()
-    montar(misto.linhasNoFinal)
-    await user.click(screen.getByRole('button', { name: 'sonda: tudo ligado' }))
-    await user.click(screen.getByRole('link', { name: 'Salgados' }))
-    expect(screen.getByTestId('filtro')).toHaveTextContent('salgados|-|-')
+  it('com várias linhas, uma pílula por linha para a página dela', () => {
+    render(<Final linhas={misto.linhasNoFinal} />)
+    expect(screen.getByRole('link', { name: 'Salgados' })).toHaveAttribute('href', '/catalogo/salgados')
+    expect(screen.getAllByRole('link')).toHaveLength(4)
   })
 })
