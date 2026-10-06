@@ -1,6 +1,7 @@
 'use client'
 
-import { useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { flushSync } from 'react-dom'
 import { GradeProdutos } from '@/components/ui/GradeProdutos'
 import { IconeCamadas } from '@/components/ui/IconeCamadas'
 import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
@@ -41,6 +42,33 @@ export function CatalogoPagina({ vista }: Props) {
   const grupos = vista.grupos.map((g) => ({ ...g, visiveis: filtrar(g.produtos, { linha: null, selo, vontade }) }))
   const mostrando = grupos.reduce((n, g) => n + g.visiveis.length, 0)
   const tudo = vista.linha === null
+  // os slugs que o filtro tirou da tela, numa string para a dependencia do efeito
+  const escondidos = grupos
+    .flatMap((g) => g.produtos.filter((p) => !g.visiveis.includes(p)).map((p) => p.slug))
+    .join(' ')
+
+  // O sabor da gaveta que o filtro escondeu nao tem card no DOM, e o
+  // RolagemSuave nao teria para onde rolar. Na captura, antes da gaveta (o
+  // onClick do React) e do RolagemSuave (os dois ouvem na bolha), o filtro
+  // sai, e o flushSync poe o card no DOM antes deles procurarem o alvo.
+  useEffect(() => {
+    if (!escondidos) return
+    const fora = new Set(escondidos.split(' '))
+    function aoClicar(e: MouseEvent) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      const link = e.target instanceof Element ? e.target.closest('a[href]') : null
+      if (!(link instanceof HTMLAnchorElement) || link.target === '_blank') return
+      const url = new URL(link.href)
+      if (url.host !== window.location.host || url.pathname !== window.location.pathname) return
+      if (!fora.has(decodeURIComponent(url.hash.slice(1)))) return
+      flushSync(() => {
+        setEscolhida(null)
+        setSelo(null)
+      })
+    }
+    document.addEventListener('click', aoClicar, true)
+    return () => document.removeEventListener('click', aoClicar, true)
+  }, [escondidos])
 
   // O botao clicado some da tela; o foco vai para o titulo das receitas em
   // vez de cair no <body>.
