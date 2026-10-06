@@ -1,12 +1,16 @@
 /* Hoje o dia pede, caramelo. Sem pino por padrao; o pino so vale com JS,
-   sem movimento reduzido e com janela de 700px ou mais (CONSULTA_PINO em
+   sem movimento reduzido e com janela alta o bastante (CONSULTA_PINO em
    HojeODiaPede.tsx espelha esta condicao). */
 @layer components {
   .hoje { overflow-x: clip; background: var(--color-caramelo); }
   .hoje__painel { padding: 96px 0 80px; }
   .hoje__grade { display: grid; gap: 18px; align-items: center; width: 100%; }
+  /* minmax(0, ...): sem ele a coluna crescia com a palavra (nowrap) e
+     empurrava a foto para fora entre 821 e ~960px. A palavra mede a propria
+     coluna (cqi, ver corpoDaPalavra). */
+  .hoje__texto { container-type: inline-size; min-width: 0; }
   @media (min-width: 821px) {
-    .hoje__grade { grid-template-columns: 1.15fr .85fr; gap: 40px; }
+    .hoje__grade { grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 40px; }
   }
   .hoje .rotulo-secao { color: var(--color-chocolate); }
   .hoje h2 { margin-top: 14px; font-size: clamp(34px, 4vw, 48px); line-height: 1; color: var(--color-chocolate); }
@@ -64,7 +68,9 @@
     .hoje__abas { gap: 8px; }
   }
 
-  @media (prefers-reduced-motion: no-preference) and (min-height: 700px) {
+  /* CONSULTA_PINO em HojeODiaPede.tsx e esta mesma lista; numa coluna so o
+     conteudo e mais alto e pede 800px de janela */
+  @media (prefers-reduced-motion: no-preference) and (min-width: 821px) and (min-height: 700px), (prefers-reduced-motion: no-preference) and (max-width: 820px) and (min-height: 800px) {
     html.js .hoje__trilho { height: calc(100svh + var(--n) * 55svh); }
     html.js .hoje__painel {
       position: sticky; top: 0; display: flex; align-items: center;

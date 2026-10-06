@@ -16,8 +16,10 @@ import Lenis from 'lenis'
  * rolar ate um ponto exato (as abas do Hoje o dia pede).
  */
 
-/** Nav: 12px de `top-3` + 64px de altura + 20 de folga. O mesmo numero do
- *  `scroll-mt-24` das secoes, que continua sendo o caminho sem JavaScript. */
+/** Nav: 12px de `top-3` + 64px de altura + 20 de folga. Mora no
+ *  `scroll-mt-24` das secoes, e e de la que os dois caminhos o leem: o
+ *  navegador sem Lenis e o proprio Lenis, cujo scrollTo(elemento) ja desconta
+ *  o scroll-margin-top do alvo. Passar offset por cima dobrava a distancia. */
 export const DESLOCAMENTO_NAV = -96
 
 type OpcoesRolagem = { aoTerminar?: () => void }
@@ -67,7 +69,7 @@ function conduzirAncora(lenis: Lenis, evento: MouseEvent) {
 
   evento.preventDefault()
   window.history.pushState(null, '', url.hash)
-  lenis.scrollTo(alvo, { offset: DESLOCAMENTO_NAV })
+  lenis.scrollTo(alvo)
 
   // tabindex -1 temporario: deixa-lo no DOM poria os alvos numa ordem de
   // tabulacao que ninguem pediu. preventScroll e obrigatorio: sem ele o

@@ -150,10 +150,13 @@ describe('as contas do Hoje o dia pede', () => {
     expect(listarNomes([])).toBe('')
   })
 
-  it('corpoDaPalavra encolhe a palavra longa para caber na coluna', () => {
-    expect(corpoDaPalavra(5)).toBe('min(112px, 27.74vw)')
-    expect(corpoDaPalavra(12)).toBe('min(83px, 11.56vw)')
-    expect(corpoDaPalavra(27)).toBe('min(37px, 5.14vw)')
+  it('corpoDaPalavra encolhe a palavra longa para caber na própria coluna (cqi), não na janela', () => {
+    // Achado da revisao final: em vw a conta supunha a janela inteira, e no
+    // desktop a palavra so tem a coluna de texto; entre 821 e ~960px ela
+    // empurrava a foto para fora.
+    expect(corpoDaPalavra(5)).toBe('min(112px, 29.68cqi)')
+    expect(corpoDaPalavra(12)).toBe('min(83px, 12.37cqi)')
+    expect(corpoDaPalavra(27)).toBe('min(37px, 5.50cqi)')
   })
 
   it('textos de quantidade no singular e no plural', () => {

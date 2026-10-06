@@ -32,6 +32,17 @@ describe('o HTML do servidor', () => {
     expect(doc.querySelectorAll('.play')).toHaveLength(0)
   })
 
+  it('pré-carrega exatamente uma imagem: o React 19 cria preload para todo <img> que não é lazy nem de prioridade baixa', () => {
+    // Achado da revisao final: as laterais do hero com loading="eager"
+    // ganhavam <link rel="preload"> junto com o destaque, e o teste do DOM
+    // (atributo loading) nao via. Aqui conta o que o servidor manda.
+    const preloads = [...html.matchAll(/<link[^>]*rel="preload"[^>]*>/g)]
+      .map((m) => m[0])
+      .filter((tag) => /as="image"/.test(tag))
+    expect(preloads, preloads.join('\n')).toHaveLength(1)
+    expect(preloads[0]).toContain('prestigio')
+  })
+
   it('a página inteira está no HTML: as 5 seções e os 7 cards', () => {
     expect(doc.querySelectorAll('section[id]')).toHaveLength(5)
     expect(doc.querySelectorAll('#cardapio article')).toHaveLength(7)

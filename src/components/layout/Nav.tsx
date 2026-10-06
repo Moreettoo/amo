@@ -104,7 +104,7 @@ export function Nav() {
             aria-expanded={aberto}
             aria-controls="menu-mobile"
             onClick={() => setAberto((v) => !v)}
-            className="grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border-2 border-expresso text-expresso min-[821px]:hidden"
+            className="so-js grid h-11 w-11 shrink-0 cursor-pointer place-items-center rounded-full border-2 border-expresso text-expresso min-[821px]:hidden"
           >
             <span aria-hidden="true" className="text-lg leading-none">
               {aberto ? '×' : '≡'}

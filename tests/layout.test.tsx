@@ -54,6 +54,11 @@ describe('Nav', () => {
     expect(logo.closest('a')).toHaveAttribute('href', '#topo')
   })
 
+  it('sem JS o botão de menu some (so-js): ele não faria nada', () => {
+    render(<Nav />)
+    expect(screen.getByRole('button', { name: /menu/i })).toHaveClass('so-js')
+  })
+
   it('o botão de menu de celular tem aria-label, aria-expanded e aria-controls', () => {
     render(<Nav />)
     const botao = screen.getByRole('button', { name: /menu/i })

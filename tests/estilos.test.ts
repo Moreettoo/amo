@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { CONSULTA_PINO } from '@/components/sections/HojeODiaPede'
 
 /**
  * Guardas de CSS achados na conferencia visual da v2 (Task 13): o preflight
@@ -31,5 +32,25 @@ describe('estilos', () => {
 
   it('cada contato do rodapé ocupa a sua linha: o texto não pode ser inline', () => {
     expect(ultimo(regra(ler('rodape.css'), '.rodape__texto'), 'display')).toBe('flex')
+  })
+
+  // Achados da revisao final (Task 13).
+
+  it('Hoje o dia pede: as colunas não crescem com a palavra, e a palavra mede a própria coluna', () => {
+    const css = ler('hoje.css')
+    expect(ultimo(regra(css, '.hoje__grade'), 'grid-template-columns')).toBe('minmax(0, 1.15fr) minmax(0, .85fr)')
+    expect(ultimo(regra(css, '.hoje__texto'), 'container-type')).toBe('inline-size')
+  })
+
+  it('a fita do bolo inteiro quebra em linhas com nome longo, em vez de vazar do card', () => {
+    const fita = regra(ler('produto.css'), '.fita')
+    expect(ultimo(fita, 'white-space')).not.toBe('nowrap')
+    expect(ultimo(fita, 'max-width')).toBeTruthy()
+  })
+
+  it('o pino do Hoje: CSS e JS com a mesma condição, e tela estreita exige 800px de altura', () => {
+    expect(ler('hoje.css')).toContain(`@media ${CONSULTA_PINO} {`)
+    expect(CONSULTA_PINO).toContain('(max-width: 820px) and (min-height: 800px)')
+    expect(CONSULTA_PINO).toContain('(min-width: 821px) and (min-height: 700px)')
   })
 })

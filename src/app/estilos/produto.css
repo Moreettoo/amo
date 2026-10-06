@@ -43,11 +43,13 @@
   .etiqueta small { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--color-cobre-texto); }
   .etiqueta i { margin-top: 4px; font-style: normal; font-size: 12px; color: var(--color-vinho); }
 
-  /* fita do bolo inteiro */
+  /* fita do bolo inteiro. Quebra em linhas com nome longo: em nowrap,
+     "Ninho com frutas vermelhas" vazava do card e cobria o vizinho. */
   .fita {
     position: absolute; z-index: 3; left: 50%; top: 226px; padding: 8px 22px;
+    width: max-content; max-width: 100%;
     background: var(--color-vinho); color: var(--color-papel);
-    font: 400 17px/1.2 var(--font-display); white-space: nowrap;
+    font: 400 17px/1.2 var(--font-display); text-align: center; text-wrap: balance;
     clip-path: polygon(0 0, 100% 0, 94% 50%, 100% 100%, 0 100%, 6% 50%);
     transform: translateX(-50%) rotate(-3deg);
   }

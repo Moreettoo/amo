@@ -123,11 +123,51 @@ describe('Hoje o dia pede', () => {
       dispatchEvent: () => false,
     })) as typeof window.matchMedia
     vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(3000)
-    const rolar = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    // a rolagem acontece de verdade: o scrollY vai ate o destino pedido, e o
+    // trilho (que comeca no topo do documento) sobe junto
+    const rolar = vi.spyOn(window, 'scrollTo').mockImplementation((destino) => {
+      Object.defineProperty(window, 'scrollY', { value: (destino as ScrollToOptions).top, configurable: true })
+    })
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      () => ({ top: -window.scrollY, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: -window.scrollY, toJSON: () => ({}) }) as DOMRect,
+    )
     montar()
     await user.click(screen.getByRole('tab', { name: 'Coco 2' }))
     expect(rolar).toHaveBeenCalledWith({ top: posicaoDoIndice(2, 4, 0, 3000 - window.innerHeight) })
     expect(screen.getByRole('tab', { name: 'Coco 2' })).toHaveAttribute('aria-selected', 'true')
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
+  })
+
+  it('quando a trava solta, a seleção segue a posição real da página, não a escolhida', async () => {
+    // A pessoa girou a roda no meio da rolagem e a pagina parou no trecho
+    // de Fruta: ao soltar a trava, a secao tem que mostrar Fruta.
+    const user = userEvent.setup()
+    document.documentElement.classList.add('js')
+    window.matchMedia = ((q: string) => ({
+      matches: q === CONSULTA_PINO,
+      media: q,
+      onchange: null,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    })) as typeof window.matchMedia
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(3000)
+    const curso = 3000 - window.innerHeight
+    const ondeParou = Math.round(posicaoDoIndice(1, 4, 0, curso))
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {
+      Object.defineProperty(window, 'scrollY', { value: ondeParou, configurable: true })
+    })
+    // o jsdom nao desconta a rolagem no getBoundingClientRect; aqui o trilho
+    // comeca no topo do documento, como no navegador
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(
+      () => ({ top: -window.scrollY, bottom: 0, left: 0, right: 0, width: 0, height: 0, x: 0, y: -window.scrollY, toJSON: () => ({}) }) as DOMRect,
+    )
+    montar()
+    await user.click(screen.getByRole('tab', { name: 'Coco 2' }))
+    expect(screen.getByRole('tab', { name: 'Fruta 3' })).toHaveAttribute('aria-selected', 'true')
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
   })
 })
 
@@ -141,7 +181,7 @@ describe('PalavraTroca', () => {
 
   it('o corpo da letra acompanha o tamanho da palavra', () => {
     // lido do HTML do servidor: o CSSOM do jsdom nem sempre aceita min()
-    expect(renderToString(<PalavraTroca palavra="Um clássico." />)).toContain('font-size:min(83px, 11.56vw)')
+    expect(renderToString(<PalavraTroca palavra="Um clássico." />)).toContain('font-size:min(83px, 12.37cqi)')
   })
 
   it('troca rápida termina na última palavra, nunca numa do meio', () => {

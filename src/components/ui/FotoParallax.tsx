@@ -23,6 +23,10 @@ type Props = {
   preload?: boolean
   /** sem preload: lazy por padrao; eager para as laterais do hero */
   carregamento?: 'lazy' | 'eager'
+  /** 'low' nas laterais do hero: o React 19 poe <link rel="preload"> em todo
+   *  <img> que nao e lazy nem de prioridade baixa, e o destaque tem que ser o
+   *  unico pre-carregado */
+  prioridade?: 'low' | 'auto'
   /** classes da caixa que recorta */
   className?: string
   /** classes do miolo que se move; sem elas a foto dita a altura */
@@ -34,6 +38,7 @@ export function FotoParallax({
   sizes,
   preload = false,
   carregamento = 'lazy',
+  prioridade = 'auto',
   className,
   proporcao,
 }: Props) {
@@ -60,7 +65,7 @@ export function FotoParallax({
           alt={imagem.alt}
           width={imagem.largura}
           height={imagem.altura}
-          {...(preload ? { preload: true } : { loading: carregamento })}
+          {...(preload ? { preload: true } : { loading: carregamento, fetchPriority: prioridade })}
           sizes={sizes}
           className={proporcao ? 'h-full w-full object-cover' : 'h-auto w-full object-cover'}
         />

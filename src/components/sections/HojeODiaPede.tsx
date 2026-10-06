@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useMotionValueEvent, useScroll } from 'motion/react'
-import { useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useFiltro } from '@/components/FiltroProvider'
 import { useRolagem } from '@/components/RolagemSuave'
 import { PalavraTroca } from '@/components/ui/PalavraTroca'
@@ -19,8 +19,11 @@ import {
 } from '@/lib/vontade'
 
 /** A mesma condicao do CSS que prende a secao (src/app/estilos/hoje.css).
- *  Em janela baixa o conteudo nao cabe em 100svh, entao nao prende. */
-export const CONSULTA_PINO = '(prefers-reduced-motion: no-preference) and (min-height: 700px)'
+ *  Em janela baixa o conteudo nao cabe em 100svh, entao nao prende; numa
+ *  coluna so (ate 820px) ele e mais alto e pede 800px. */
+export const CONSULTA_PINO =
+  '(prefers-reduced-motion: no-preference) and (min-width: 821px) and (min-height: 700px), ' +
+  '(prefers-reduced-motion: no-preference) and (max-width: 820px) and (min-height: 800px)'
 
 function estaPinado(): boolean {
   return document.documentElement.classList.contains('js') && window.matchMedia(CONSULTA_PINO).matches
@@ -47,7 +50,7 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
   const indiceRef = useRef(0)
   const trilhoRef = useRef<HTMLDivElement>(null)
   const abasRef = useRef<(HTMLButtonElement | null)[]>([])
-  const trava = useTrava()
+  const { travar, soltar, travada } = useTrava(1600, sincronizarComRolagem)
   const { rolarPara } = useRolagem()
   const { definir } = useFiltro()
 
@@ -58,25 +61,47 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
     setTrocou(true)
   }
 
+  /** O trilho medido agora: onde ele comeca e quanto a pagina corre nele. */
+  function medirTrilho() {
+    const trilho = trilhoRef.current
+    if (!trilho || !estaPinado()) return null
+    const curso = trilho.offsetHeight - window.innerHeight
+    if (curso <= 0) return null
+    return { topo: trilho.getBoundingClientRect().top + window.scrollY, curso }
+  }
+
+  /** Ao soltar a trava, a selecao volta a seguir a posicao real da pagina,
+   *  que pode nao ser a escolhida: a pessoa pode ter girado a roda no meio. */
+  function sincronizarComRolagem() {
+    const t = medirTrilho()
+    if (t) mudar(indicePorProgresso((window.scrollY - t.topo) / t.curso, n))
+  }
+
+  // Roda, toque ou tecla de rolagem: a pessoa assumiu a rolagem, a trava solta.
+  useEffect(() => {
+    const assumiu = () => {
+      if (travada()) soltar()
+    }
+    window.addEventListener('wheel', assumiu, { passive: true })
+    window.addEventListener('touchstart', assumiu, { passive: true })
+    return () => {
+      window.removeEventListener('wheel', assumiu)
+      window.removeEventListener('touchstart', assumiu)
+    }
+  }, [travada, soltar])
+
   const { scrollYProgress } = useScroll({ target: trilhoRef, offset: ['start start', 'end end'] })
   useMotionValueEvent(scrollYProgress, 'change', (p) => {
-    if (trava.travada() || !estaPinado()) return
+    if (travada() || !estaPinado()) return
     mudar(indicePorProgresso(p, n))
   })
 
   function escolher(i: number) {
-    const trilho = trilhoRef.current
-    if (trilho && estaPinado()) {
-      const curso = trilho.offsetHeight - window.innerHeight
-      if (curso > 0) {
-        const topo = trilho.getBoundingClientRect().top + window.scrollY
-        trava.travar(i)
-        mudar(i)
-        rolarPara(posicaoDoIndice(i, n, topo, curso), { aoTerminar: trava.soltar })
-        return
-      }
-    }
+    const t = medirTrilho()
     mudar(i)
+    if (!t) return
+    travar(i)
+    rolarPara(posicaoDoIndice(i, n, t.topo, t.curso), { aoTerminar: soltar })
   }
 
   function aoTeclar(e: KeyboardEvent<HTMLDivElement>) {
@@ -98,7 +123,7 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
       <div ref={trilhoRef} className="hoje__trilho" style={{ '--n': n } as CSSProperties}>
         <div className="hoje__painel">
           <div className="wrap hoje__grade">
-            <div>
+            <div className="hoje__texto">
               <p className="rotulo-secao">Não sabe o que escolher?</p>
               <h2 id="titulo-hoje">Hoje o dia pede</h2>
 

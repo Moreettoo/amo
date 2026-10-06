@@ -128,4 +128,24 @@ describe('useTrava', () => {
     vi.advanceTimersByTime(1)
     expect(result.current.travada()).toBe(false)
   })
+
+  it('avisa quando solta, pelo fim da rolagem ou pela validade, para quem usa reler a posição', () => {
+    // Achado da revisao final: a trava soltava, mas ninguem relia a rolagem,
+    // e a secao ficava mostrando a vontade escolhida no lugar da posicao real.
+    vi.useFakeTimers()
+    const aoSoltar = vi.fn()
+    const { result } = renderHook(() => useTrava(1600, aoSoltar))
+
+    result.current.travar(1)
+    result.current.soltar()
+    expect(aoSoltar).toHaveBeenCalledTimes(1)
+
+    result.current.travar(2)
+    vi.advanceTimersByTime(1600)
+    expect(aoSoltar).toHaveBeenCalledTimes(2)
+
+    // soltar sem estar travada nao avisa de novo
+    result.current.soltar()
+    expect(aoSoltar).toHaveBeenCalledTimes(2)
+  })
 })

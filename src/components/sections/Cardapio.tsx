@@ -1,7 +1,7 @@
 'use client'
 
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { useFiltro } from '@/components/FiltroProvider'
 import { CardProduto } from '@/components/ui/CardProduto'
 import { Pilula } from '@/components/ui/Pilula'
@@ -29,6 +29,10 @@ const MOLA = [0.34, 1.4, 0.64, 1] as const
  */
 export function Cardapio({ produtos, tipos, nomesDosSelos, filtrosLinha, filtrosSelo, vontades }: Props) {
   const { linha, selo, vontade, definir, limpar } = useFiltro()
+  const tituloRef = useRef<HTMLHeadingElement>(null)
+  // O botao clicado some da tela (a pilula da vontade, o "Ver todas"); o foco
+  // vai para o titulo do cardapio em vez de cair no <body>.
+  const focarTitulo = () => tituloRef.current?.focus()
   const visiveis = useMemo(
     () => filtrar(produtos, { linha, selo, vontade }),
     [produtos, linha, selo, vontade],
@@ -42,7 +46,7 @@ export function Cardapio({ produtos, tipos, nomesDosSelos, filtrosLinha, filtros
         <div className={`cardapio__topo${temFiltro ? ' cardapio__topo--duplo' : ''}`}>
           <div>
             <p className="rotulo-secao">O cardápio</p>
-            <h2 id="titulo-cardapio" className="titulo-secao">
+            <h2 id="titulo-cardapio" ref={tituloRef} tabIndex={-1} className="titulo-secao">
               Escolha pelo sabor
             </h2>
           </div>
@@ -80,7 +84,10 @@ export function Cardapio({ produtos, tipos, nomesDosSelos, filtrosLinha, filtros
               <Pilula
                 ativa
                 aria-label={`Tirar o filtro de vontade: ${palavra}`}
-                onClick={() => definir({ vontade: null })}
+                onClick={() => {
+                  definir({ vontade: null })
+                  focarTitulo()
+                }}
               >
                 Vontade: {palavra} <span aria-hidden="true">✕</span>
               </Pilula>
@@ -117,7 +124,13 @@ export function Cardapio({ produtos, tipos, nomesDosSelos, filtrosLinha, filtros
         {visiveis.length === 0 ? (
           <p className="cardapio__vazio">
             Nenhuma receita com esse filtro ainda.{' '}
-            <button type="button" onClick={limpar}>
+            <button
+              type="button"
+              onClick={() => {
+                limpar()
+                focarTitulo()
+              }}
+            >
               Ver todas
             </button>
           </p>

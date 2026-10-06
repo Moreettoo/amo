@@ -54,6 +54,8 @@ describe('Cardápio com o cadastro de hoje', () => {
     await user.click(screen.getByRole('button', { name: 'Tirar o filtro de vontade: chocolate' }))
     await waitFor(() => expect(cards()).toHaveLength(7))
     expect(filtro()).toHaveTextContent('-|-|-')
+    // o botao clicado some; o foco vai para o titulo do cardapio, nao para o body
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'Escolha pelo sabor' }))
   })
 })
 
@@ -103,6 +105,7 @@ describe('Cardápio com o catálogo misto', () => {
     expect(screen.getByText(/Nenhuma receita com esse filtro ainda/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Ver todas' }))
     expect(filtro()).toHaveTextContent('-|-|-')
+    expect(document.activeElement).toBe(screen.getByRole('heading', { level: 2, name: 'Escolha pelo sabor' }))
     await waitFor(() => expect(cards()).toHaveLength(11))
   })
 

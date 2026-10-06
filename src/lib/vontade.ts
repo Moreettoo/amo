@@ -21,11 +21,14 @@ export function listarNomes(nomes: readonly string[]): string {
   return `${nomes.slice(0, -1).join(', ')} e ${nomes[nomes.length - 1]}`
 }
 
-/** O corpo cai conforme o numero de letras, para a palavra caber na coluna. */
+/** O corpo cai conforme o numero de letras, para a palavra caber na coluna.
+ *  Em `cqi`, a largura da propria coluna de texto (que e um container de
+ *  inline-size): em vw a conta supunha a janela inteira, e no desktop a
+ *  palavra so tem metade dela. */
 export function corpoDaPalavra(letras: number): string {
   const px = Math.min(112, Math.round(1000 / letras))
-  const vw = (86 / (letras * 0.62)).toFixed(2)
-  return `min(${px}px, ${vw}vw)`
+  const cqi = (92 / (letras * 0.62)).toFixed(2)
+  return `min(${px}px, ${cqi}cqi)`
 }
 
 export function contarOpcoes(n: number): string {

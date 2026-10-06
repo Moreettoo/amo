@@ -70,6 +70,7 @@ export function Hero({ palco, destaque, regra }: Props) {
                       imagem={p.imagem}
                       sizes="(max-width: 820px) 30vw, 270px"
                       carregamento="eager"
+                      prioridade="low"
                       className="h-full w-full"
                       proporcao="h-full w-full"
                     />
