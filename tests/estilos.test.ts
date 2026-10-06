@@ -1,0 +1,35 @@
+import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+
+/**
+ * Guardas de CSS achados na conferencia visual da v2 (Task 13): o preflight
+ * do Tailwind zera o estilo de lista do ol, e o texto do contato em
+ * inline-flex punha os tres contatos na mesma linha. Os dois defeitos so
+ * apareciam com a pagina pintada.
+ */
+const ler = (nome: string) =>
+  readFileSync(resolve(import.meta.dirname, '../src/app/estilos', nome), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
+
+/** Os corpos de todas as regras que listam `seletor`, na ordem do arquivo. */
+function regra(css: string, seletor: string): string {
+  const corpos = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)]
+    .filter(([, seletores]) => seletores.split(',').some((s) => s.trim() === seletor))
+    .map(([, , corpo]) => corpo)
+  if (corpos.length === 0) throw new Error(`regra ${seletor} não encontrada`)
+  return corpos.join('\n')
+}
+
+/** O valor de `propriedade` que vence a cascata: a última declaração. */
+const ultimo = (corpo: string, propriedade: string) =>
+  [...corpo.matchAll(new RegExp(`(?<![-\\w])${propriedade}:\\s*([^;]+);`, 'g'))].at(-1)?.[1].trim()
+
+describe('estilos', () => {
+  it('o modo de aproveitar é numerado: o preflight do Tailwind zera o list-style do ol', () => {
+    expect(ultimo(regra(ler('rotulos.css'), '.papel-rotulo__modo ol'), 'list-style')).toBe('decimal')
+  })
+
+  it('cada contato do rodapé ocupa a sua linha: o texto não pode ser inline', () => {
+    expect(ultimo(regra(ler('rodape.css'), '.rodape__texto'), 'display')).toBe('flex')
+  })
+})

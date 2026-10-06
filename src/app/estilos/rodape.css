@@ -1,7 +1,8 @@
 /* Rodape, creme com grao. */
 @layer components {
   .rodape { padding: 60px 0 40px; border-top: 1.5px dashed rgb(43 27 22 / .2); }
-  .rodape__grade { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+  /* vao de coluna de 24px: com 40, a 320px de largura "A marca" quebrava */
+  .rodape__grade { display: grid; grid-template-columns: 1fr 1fr; gap: 40px 24px; }
   .rodape__logo { grid-column: 1 / -1; }
   @media (min-width: 821px) {
     .rodape__grade { grid-template-columns: 1.3fr 1fr 1fr 1fr; }
@@ -16,6 +17,9 @@
     transition: color .2s ease;
   }
   .rodape-link { cursor: pointer; }
+  /* o texto do contato fica no proprio li: inline-flex poria os tres na
+     mesma linha */
+  .rodape__texto { display: flex; }
   .rodape-link__cor {
     display: inline-block; width: 0; overflow: hidden; color: var(--color-vinho); font-size: 12px;
     opacity: 0; transform: scale(0);
