@@ -124,7 +124,8 @@
     color: var(--color-expresso); font-size: 17px; font-weight: 600; text-decoration: none;
   }
 
-  .gaveta__linha:focus-visible, .gaveta__unica:focus-visible { background: var(--color-papel); box-shadow: 6px 6px 0 var(--color-caramelo); }
+  .gaveta__linha:focus-visible { background: var(--color-papel); box-shadow: 6px 6px 0 var(--color-caramelo); }
+  .gaveta__unica:focus-visible { box-shadow: 8px 8px 0 var(--color-caramelo); transform: translate(-2px, -2px); }
   .gaveta__linha:focus-visible .gaveta__seta { background: var(--color-expresso); color: var(--color-creme); }
   .gaveta__sabores a:focus-visible { background: var(--color-papel); }
   .gaveta__hoje:focus-visible { box-shadow: 6px 6px 0 var(--color-cobre); }

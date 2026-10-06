@@ -67,4 +67,14 @@ describe('estilos', () => {
     expect(ultimo(gaveta, 'max-height')).toBe('none')
     expect(ultimo(gaveta, 'height')).toBe('100%')
   })
+
+  it('o cartão da linha única sobe no foco do teclado como sobe no hover', () => {
+    const css = ler('gaveta.css')
+    const hover = regra(css, '.gaveta__unica:hover')
+    const foco = regra(css, '.gaveta__unica:focus-visible')
+    expect(ultimo(foco, 'box-shadow')).toBeTruthy()
+    expect(ultimo(foco, 'transform')).toBeTruthy()
+    expect(ultimo(foco, 'box-shadow')).toBe(ultimo(hover, 'box-shadow'))
+    expect(ultimo(foco, 'transform')).toBe(ultimo(hover, 'transform'))
+  })
 })
