@@ -64,11 +64,14 @@ describe('a página completa', () => {
     }
   })
 
-  it('todo link interno aponta para um id que existe, e o alvo tem scroll-mt-24', () => {
+  it('todo link para uma seção da home aponta para um id que existe, e o alvo tem scroll-mt-24', () => {
     const { container } = montar()
     const ids = new Set(
-      [...container.querySelectorAll('a[href^="#"]')].map((a) => a.getAttribute('href')!.slice(1)).filter(Boolean),
+      [...container.querySelectorAll('a[href^="#"], a[href^="/#"]')]
+        .map((a) => a.getAttribute('href')!.replace(/^\/?#/, ''))
+        .filter(Boolean),
     )
+    expect(ids.size).toBeGreaterThan(3)
     for (const id of ids) {
       const alvo = container.querySelector(`#${id}`)
       expect(alvo, `âncora morta: #${id}`).toBeTruthy()

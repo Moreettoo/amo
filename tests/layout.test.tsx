@@ -4,70 +4,108 @@ import userEvent from '@testing-library/user-event'
 import { Nav } from '@/components/layout/Nav'
 import { Footer } from '@/components/layout/Footer'
 import { FiltroProvider } from '@/components/FiltroProvider'
+import { carregarCatalogo } from '@/lib/catalogo'
+import { montarGaveta, type DadosGaveta } from '@/lib/visao'
+import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
 import { Sonda } from './fixtures/sonda'
+
+const gaveta = montarGaveta(await carregarCatalogo())
+const montarNav = (dados: DadosGaveta = gaveta, linhaAtual: string | null = null) =>
+  render(<Nav gaveta={dados} linhaAtual={linhaAtual} />)
 
 describe('Nav', () => {
   it('é um landmark de navegação', () => {
-    render(<Nav />)
+    montarNav()
     expect(screen.getByRole('navigation', { name: 'Principal' })).toBeInTheDocument()
   })
 
-  it('leva a Hoje o dia pede, O que é saudável e A marca', () => {
-    render(<Nav />)
+  it('leva às seções da home, de qualquer página', () => {
+    montarNav()
+    const nav = screen.getByRole('navigation', { name: 'Principal' })
     for (const [nome, href] of [
-      ['Hoje o dia pede', '#hoje'],
-      ['O que é saudável', '#rotulos'],
-      ['A marca', '#marca'],
+      ['Hoje o dia pede', '/#hoje'],
+      ['O que é saudável', '/#rotulos'],
+      ['A marca', '/#marca'],
     ]) {
-      expect(screen.getByRole('link', { name: nome })).toHaveAttribute('href', href)
+      expect(within(nav).getByRole('link', { name: nome })).toHaveAttribute('href', href)
     }
   })
 
-  it('tem um botão de cardápio só', () => {
-    render(<Nav />)
+  it('tem um botão de cardápio só, e ele leva ao catálogo', () => {
+    montarNav()
     const cardapio = screen.getAllByRole('link', { name: /card[aá]pio/i })
     expect(cardapio).toHaveLength(1)
-    expect(cardapio[0]).toHaveAttribute('href', '#cardapio')
+    expect(cardapio[0]).toHaveAttribute('href', '/catalogo')
     expect(cardapio[0]).toHaveClass('btn-retro', 'btn-retro--escuro')
   })
 
-  it('todo link é âncora interna válida, inclusive os do menu de celular', async () => {
+  it('todo link leva a uma seção da home ou ao catálogo, inclusive os da gaveta', async () => {
     const user = userEvent.setup()
-    render(<Nav />)
-    await user.click(screen.getByRole('button', { name: /abrir menu/i }))
+    montarNav()
+    await user.click(screen.getByRole('button', { name: 'Catálogo' }))
     for (const a of screen.getAllByRole('link')) {
-      expect(a.getAttribute('href')).toMatch(/^#[a-z-]+$/)
+      expect(a.getAttribute('href')).toMatch(/^\/(#[a-z-]+|catalogo(\/[a-z-]+)?(#[a-z-]+)?)$/)
     }
   })
 
   it('não tem carrinho, busca nem login, não existem ainda', () => {
-    render(<Nav />)
+    montarNav()
     const rotulos = [...screen.getAllByRole('link'), ...screen.getAllByRole('button')].map((e) =>
       (e.getAttribute('aria-label') ?? e.textContent ?? '').toLowerCase(),
     )
     for (const r of rotulos) expect(r).not.toMatch(/carrinho|sacola|buscar|entrar|login|conta/)
   })
 
-  it('o logo tem o nome da marca e leva ao topo', () => {
-    render(<Nav />)
+  it('o logo tem o nome da marca e leva ao topo da home', () => {
+    montarNav()
     const logo = screen.getByAltText(/amo/i)
-    expect(logo.closest('a')).toHaveAttribute('href', '#topo')
+    expect(logo.closest('a')).toHaveAttribute('href', '/#topo')
   })
 
-  it('sem JS o botão de menu some (so-js): ele não faria nada', () => {
-    render(<Nav />)
-    expect(screen.getByRole('button', { name: /menu/i })).toHaveClass('so-js')
-  })
-
-  it('o botão de menu de celular tem aria-label, aria-expanded e aria-controls', () => {
-    render(<Nav />)
-    const botao = screen.getByRole('button', { name: /menu/i })
+  it('o botão Catálogo: só com JS, avisa que abre um diálogo e qual', () => {
+    montarNav()
+    const botao = screen.getByRole('button', { name: 'Catálogo' })
+    expect(botao).toHaveClass('so-js', 'botao-catalogo')
+    expect(botao).toHaveAttribute('aria-haspopup', 'dialog')
+    expect(botao).toHaveAttribute('aria-controls', 'gaveta')
     expect(botao).toHaveAttribute('aria-expanded', 'false')
-    expect(botao).toHaveAttribute('aria-controls', 'menu-mobile')
+    expect(botao.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+  })
+
+  it('abre a gaveta; o Esc fecha e devolve o foco ao botão', async () => {
+    const user = userEvent.setup()
+    montarNav()
+    const botao = screen.getByRole('button', { name: 'Catálogo' })
+    await user.click(botao)
+    expect(botao).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('dialog', { name: 'Catálogo' })).toHaveAttribute('id', 'gaveta')
+    await user.keyboard('{Escape}')
+    expect(botao).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(botao)
+  })
+
+  it('a gaveta fica fora do invólucro sem clique (pointer-events-none) da nav', () => {
+    montarNav()
+    expect(document.getElementById('gaveta')!.closest('.pointer-events-none')).toBeNull()
+  })
+
+  it('o menu ≡ saiu: os links da home vivem na gaveta', () => {
+    montarNav()
+    expect(screen.queryByRole('button', { name: /menu/i })).toBeNull()
+    expect(document.getElementById('menu-mobile')).toBeNull()
+  })
+
+  it('na página de uma linha, a gaveta marca a linha atual', async () => {
+    const user = userEvent.setup()
+    montarNav(montarGaveta(CATALOGO_MISTO), 'salgados')
+    await user.click(screen.getByRole('button', { name: 'Catálogo' }))
+    const dialogo = screen.getByRole('dialog', { name: 'Catálogo' })
+    expect(within(dialogo).getByRole('link', { name: /Salgados/ })).toHaveAttribute('aria-current', 'page')
   })
 
   it('opaca desde o primeiro pixel: ao rolar só a sombra muda, a altura nunca', () => {
-    render(<Nav />)
+    montarNav()
     const nav = screen.getByRole('navigation')
     expect(nav.style.height).toBe('64px')
     expect(nav.className).toContain('bg-creme')
@@ -80,33 +118,6 @@ describe('Nav', () => {
     expect(nav.className).not.toContain('shadow-none')
     expect(nav.className).toMatch(/shadow-\[/)
     Object.defineProperty(window, 'scrollY', { value: 0, configurable: true })
-  })
-
-  it('Esc fecha o menu de celular e devolve o foco ao botão', async () => {
-    const user = userEvent.setup()
-    render(<Nav />)
-    const botao = screen.getByRole('button', { name: /abrir menu/i })
-    const painel = document.getElementById('menu-mobile')!
-    await user.click(botao)
-    expect(botao).toHaveAttribute('aria-expanded', 'true')
-    expect(painel).not.toHaveAttribute('hidden')
-    await user.tab()
-    expect(document.activeElement).toBe(within(painel).getAllByRole('link')[0])
-    await user.keyboard('{Escape}')
-    expect(botao).toHaveAttribute('aria-expanded', 'false')
-    expect(painel).toHaveAttribute('hidden')
-    expect(document.activeElement).toBe(botao)
-  })
-
-  it('clicar num link do menu de celular fecha o menu e devolve o foco ao botão', async () => {
-    const user = userEvent.setup()
-    render(<Nav />)
-    const botao = screen.getByRole('button', { name: /abrir menu/i })
-    const painel = document.getElementById('menu-mobile')!
-    await user.click(botao)
-    await user.click(within(painel).getAllByRole('link')[0])
-    expect(painel).toHaveAttribute('hidden')
-    expect(document.activeElement).toBe(botao)
   })
 })
 
