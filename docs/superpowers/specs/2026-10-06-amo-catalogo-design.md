@@ -64,8 +64,9 @@ cadastro.
     em `currentColor`.
   - A partir de 821 px: ícone e a palavra "Catálogo", pílula com borda de
     2 px `expresso`, 44 px de altura.
-  - Abaixo de 821 px: só o ícone, círculo de 44 px, com
-    `aria-label="Abrir o catálogo"`.
+  - Abaixo de 821 px: só o ícone, círculo de 44 px. A palavra "Catálogo"
+    continua no botão só para leitor de tela, e é o nome dele nas duas
+    larguras.
   - `aria-haspopup="dialog"`, `aria-expanded` e `aria-controls` apontando
     para a gaveta.
   - Fica dentro de `so-js`: sem JavaScript não há gaveta, e o caminho para o
@@ -148,7 +149,9 @@ Sem o botão "Ver o catálogo inteiro": com uma linha, ele repetiria o cartão.
 
 Abaixo de 821 px entra, depois da lista, um bloco "Na página inicial" com os
 links Hoje o dia pede, O que é saudável e A marca (17 px, 600, alvos de
-46 px). A partir de 821 px ele some, porque esses links estão na nav.
+46 px), e o cartão do Hoje o dia pede sai, porque o link já está no bloco.
+A partir de 821 px é o contrário: o bloco some, porque esses links estão na
+nav, e o cartão volta.
 
 ### 4.6 Comportamento
 
@@ -156,17 +159,22 @@ links Hoje o dia pede, O que é saudável e A marca (17 px, 600, alvos de
   clique de qualquer link de dentro. Ao fechar, o foco volta ao botão
   Catálogo, exceto quando um link navegou para outra página.
 - O foco entra no botão fechar.
-- Enquanto está aberta, o Lenis para (`useRolagem()` ganha `pausar()` e
-  `retomar()`) e a página de trás não rola.
-- Link para âncora da própria página (`/#hoje` na home): a gaveta fecha
-  antes, e o `RolagemSuave` conduz a rolagem como hoje.
+- Enquanto está aberta, a página de trás não rola:
+  `html:has(.gaveta[open])` ganha `overflow: hidden` e
+  `scrollbar-gutter: stable` (sem o pulo da barra de rolagem). O Lenis, que
+  já roda com `autoToggle`, para sozinho quando o overflow some e volta
+  quando ele volta; o `RolagemSuave` não muda.
+- Link para a própria página (`/#hoje` na home, um sabor na página da
+  linha aberta): a gaveta fecha na hora, sem animação, e o `RolagemSuave`
+  conduz a rolagem e o foco como hoje. Link para outra página: a gaveta não
+  fecha, a navegação troca o documento.
 
 ### 4.7 Movimento: a abertura leve
 
 Pedido do cliente na aprovação: uma animação **leve** para abrir a barra.
 Leve aqui quer dizer curta, sem quicar o painel e sem nada que atrase o
-clique: em 0.6 s está tudo parado, e a gaveta já aceita clique e teclado
-desde o primeiro quadro. Os valores estão no canvas (pranchetas da gaveta,
+clique: em menos de 0.8 s está tudo parado, e a gaveta já aceita clique e
+teclado desde o primeiro quadro. Os valores estão no canvas (pranchetas da gaveta,
 no Play).
 
 | # | o quê | como |
@@ -177,16 +185,21 @@ no Play).
 | 4 | o conteúdo aparece | cada link da lista sobe 6 px e aparece, 0.32 s, `--ease`; o primeiro em 0.12 s e os seguintes 40 ms depois (35 ms na lista de sabores); o botão "Ver o catálogo inteiro" em 0.26 s e o cartão do Hoje o dia pede em 0.32 s |
 | 5 | fechar | o painel sai para a esquerda e o fundo some juntos, 0.25 s, `ease-in`; o conteúdo não anima na saída |
 
-- 1, 2 e 5 são `transition` no `<dialog>` e no `::backdrop`, com
-  `@starting-style` para a entrada e `transition-behavior: allow-discrete`
-  em `display` e `overlay`, para o `<dialog>` só sumir depois de deslizar.
-- 3 e 4 são `@keyframes` sob `dialog[open]`. Reiniciam a cada abertura,
-  porque o `<dialog>` volta de `display: none`. Os atrasos da lista vêm de
-  uma variável `--i` por item.
-- Fill `backwards` nos keyframes: o estado inicial só vale durante o atraso,
+- Tudo é `@keyframes` em `movimento.css`, no bloco `html.js` de sempre
+  (a forma que `tests/movimento.test.ts` guarda). A entrada vale sob
+  `.gaveta[open]` e reinicia a cada abertura, porque o `<dialog>` volta de
+  `display: none`. Os atrasos da lista vêm de uma variável `--i` por item,
+  dentro do shorthand: `calc(.12s + var(--i) * 35ms)`.
+- A saída é conduzida pelo JS: fechar põe `data-fechando` no `<dialog>`, o
+  CSS toca `gaveta-sai` e `fundo-sai` (0.25 s, fill `forwards`), e o
+  `close()` vem 250 ms depois. Com movimento reduzido ou sem a classe
+  `js`, o `close()` é imediato.
+- Fill `backwards` na entrada: o estado inicial só vale durante o atraso,
   e o hover e o foco dos itens continuam mandando no `transform` depois.
   (Por isso os itens não usam `transition`: o atraso de entrada atrasaria
   também o hover.)
+- Com os 9 itens da gaveta de uma linha (cartão, 7 sabores, rodapé), o
+  último para em 0.72 s.
 - Tudo dentro de `@media (prefers-reduced-motion: no-preference)`. Com
   movimento reduzido, abre e fecha sem animação.
 - Só `transform` e `opacity`, nada em loop, tudo abaixo de 2 s.
@@ -244,8 +257,10 @@ Duas colunas a partir de 821 px; uma abaixo disso.
 
 1. Barra de filtros, com um tracejado embaixo:
    - rótulo "Na vontade de" e um grupo (`role="group"`) de pílulas, uma por
-     vontade com produto **na vista atual**, com a contagem. Liga e desliga,
-     `aria-pressed`. Uma vontade por vez;
+     vontade que **alguns produtos da vista têm e outros não** (a mesma
+     regra dos selos: uma vontade que todos têm não filtraria nada), com a
+     contagem. Liga e desliga, `aria-pressed`. Uma vontade por vez. Sem
+     nenhuma pílula, o rótulo some;
    - as pílulas tracejadas de selo da v2, com a mesma regra (só os selos
      que alguns produtos da vista têm e outros não). Hoje não aparecem;
    - à direita, a região viva: "Mostrando 3 de 7 receitas".
@@ -349,22 +364,29 @@ Duas colunas a partir de 821 px; uma abaixo disso.
 ```
 src/app/catalogo/page.tsx              "Tudo" (ou a linha única)
 src/app/catalogo/[linha]/page.tsx      uma linha; generateStaticParams, dynamicParams = false, generateMetadata
-src/app/estilos/gaveta.css             a gaveta, a borda ondulada e a animação
+src/app/estilos/gaveta.css             a gaveta e a borda ondulada (os keyframes ficam em movimento.css)
 src/app/estilos/catalogo.css           topo, coluna de linhas, barra de filtros
 src/components/layout/Gaveta.tsx       cliente: o <dialog>
-src/components/sections/CatalogoPagina.tsx   cliente: filtros, grade, região viva
+src/components/layout/TelaCatalogo.tsx a página do catálogo montada (nav, topo, corpo, faixa, rodapé)
+src/components/sections/CatalogoPagina.tsx   cliente: coluna de linhas, filtros, grade, região viva, rótulo
 src/components/sections/TopoCatalogo.tsx     servidor: trilha, h1, capa, selo
+src/components/sections/Vitrine.tsx    a vitrine da home (substitui Cardapio.tsx)
+src/components/ui/GradeProdutos.tsx    cliente: a grade com o FLIP, tirada do Cardapio
 src/components/ui/IconeCamadas.tsx     o ícone das três ondas
 ```
 
 **Mudam:** `Nav.tsx` (botão, gaveta, sem menu ≡, links absolutos),
-`Footer.tsx`, `Hero.tsx`, `Final.tsx`, `HojeODiaPede.tsx`, `Cardapio.tsx`
-(vira a vitrine; o arquivo pode virar `Vitrine.tsx`), `RolagemSuave.tsx`
-(`pausar`/`retomar`), `src/app/page.tsx`, `globals.css` (os dois `@import`
-novos), `src/data/linhas.ts` e `src/data/produtos.ts` (slug), a fixture
-mista.
+`Footer.tsx`, `Hero.tsx`, `Final.tsx`, `HojeODiaPede.tsx`,
+`src/app/page.tsx`, `globals.css` (os dois `@import` novos e a trava de
+rolagem), `movimento.css` (os keyframes da gaveta), `src/data/linhas.ts` e
+`src/data/produtos.ts` (slug), a fixture mista, `tests/setup.ts` (o
+`<dialog>` modal que o jsdom não tem).
 
-**Saem:** `FiltroProvider.tsx`.
+**Saem:** `FiltroProvider.tsx`, `Cardapio.tsx`.
+
+**Navegação:** os links entre páginas são `<a href>` comuns, como o resto do
+site, e trocam o documento inteiro. São duas páginas estáticas; a troca
+completa reinicia Lenis, gaveta e rolagem sem estado preso entre elas.
 
 ### 7.3 Servidor e cliente
 
@@ -381,8 +403,7 @@ Antes de escrever código, ler em `node_modules/next/dist/docs/`:
 - `01-app/03-api-reference/03-file-conventions/dynamic-routes.md`;
 - `generate-static-params` e `02-route-segment-config/dynamicParams.md`;
 - `generate-metadata`;
-- `not-found.md`;
-- `next/link` (navegação com hash e rolagem ao trocar de página).
+- `not-found.md`.
 
 ---
 
@@ -451,11 +472,12 @@ Vitest + Testing Library + jsdom + vitest-axe, como hoje.
   `/catalogo/bolos-no-pote#<slug>`;
 - o bloco "Na página inicial";
 - axe sem violação aberta;
-- análise estática do `gaveta.css`: toda animação e transição da abertura
-  está dentro de `prefers-reduced-motion: no-preference`, só mexe em
-  `transform` e `opacity` (mais `display` e `overlay` discretos no fechar),
-  termina em até 0.6 s somando atraso e duração, e os keyframes usam fill
-  `backwards`.
+- análise estática das regras da gaveta em `movimento.css`: duração mais
+  atraso base de cada uma em até 0.6 s, passo da lista de 35 ms, fill
+  `backwards` na entrada e `forwards` na saída; e a trava de rolagem em
+  `globals.css`;
+- o fechamento animado: com movimento liberado, `data-fechando` primeiro e o
+  `close()` 250 ms depois; com movimento reduzido, na hora.
 
 **Catálogo:**
 
