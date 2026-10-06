@@ -19,11 +19,6 @@ export const LINKS_DA_HOME = [
   { href: '/#marca', rotulo: 'A marca' },
 ] as const
 
-/** O cartao do pe leva ao primeiro deles, o Hoje o dia pede. Vem da lista, e
- *  nao de um literal, porque a regra no-html-link-for-pages do Next barra
- *  `<a href="/...">` e aqui o link comum e de proposito (troca o documento). */
-const [DESTINO_DO_CARTAO] = LINKS_DA_HOME
-
 /** A duracao de gaveta-sai e fundo-sai em movimento.css. */
 export const DURACAO_SAIDA = 250
 
@@ -290,7 +285,7 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
           </ul>
         </div>
 
-        <a href={DESTINO_DO_CARTAO.href} className="gaveta__hoje gaveta__item" style={ordem(pe)}>
+        <a href="/#hoje" className="gaveta__hoje gaveta__item" style={ordem(pe)}>
           <span>Não sabe o que escolher?</span>
           <b>
             Hoje o dia pede <Seta />
