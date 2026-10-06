@@ -109,6 +109,22 @@ describe('estilos', () => {
     expect(ultimo(regra(ler('cardapio.css'), '.vitrine__seta'), 'display')).toBe('inline-block')
   })
 
+  it('os links da trilha têm alvo de 44 px, invisível e sem invadir o link vizinho', () => {
+    const css = ler('catalogo.css')
+    expect(ultimo(regra(css, '.trilha a'), 'position')).toBe('relative')
+    const alvo = regra(css, '.trilha a::before')
+    expect(ultimo(alvo, 'content')).toBe('""')
+    expect(ultimo(alvo, 'position')).toBe('absolute')
+    expect(ultimo(alvo, 'height')).toBe('44px')
+    expect(ultimo(alvo, 'min-width')).toBe('44px')
+    // nada que pinte: e so area de clique
+    expect(alvo).not.toMatch(/background|border|box-shadow|outline|color/)
+    // cresce de lado menos que a metade do vao ate o vizinho (gap + margem da barra)
+    const px = (v: string | undefined) => Number.parseFloat(v ?? 'NaN')
+    const vao = px(ultimo(regra(css, '.trilha'), 'gap')) + px(ultimo(regra(css, '.trilha li + li::before'), 'margin-right'))
+    expect(-px(ultimo(alvo, 'inset-inline'))).toBeLessThan(vao / 2)
+  })
+
   it('com a gaveta aberta a calha da barra de rolagem fica escura como o fundo, não creme', () => {
     const trava = regra(ler('../globals.css'), 'html:has(.gaveta[open])')
     expect(ultimo(trava, 'background-color')).toBe('var(--color-expresso)')

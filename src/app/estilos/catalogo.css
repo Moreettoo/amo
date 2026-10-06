@@ -94,7 +94,11 @@
     content: ""; display: inline-block; width: 1.5px; height: 14px; margin-right: 8px;
     background: currentColor; transform: rotate(20deg); vertical-align: -2px;
   }
-  .trilha a { color: inherit; text-underline-offset: 4px; }
+  .trilha a { position: relative; color: inherit; text-underline-offset: 4px; }
+  /* alvo de toque de 44 px, invisivel: 44 de altura centrados no texto e 5
+     px de cada lado, menos que a metade do vao de 16 (gap + margem da barra)
+     ate o link vizinho */
+  .trilha a::before { content: ""; position: absolute; inset-inline: -5px; top: 50%; height: 44px; min-width: 44px; margin-top: -22px; }
   .trilha [aria-current="page"] { font-weight: 700; color: var(--color-creme); }
   .topo-catalogo .rotulo-secao { margin-top: 34px; }
   .topo-catalogo__titulo { margin: 10px 0 0; font-size: clamp(46px, 7vw, 92px); line-height: .98; }
