@@ -124,6 +124,11 @@
   .topo-catalogo__capas--varias .topo-catalogo__capa--inteiro { width: 118px; height: 118px; margin-bottom: 26px; }
   .topo-catalogo__capas--varias .topo-catalogo__capa--unidade { width: 94px; height: 102px; border-radius: 19px; }
   .topo-catalogo__capas--varias .topo-catalogo__capa--neutra { width: 102px; height: 118px; }
+  /* o 404 usa este topo: os dois caminhos de volta, como no hero */
+  .topo-catalogo__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; margin-top: 32px; }
+  .topo-catalogo__acoes .link-sub { font-size: 16px; font-weight: 600; }
+  /* alvo de toque de 44 px, invisivel, centrado no texto do link */
+  .topo-catalogo__acoes .link-sub::before { content: ""; position: absolute; inset-inline: -4px; top: 50%; height: 44px; margin-top: -22px; }
   /* o .wrap e o proprio bloco de referencia, e o right conta da borda do
      padding: com 0 o selo caia na margem e, no celular, passava da janela */
   .topo-catalogo__selo { position: absolute; top: 0; right: var(--gutter); }
