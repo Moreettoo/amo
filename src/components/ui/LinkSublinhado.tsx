@@ -20,7 +20,7 @@ export function LinkSublinhado({ traco = 0, className, children, ...resto }: Pro
   return (
     <a {...resto} className={`link-sub${className ? ` ${className}` : ''}`}>
       {children}
-      <svg viewBox="0 0 100 9" preserveAspectRatio="none" aria-hidden="true">
+      <svg className="link-sub__traco" viewBox="0 0 100 9" preserveAspectRatio="none" aria-hidden="true">
         <path pathLength={1} d={TRACOS[traco]} />
       </svg>
     </a>

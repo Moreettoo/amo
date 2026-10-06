@@ -34,6 +34,12 @@ describe('Vitrine com o cadastro de hoje', () => {
     expect(screen.queryByText('Direto para uma linha')).toBeNull()
   })
 
+  it('"Ver as 7 receitas" leva a seta da spec, decorativa, sem mudar o nome do link', async () => {
+    montar(await carregarCatalogo())
+    const link = screen.getByRole('link', { name: 'Ver as 7 receitas' })
+    expect(link.querySelector('.vitrine__seta')).toHaveAttribute('aria-hidden', 'true')
+  })
+
   it('sem filtro, sem região viva, sem estado vazio', async () => {
     const { container } = montar(await carregarCatalogo())
     expect(screen.queryByRole('group')).toBeNull()

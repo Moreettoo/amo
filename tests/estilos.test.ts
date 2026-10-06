@@ -81,4 +81,36 @@ describe('estilos', () => {
   it('no celular a fileira de pílulas das linhas rola de lado e não estica a grade do catálogo', () => {
     expect(ultimo(regra(ler('catalogo.css'), '.catalogo__corpo'), 'grid-template-columns')).toBe('minmax(0, 1fr)')
   })
+
+  // Achados da verificacao no navegador (Task 9 do catalogo).
+
+  it('o selo do topo do catálogo fica na coluna do conteúdo: na margem ele rolava a página de lado', () => {
+    expect(ultimo(regra(ler('catalogo.css'), '.topo-catalogo__selo'), 'right')).toBe('var(--gutter)')
+  })
+
+  it('no celular a gaveta mede min(340px, 88vw), borda incluída, como na spec', () => {
+    expect(ultimo(regra(ler('gaveta.css'), '.gaveta'), '--painel')).toBe('calc(min(340px, 88vw) - var(--borda))')
+  })
+
+  it('no celular os arcos do cartão da linha única encolhem, e o nome não some embaixo deles', () => {
+    const arcos = regra(ler('gaveta.css'), '.gaveta__arcos img')
+    const larguras = [...arcos.matchAll(/(?<![-\w])width:\s*([\d.]+)px;/g)].map((m) => Number(m[1]))
+    expect(larguras.length).toBeGreaterThan(1)
+    expect(larguras.at(-1)).toBeLessThan(larguras[0])
+  })
+
+  it('o sublinhado a mão mira o traço pela classe, e um ícone dentro do link fica no lugar', () => {
+    const css = ler('pecas.css')
+    expect(css).not.toMatch(/\.link-sub svg/)
+    expect(ultimo(regra(css, '.link-sub__traco'), 'position')).toBe('absolute')
+  })
+
+  it('a seta do "Ver as N receitas" fica na linha do texto: o preflight do Tailwind põe todo svg em block', () => {
+    expect(ultimo(regra(ler('cardapio.css'), '.vitrine__seta'), 'display')).toBe('inline-block')
+  })
+
+  it('com a gaveta aberta a calha da barra de rolagem fica escura como o fundo, não creme', () => {
+    const trava = regra(ler('../globals.css'), 'html:has(.gaveta[open])')
+    expect(ultimo(trava, 'background-color')).toBe('var(--color-expresso)')
+  })
 })

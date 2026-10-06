@@ -5,6 +5,15 @@
 @layer components {
   .cardapio { overflow-x: clip; padding: 80px 0 96px; }
   .vitrine__topo { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px 32px; }
+  /* o link para o catalogo, com a seta e o alvo de 44 px do canvas; a area
+     extra e um ::before, para o traco a mao nao descer junto */
+  .vitrine__ver { font-size: 16px; font-weight: 600; }
+  .vitrine__ver::before { content: ""; position: absolute; inset: -11px -4px; }
+  /* inline-block: o preflight do Tailwind poe todo svg em block */
+  .vitrine__seta {
+    display: inline-block; width: 18px; height: 18px; margin-left: 10px; vertical-align: -3px;
+    fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  }
   .vitrine__pe {
     display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
     margin-top: 64px; padding-top: 32px; border-top: 1.5px dashed rgb(43 27 22 / .2);

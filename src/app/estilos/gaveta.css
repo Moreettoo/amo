@@ -142,7 +142,8 @@
     .gaveta__casa { display: none; }
   }
   @media (max-width: 820px) {
-    .gaveta { --borda: 22px; }
+    /* min(340px, 88vw) a gaveta inteira, borda incluida */
+    .gaveta { --borda: 22px; --painel: calc(min(340px, 88vw) - var(--borda)); }
     .gaveta__painel { padding: 20px 16px 22px 20px; }
     .gaveta__topo h2 { font-size: 34px; }
     .gaveta__linhas { margin-inline: -8px; }
@@ -153,6 +154,13 @@
     .gaveta__capa--unidade, .gaveta__capa--neutra { width: 52px; height: 52px; border-radius: 13px; }
     .gaveta__nome { font-size: 21px; }
     .gaveta__seta { width: 34px; height: 34px; }
+    /* o cartao da linha unica encolhe como os itens da lista: sem isso o
+       nome ia a tres linhas e, a 320, sumia embaixo dos arcos */
+    .gaveta__unica { gap: 12px; padding: 14px 12px 14px 16px; }
+    .gaveta__ver { font-size: 14px; }
+    .gaveta__arcos img { width: 36px; height: 50px; }
+    .gaveta__arcos img + img { margin-left: -10px; }
+    .gaveta__arcos img:nth-child(2) { width: 42px; height: 60px; }
     .gaveta__hoje { display: none; }
   }
 }

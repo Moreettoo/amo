@@ -102,6 +102,14 @@ describe('Nav', () => {
     expect(within(dialogo).getByRole('link', { name: /Salgados/ })).toHaveAttribute('aria-current', 'page')
   })
 
+  it('sem JS o botão Catálogo some, e o logo volta ao respiro da v2 na ponta da pílula', () => {
+    montarNav()
+    const nav = screen.getByRole('navigation', { name: 'Principal' })
+    expect(screen.getByRole('button', { name: 'Catálogo' })).toHaveClass('so-js')
+    expect(nav.className).toContain('[html:not(.js)_&]:pl-4')
+    expect(nav.className).toContain('min-[821px]:[html:not(.js)_&]:pl-6')
+  })
+
   it('opaca desde o primeiro pixel: ao rolar só a sombra muda, a altura nunca', () => {
     montarNav()
     const nav = screen.getByRole('navigation')

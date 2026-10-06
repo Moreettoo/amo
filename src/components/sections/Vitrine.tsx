@@ -29,8 +29,11 @@ export function Vitrine({ produtos, linhas, total, tipos, nomesDosSelos }: Props
               Escolha pelo sabor
             </h2>
           </div>
-          <LinkSublinhado href={CAMINHO_CATALOGO} traco={2}>
+          <LinkSublinhado href={CAMINHO_CATALOGO} traco={2} className="vitrine__ver">
             {textoVerReceitas(total)}
+            <svg className="vitrine__seta" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
           </LinkSublinhado>
         </div>
 

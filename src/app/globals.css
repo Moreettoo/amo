@@ -74,10 +74,13 @@
   }
 
   /* A gaveta aberta trava a pagina de tras. O Lenis (autoToggle) para
-     sozinho quando o overflow some, e o gutter evita o pulo da barra. */
+     sozinho quando o overflow some, e o gutter evita o pulo da barra. O
+     ::backdrop nao cobre a calha que sobra no lugar da barra; sem fundo no
+     html ela mostraria o creme do body, uma faixa clara ao lado do escuro. */
   html:has(.gaveta[open]) {
     overflow: hidden;
     scrollbar-gutter: stable;
+    background-color: var(--color-expresso);
   }
 
   body {

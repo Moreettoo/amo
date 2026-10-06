@@ -45,12 +45,15 @@ export function Nav({ gaveta, linhaAtual = null }: Props) {
         className="pointer-events-none sticky top-3 z-40 px-[var(--gutter)]"
       >
         <div className="relative mx-auto max-w-[1180px]">
+          {/* Sem JS o botao Catalogo some e o logo abre a pilula: volta o
+              respiro que ele tinha na v2, longe da curva da ponta. */}
           <nav
             aria-label="Principal"
             style={{ height: ALTURA_NAV }}
             className={
               'pointer-events-auto flex items-center gap-2.5 rounded-full bg-creme pl-2.5 pr-2 ' +
               'transition-[box-shadow] duration-300 min-[821px]:gap-[26px] min-[821px]:pr-2.5 ' +
+              '[html:not(.js)_&]:pl-4 min-[821px]:[html:not(.js)_&]:pl-6 ' +
               (rolou ? 'shadow-[0_10px_30px_-12px_rgb(0_0_0_/_0.45)]' : 'shadow-none')
             }
           >

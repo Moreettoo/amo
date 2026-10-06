@@ -115,7 +115,9 @@
   .topo-catalogo__capas--varias .topo-catalogo__capa--inteiro { width: 140px; height: 140px; margin-bottom: 30px; }
   .topo-catalogo__capas--varias .topo-catalogo__capa--unidade { width: 110px; height: 120px; border-radius: 22px; }
   .topo-catalogo__capas--varias .topo-catalogo__capa--neutra { width: 120px; height: 140px; }
-  .topo-catalogo__selo { position: absolute; top: 0; right: 0; }
+  /* o .wrap e o proprio bloco de referencia, e o right conta da borda do
+     padding: com 0 o selo caia na margem e, no celular, passava da janela */
+  .topo-catalogo__selo { position: absolute; top: 0; right: var(--gutter); }
   @media (min-width: 821px) {
     .topo-catalogo__grade { grid-template-columns: minmax(0, 1fr) 380px; }
   }

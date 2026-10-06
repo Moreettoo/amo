@@ -57,6 +57,17 @@ describe('LinkSublinhado', () => {
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
     expect(container.querySelector('path')).toHaveAttribute('pathLength', '1')
   })
+
+  it('o traço tem classe própria: um ícone dentro do link não vira sublinhado', () => {
+    const { container } = render(
+      <LinkSublinhado href="/catalogo">
+        Ver <svg className="icone" aria-hidden="true" />
+      </LinkSublinhado>,
+    )
+    expect(container.querySelectorAll('.link-sub__traco')).toHaveLength(1)
+    expect(container.querySelector('.link-sub__traco path')).toHaveAttribute('pathLength', '1')
+    expect(container.querySelector('.icone')).not.toHaveClass('link-sub__traco')
+  })
 })
 
 describe('Camadas', () => {

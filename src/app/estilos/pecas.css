@@ -76,14 +76,15 @@
 
   /* link com sublinhado a mao */
   .link-sub { position: relative; display: inline-block; color: inherit; font-size: 15.5px; font-weight: 500; text-decoration: none; cursor: pointer; }
-  .link-sub svg { position: absolute; left: -3px; bottom: -9px; width: calc(100% + 6px); height: 9px; overflow: visible; pointer-events: none; }
-  .link-sub path {
+  /* o traco pela classe: um icone dentro do link nao vira sublinhado */
+  .link-sub__traco { position: absolute; left: -3px; bottom: -9px; width: calc(100% + 6px); height: 9px; overflow: visible; pointer-events: none; }
+  .link-sub__traco path {
     fill: none; stroke: var(--color-cobre); stroke-width: 3; stroke-linecap: round;
     stroke-dasharray: 1 2; stroke-dashoffset: 1.1;
     transition: stroke-dashoffset .38s cubic-bezier(.65, 0, .35, 1);
   }
-  .link-sub:focus-visible path { stroke-dashoffset: 0; }
-  @media (hover: hover) { .link-sub:hover path { stroke-dashoffset: 0; } }
+  .link-sub:focus-visible .link-sub__traco path { stroke-dashoffset: 0; }
+  @media (hover: hover) { .link-sub:hover .link-sub__traco path { stroke-dashoffset: 0; } }
 
   /* foto em arco: hover decorativo, cursor normal */
   .arco-foto {
