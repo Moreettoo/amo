@@ -36,6 +36,8 @@ export function CatalogoPagina({ vista }: Props) {
   // undefined: a pessoa ainda nao escolheu, e vale a vontade da URL
   const [escolhida, setEscolhida] = useState<string | null | undefined>(undefined)
   const [selo, setSelo] = useState<string | null>(null)
+  // o card escondido que a gaveta chamou: volta ja no lugar, sem crescer
+  const [chamado, setChamado] = useState<string | null>(null)
   const tituloRef = useRef<HTMLHeadingElement>(null)
 
   const vontade = escolhida === undefined ? vontadeDaBusca(busca, vista.vontades) : escolhida
@@ -50,7 +52,9 @@ export function CatalogoPagina({ vista }: Props) {
   // O sabor da gaveta que o filtro escondeu nao tem card no DOM, e o
   // RolagemSuave nao teria para onde rolar. Na captura, antes da gaveta (o
   // onClick do React) e do RolagemSuave (os dois ouvem na bolha), o filtro
-  // sai, e o flushSync poe o card no DOM antes deles procurarem o alvo.
+  // sai, e o flushSync poe o card no DOM antes deles procurarem o alvo. O
+  // card volta sem a escala de entrada: a rolagem mede o alvo nesse mesmo
+  // clique, e com 0.85 ele pararia embaixo da nav.
   useEffect(() => {
     if (!escondidos) return
     const fora = new Set(escondidos.split(' '))
@@ -60,10 +64,12 @@ export function CatalogoPagina({ vista }: Props) {
       if (!(link instanceof HTMLAnchorElement) || link.target === '_blank') return
       const url = new URL(link.href)
       if (url.host !== window.location.host || url.pathname !== window.location.pathname) return
-      if (!fora.has(decodeURIComponent(url.hash.slice(1)))) return
+      const slug = decodeURIComponent(url.hash.slice(1))
+      if (!fora.has(slug)) return
       flushSync(() => {
         setEscolhida(null)
         setSelo(null)
+        setChamado(slug)
       })
     }
     document.addEventListener('click', aoClicar, true)
@@ -73,9 +79,20 @@ export function CatalogoPagina({ vista }: Props) {
   // O botao clicado some da tela; o foco vai para o titulo das receitas em
   // vez de cair no <body>.
   function verTodas() {
+    setChamado(null)
     setEscolhida(null)
     setSelo(null)
     tituloRef.current?.focus()
+  }
+
+  // filtro escolhido pela pessoa: os cards voltam a entrar crescendo
+  function escolherVontade(v: string | null) {
+    setChamado(null)
+    setEscolhida(v)
+  }
+  function escolherSelo(s: string | null) {
+    setChamado(null)
+    setSelo(s)
   }
 
   return (
@@ -132,7 +149,7 @@ export function CatalogoPagina({ vista }: Props) {
                     <Pilula
                       key={v.slug}
                       aria-pressed={vontade === v.slug}
-                      onClick={() => setEscolhida(vontade === v.slug ? null : v.slug)}
+                      onClick={() => escolherVontade(vontade === v.slug ? null : v.slug)}
                     >
                       {v.palavra} <small>{v.contagem}</small>
                     </Pilula>
@@ -147,7 +164,7 @@ export function CatalogoPagina({ vista }: Props) {
                     key={s.id}
                     variante="selo"
                     aria-pressed={selo === s.id}
-                    onClick={() => setSelo(selo === s.id ? null : s.id)}
+                    onClick={() => escolherSelo(selo === s.id ? null : s.id)}
                   >
                     {s.nome}
                   </Pilula>
@@ -177,6 +194,7 @@ export function CatalogoPagina({ vista }: Props) {
                   tipos={vista.tipos}
                   nomesDosSelos={vista.nomesDosSelos}
                   comAncora
+                  semEntrada={chamado}
                 />
               </section>
             ),

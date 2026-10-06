@@ -9,13 +9,15 @@ import userEvent from '@testing-library/user-event'
  * juntas, como na pagina: o RolagemSuave (com um Lenis falso), a nav com a
  * gaveta e o corpo do catalogo.
  */
-const { chamadas } = vi.hoisted(() => ({ chamadas: [] as unknown[][] }))
+const { chamadas, transformes } = vi.hoisted(() => ({ chamadas: [] as unknown[][], transformes: [] as string[] }))
 
 vi.mock('lenis', () => ({
   default: class LenisFalso {
     isStopped = false
     scrollTo(...args: unknown[]) {
       chamadas.push(args)
+      // o Lenis mede o alvo com getBoundingClientRect, que conta o transform
+      transformes.push(args[0] instanceof HTMLElement ? args[0].style.transform : '')
     }
     destroy() {}
   },
@@ -37,6 +39,7 @@ const soSalgados: Catalogo = {
 
 afterEach(() => {
   chamadas.length = 0
+  transformes.length = 0
   window.history.replaceState(null, '', '/')
 })
 
@@ -71,6 +74,9 @@ function chegouAo(slug: string) {
   expect(card, `#${slug} no DOM`).not.toBeNull()
   expect(chamadas).toHaveLength(1)
   expect(chamadas[0][0]).toBe(card)
+  // na hora da medida o card ja esta no lugar: a escala de entrada (0.85) o
+  // faria parar 7.5% da altura acima, embaixo da nav
+  expect(transformes[0]).toMatch(/^(none)?$/)
   expect(document.activeElement).toBe(card)
   expect(document.activeElement).not.toBe(botaoCatalogo())
   expect(window.location.hash).toBe(`#${slug}`)

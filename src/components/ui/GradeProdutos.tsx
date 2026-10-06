@@ -11,6 +11,9 @@ type Props = {
   nomesDosSelos: Readonly<Record<string, string>>
   /** cada card vira alvo de ancora (o link de sabor da gaveta) */
   comAncora?: boolean
+  /** o card que entra ja no lugar, sem crescer: o alvo de uma ancora que o
+   *  filtro escondia, medido pela rolagem no mesmo clique em que volta */
+  semEntrada?: string | null
 }
 
 const MOLA = [0.34, 1.4, 0.64, 1] as const
@@ -20,7 +23,7 @@ const MOLA = [0.34, 1.4, 0.64, 1] as const
  * lugar, quem entra cresce. Sob movimento reduzido o MotionConfig desliga o
  * deslocamento.
  */
-export function GradeProdutos({ produtos, tipos, nomesDosSelos, comAncora = false }: Props) {
+export function GradeProdutos({ produtos, tipos, nomesDosSelos, comAncora = false, semEntrada = null }: Props) {
   return (
     <MotionConfig reducedMotion="user">
       <ul role="list" className="grade">
@@ -31,7 +34,7 @@ export function GradeProdutos({ produtos, tipos, nomesDosSelos, comAncora = fals
               id={comAncora ? p.slug : undefined}
               className={comAncora ? 'scroll-mt-24' : undefined}
               layout
-              initial={{ opacity: 0, scale: 0.85 }}
+              initial={p.slug === semEntrada ? false : { opacity: 0, scale: 0.85 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
               transition={{
