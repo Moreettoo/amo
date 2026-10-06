@@ -108,17 +108,22 @@
     background: var(--color-caramelo); color: var(--color-expresso); font-size: 14px; font-weight: 700;
   }
   .topo-catalogo__capas { display: flex; align-items: flex-end; justify-content: center; gap: 16px; height: 330px; }
-  .topo-catalogo__capa { overflow: hidden; background: var(--color-chocolate); }
+  /* flex none: com overflow hidden o minimo automatico e 0, e a capa
+     encolheria (a redonda virava elipse) */
+  .topo-catalogo__capa { flex: none; overflow: hidden; background: var(--color-chocolate); }
   .topo-catalogo__capa img { display: block; width: 100%; height: 100%; object-fit: cover; }
   .topo-catalogo__capa--pote { width: 220px; height: 330px; border-radius: 999px 999px 22px 22px; }
   .topo-catalogo__capa--inteiro { width: 280px; height: 280px; margin-bottom: 20px; border-radius: 50%; }
   .topo-catalogo__capa--unidade { width: 270px; height: 290px; border-radius: 28px; }
   .topo-catalogo__capa--neutra { width: 260px; height: 290px; border-radius: 16px; }
-  /* em "Tudo", ate tres capas menores lado a lado */
-  .topo-catalogo__capas--varias .topo-catalogo__capa--pote { width: 130px; height: 230px; }
-  .topo-catalogo__capas--varias .topo-catalogo__capa--inteiro { width: 140px; height: 140px; margin-bottom: 30px; }
-  .topo-catalogo__capas--varias .topo-catalogo__capa--unidade { width: 110px; height: 120px; border-radius: 22px; }
-  .topo-catalogo__capas--varias .topo-catalogo__capa--neutra { width: 120px; height: 140px; }
+  /* em "Tudo", ate tres capas menores lado a lado: as medidas do canvas
+     (130, 140 e 110 de largura, vao de 16) somavam 412 na coluna de 380.
+     Aqui a mesma composicao reduzida, e tres da mais larga ainda cabem */
+  .topo-catalogo__capas--varias { gap: 12px; }
+  .topo-catalogo__capas--varias .topo-catalogo__capa--pote { width: 110px; height: 194px; }
+  .topo-catalogo__capas--varias .topo-catalogo__capa--inteiro { width: 118px; height: 118px; margin-bottom: 26px; }
+  .topo-catalogo__capas--varias .topo-catalogo__capa--unidade { width: 94px; height: 102px; border-radius: 19px; }
+  .topo-catalogo__capas--varias .topo-catalogo__capa--neutra { width: 102px; height: 118px; }
   /* o .wrap e o proprio bloco de referencia, e o right conta da borda do
      padding: com 0 o selo caia na margem e, no celular, passava da janela */
   .topo-catalogo__selo { position: absolute; top: 0; right: var(--gutter); }

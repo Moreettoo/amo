@@ -129,4 +129,21 @@ describe('estilos', () => {
     const trava = regra(ler('../globals.css'), 'html:has(.gaveta[open])')
     expect(ultimo(trava, 'background-color')).toBe('var(--color-expresso)')
   })
+
+  // Achados da revisao final do catalogo.
+
+  it('em "Tudo" as capas do topo não encolhem, a redonda segue redonda e três das mais largas cabem na coluna', () => {
+    const css = ler('catalogo.css')
+    const px = (v: string | undefined) => Number.parseFloat(v ?? 'NaN')
+    expect(ultimo(regra(css, '.topo-catalogo__capa'), 'flex')).toBe('none')
+    const coluna = px(ultimo(regra(css, '.topo-catalogo__grade'), 'grid-template-columns')?.split(' ').at(-1))
+    expect(coluna).toBe(380)
+    const capa = (formato: string) => regra(css, `.topo-catalogo__capas--varias .topo-catalogo__capa--${formato}`)
+    const inteiro = capa('inteiro')
+    expect(px(ultimo(inteiro, 'width'))).toBe(px(ultimo(inteiro, 'height')))
+    const larguras = ['pote', 'inteiro', 'unidade', 'neutra'].map((f) => px(ultimo(capa(f), 'width')))
+    const vao = px(ultimo(regra(css, '.topo-catalogo__capas--varias'), 'gap'))
+    // ate tres capas, de qualquer formato: o pior caso e tres da mais larga
+    expect(3 * Math.max(...larguras) + 2 * vao).toBeLessThanOrEqual(coluna)
+  })
 })
