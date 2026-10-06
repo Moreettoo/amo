@@ -1,12 +1,10 @@
 'use client'
 
-import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { useMemo, useRef } from 'react'
 import { useFiltro } from '@/components/FiltroProvider'
-import { CardProduto } from '@/components/ui/CardProduto'
+import { GradeProdutos } from '@/components/ui/GradeProdutos'
 import { Pilula } from '@/components/ui/Pilula'
 import type { Produto } from '@/lib/catalogo'
-import { EASE_AMO } from '@/lib/motion'
 import { filtrar, type GrupoVontade, type OpcaoLinha, type OpcaoSelo } from '@/lib/visao'
 
 type Props = {
@@ -18,14 +16,10 @@ type Props = {
   vontades: readonly Pick<GrupoVontade, 'slug' | 'palavra'>[]
 }
 
-const MOLA = [0.34, 1.4, 0.64, 1] as const
-
 /**
  * O cardapio. Filtro de linha e de selo so aparecem quando filtram alguma
  * coisa (montarVisao decide); a vontade chega de fora, pelo Hoje o dia
- * pede, e aparece como pilula removivel. Quem fica desliza para o novo
- * lugar (FLIP do Motion); quem entra cresce. Sob movimento reduzido o
- * MotionConfig desliga o deslocamento.
+ * pede, e aparece como pilula removivel. A grade e a GradeProdutos, com o FLIP.
  */
 export function Cardapio({ produtos, tipos, nomesDosSelos, filtrosLinha, filtrosSelo, vontades }: Props) {
   const { linha, selo, vontade, definir, limpar } = useFiltro()
@@ -99,27 +93,7 @@ export function Cardapio({ produtos, tipos, nomesDosSelos, filtrosLinha, filtros
           {`Mostrando ${visiveis.length} de ${produtos.length} receitas.`}
         </p>
 
-        <MotionConfig reducedMotion="user">
-          <ul role="list" className="grade">
-            <AnimatePresence mode="popLayout" initial={false}>
-              {visiveis.map((p) => (
-                <motion.li
-                  key={p.slug}
-                  layout
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
-                  transition={{
-                    layout: { duration: 0.56, ease: EASE_AMO },
-                    default: { duration: 0.42, delay: 0.09, ease: MOLA },
-                  }}
-                >
-                  <CardProduto produto={p} tipo={tipos[p.linha] ?? ''} nomesDosSelos={nomesDosSelos} />
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </ul>
-        </MotionConfig>
+        <GradeProdutos produtos={visiveis} tipos={tipos} nomesDosSelos={nomesDosSelos} />
 
         {visiveis.length === 0 ? (
           <p className="cardapio__vazio">

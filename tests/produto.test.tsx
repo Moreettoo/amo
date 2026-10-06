@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { MolduraProduto, classeDoFormato } from '@/components/ui/MolduraProduto'
 import { CardProduto } from '@/components/ui/CardProduto'
 import { FotoParallax } from '@/components/ui/FotoParallax'
+import { GradeProdutos } from '@/components/ui/GradeProdutos'
 import { PRODUTOS } from '@/data/produtos'
 import type { Produto } from '@/lib/catalogo'
 
@@ -109,5 +110,32 @@ describe('FotoParallax', () => {
     expect(screen.getByRole('img')).toHaveAttribute('loading', 'eager')
     rerender(<FotoParallax imagem={prestigio.imagem} sizes="300px" preload />)
     expect(screen.getByRole('img')).not.toHaveAttribute('loading')
+  })
+})
+
+describe('GradeProdutos', () => {
+  const tipos = { 'bolos-no-pote': 'Bolo no pote' }
+
+  it('lista os cards na ordem recebida', () => {
+    render(<GradeProdutos produtos={PRODUTOS.slice(0, 3)} tipos={tipos} nomesDosSelos={nomes} />)
+    expect(screen.getAllByRole('article').map((a) => a.getAttribute('aria-labelledby'))).toEqual([
+      'produto-prestigio',
+      'produto-pacoca',
+      'produto-mousse-de-maracuja',
+    ])
+  })
+
+  it('com âncora, cada card é alvo do link de sabor: id do slug e scroll-mt-24', () => {
+    const { container } = render(
+      <GradeProdutos produtos={[prestigio]} tipos={tipos} nomesDosSelos={nomes} comAncora />,
+    )
+    const item = container.querySelector('li')!
+    expect(item).toHaveAttribute('id', 'prestigio')
+    expect(item).toHaveClass('scroll-mt-24')
+  })
+
+  it('sem âncora, sem id', () => {
+    const { container } = render(<GradeProdutos produtos={[prestigio]} tipos={tipos} nomesDosSelos={nomes} />)
+    expect(container.querySelector('li')).not.toHaveAttribute('id')
   })
 })
