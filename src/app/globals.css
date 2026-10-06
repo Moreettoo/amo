@@ -8,6 +8,7 @@
 @import "./estilos/rotulos.css";
 @import "./estilos/marca.css";
 @import "./estilos/gaveta.css";
+@import "./estilos/catalogo.css";
 @import "./estilos/movimento.css";
 
 /* `static`: os tokens viram variavel CSS mesmo sem utilitario que os use,

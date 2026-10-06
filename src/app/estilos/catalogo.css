@@ -1,0 +1,87 @@
+/* A pagina do catalogo. Corpo: creme com grao, a coluna de linhas (fixa no
+   desktop, fileira de pilulas no celular), os filtros, os grupos e o rotulo
+   da linha. `overflow-x: clip` segura fita e etiqueta da ultima coluna. */
+@layer components {
+  .catalogo { overflow-x: clip; padding: 40px 0 110px; }
+  .catalogo__corpo { display: grid; gap: 48px; align-items: start; }
+  @media (min-width: 821px) {
+    .catalogo__corpo:has(.catalogo__lado) { grid-template-columns: 260px minmax(0, 1fr); }
+    .catalogo__lado { position: sticky; top: 96px; }
+  }
+
+  .catalogo__linhas ul { display: flex; flex-direction: column; gap: 4px; margin: 12px 0 0; padding: 0; list-style: none; }
+  .catalogo__linha {
+    display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 10px 14px; border-radius: 16px;
+    color: var(--color-expresso); font-size: 16.5px; font-weight: 600; text-decoration: none;
+    transition: background-color .25s ease, color .25s ease;
+  }
+  .catalogo__linha[aria-current="page"] { background: var(--color-expresso); color: var(--color-creme); }
+  .catalogo__linha:not([aria-current="page"]):focus-visible { background: var(--color-linho); }
+  .catalogo__forma { display: grid; place-items: center; flex: none; width: 22px; height: 24px; }
+  .catalogo__forma::before { content: ""; box-sizing: border-box; border: 2.2px solid currentColor; }
+  .catalogo__forma--pote::before { width: 15px; height: 21px; border-radius: 999px 999px 4px 4px; }
+  .catalogo__forma--inteiro::before { width: 19px; height: 19px; border-radius: 50%; }
+  .catalogo__forma--unidade::before { width: 18px; height: 18px; border-radius: 5px; }
+  .catalogo__forma--neutra::before { width: 18px; height: 18px; border-radius: 3px; }
+  .catalogo__forma--tudo::before { content: none; }
+  .catalogo__forma svg { width: 20px; height: 20px; }
+  .catalogo__linha-nome { flex: 1; }
+  .catalogo__linha-conta { font-size: 13px; font-weight: 700; }
+
+  .catalogo__hoje {
+    display: block; margin-top: 28px; padding: 18px 20px; border-radius: 22px;
+    background: var(--color-caramelo); color: var(--color-expresso); text-decoration: none;
+    transition: box-shadow .25s ease;
+  }
+  .catalogo__hoje span { display: block; font-size: 13.5px; font-weight: 700; color: var(--color-chocolate); }
+  .catalogo__hoje b { display: flex; align-items: center; gap: 8px; margin-top: 4px; font: 400 23px/1.1 var(--font-display); }
+  .catalogo__seta { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+  .catalogo__hoje:focus-visible { box-shadow: 6px 6px 0 var(--color-cobre); }
+
+  .catalogo__filtros {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+    margin-bottom: 34px; padding-bottom: 22px; border-bottom: 1.5px dashed rgb(43 27 22 / .2);
+  }
+  .catalogo__filtro-rotulo { margin: 0 4px 0 0; font-size: 15px; font-weight: 700; color: var(--color-cobre-texto); }
+  .catalogo__pilulas { display: flex; flex-wrap: wrap; gap: 8px; }
+  .catalogo__mostrando { margin: 0 0 0 auto; font-size: 15px; color: var(--color-suave); }
+
+  .catalogo__grupo + .catalogo__grupo { margin-top: 72px; }
+  .catalogo__grupo-topo {
+    display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 12px;
+    margin-bottom: 26px;
+  }
+  .catalogo__grupo-topo h2 { margin: 0; font-size: 36px; line-height: 1.05; }
+  .catalogo .grade { margin-top: 0; }
+
+  .catalogo__rotulo-linha { display: grid; justify-items: center; gap: 18px; margin-top: 96px; }
+  /* o h2 tem a letra do rotulo de secao, nao a do titulo */
+  .catalogo__rotulo-linha .rotulo-secao { font-family: var(--font-sans); }
+  .catalogo__rotulo-linha .papel-rotulo { width: 100%; max-width: 760px; }
+
+  @media (hover: hover) {
+    .catalogo__linha:not([aria-current="page"]):hover { background: var(--color-linho); }
+    .catalogo__hoje:hover { box-shadow: 6px 6px 0 var(--color-cobre); }
+  }
+
+  @media (max-width: 820px) {
+    .catalogo { padding-top: 22px; }
+    .catalogo__corpo { gap: 18px; }
+    .catalogo__lado { margin-inline: calc(-1 * var(--gutter)); }
+    /* a coluna vira uma fileira de pilulas que rola de lado */
+    .catalogo__rotulo { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+    .catalogo__linhas ul {
+      flex-direction: row; gap: 8px; margin: 0; padding: 0 var(--gutter) 6px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .catalogo__linhas li { flex: none; }
+    .catalogo__linha {
+      min-height: 44px; padding: 9px 16px; border: 2px solid var(--color-expresso); border-radius: 999px;
+      font-size: 15px; white-space: nowrap;
+    }
+    .catalogo__forma, .catalogo__hoje { display: none; }
+    .catalogo__filtros { flex-direction: column; align-items: flex-start; }
+    .catalogo__mostrando { margin: 4px 0 0; }
+    .catalogo__grupo-topo h2 { font-size: 28px; }
+  }
+}
