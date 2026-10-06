@@ -161,20 +161,38 @@ links Hoje o dia pede, O que é saudável e A marca (17 px, 600, alvos de
 - Link para âncora da própria página (`/#hoje` na home): a gaveta fecha
   antes, e o `RolagemSuave` conduz a rolagem como hoje.
 
-### 4.7 Movimento
+### 4.7 Movimento: a abertura leve
 
-Tudo dentro de `@media (prefers-reduced-motion: no-preference)`. A gaveta
-fechada é `display: none` (é um `<dialog>` sem `open`), então o HTML do
-servidor não carrega estado escondido; a regra da §6.2 da v2 segue valendo.
+Pedido do cliente na aprovação: uma animação **leve** para abrir a barra.
+Leve aqui quer dizer curta, sem quicar o painel e sem nada que atrase o
+clique: em 0.6 s está tudo parado, e a gaveta já aceita clique e teclado
+desde o primeiro quadro. Os valores estão no canvas (pranchetas da gaveta,
+no Play).
 
-| o quê | como |
-|---|---|
-| abrir | o painel entra de `translateX(-100%)` (0.45 s, `--ease`); o fundo aparece (0.3 s); as camadas da borda chegam com mola, 0.08 s uma depois da outra. Por `@starting-style` e `transition-behavior: allow-discrete` |
-| fechar | o painel sai para a esquerda (0.3 s) e o fundo some |
-| itens | os links da lista sobem 8 px e aparecem, 40 ms entre eles, a partir de 0.12 s |
+| # | o quê | como |
+|---|---|---|
+| 1 | o fundo escurece | `opacity` de 0 a 1, 0.3 s, `ease` |
+| 2 | o painel desliza | `translateX(-100%)` a 0, 0.42 s, `--ease` (sem mola: o painel não passa do lugar) |
+| 3 | a borda ondulada assenta | cada camada sai de trás do painel, `translateX(-16px)` a 0, 0.5 s, `--mola`; atrasos de 0.16, 0.22 e 0.28 s (cobre, caramelo, creme) |
+| 4 | o conteúdo aparece | cada link da lista sobe 6 px e aparece, 0.32 s, `--ease`; o primeiro em 0.12 s e os seguintes 40 ms depois (35 ms na lista de sabores); o botão "Ver o catálogo inteiro" em 0.26 s e o cartão do Hoje o dia pede em 0.32 s |
+| 5 | fechar | o painel sai para a esquerda e o fundo some juntos, 0.25 s, `ease-in`; o conteúdo não anima na saída |
 
-Total abaixo de 2 s; só `transform` e `opacity`. Com movimento reduzido,
-abre e fecha sem animação.
+- 1, 2 e 5 são `transition` no `<dialog>` e no `::backdrop`, com
+  `@starting-style` para a entrada e `transition-behavior: allow-discrete`
+  em `display` e `overlay`, para o `<dialog>` só sumir depois de deslizar.
+- 3 e 4 são `@keyframes` sob `dialog[open]`. Reiniciam a cada abertura,
+  porque o `<dialog>` volta de `display: none`. Os atrasos da lista vêm de
+  uma variável `--i` por item.
+- Fill `backwards` nos keyframes: o estado inicial só vale durante o atraso,
+  e o hover e o foco dos itens continuam mandando no `transform` depois.
+  (Por isso os itens não usam `transition`: o atraso de entrada atrasaria
+  também o hover.)
+- Tudo dentro de `@media (prefers-reduced-motion: no-preference)`. Com
+  movimento reduzido, abre e fecha sem animação.
+- Só `transform` e `opacity`, nada em loop, tudo abaixo de 2 s.
+- A gaveta fechada é `display: none` (um `<dialog>` sem `open`), então o
+  HTML do servidor não carrega estado escondido; a regra da §6.2 da v2
+  segue valendo.
 
 ---
 
@@ -432,7 +450,12 @@ Vitest + Testing Library + jsdom + vitest-axe, como hoje.
 - com uma linha: o cartão e os 7 sabores, com os links
   `/catalogo/bolos-no-pote#<slug>`;
 - o bloco "Na página inicial";
-- axe sem violação aberta.
+- axe sem violação aberta;
+- análise estática do `gaveta.css`: toda animação e transição da abertura
+  está dentro de `prefers-reduced-motion: no-preference`, só mexe em
+  `transform` e `opacity` (mais `display` e `overlay` discretos no fechar),
+  termina em até 0.6 s somando atraso e duração, e os keyframes usam fill
+  `backwards`.
 
 **Catálogo:**
 
