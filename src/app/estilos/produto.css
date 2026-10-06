@@ -1,6 +1,10 @@
 /* Moldura por formato e o card do cardapio. */
 @layer components {
-  .moldura { position: relative; }
+  /* flow-root: a moldura contem a margem do circulo do bolo inteiro. Com a
+     margem vazando (margin collapse) ela media so o circulo, a fita, medida
+     da borda dela, caia em cima do tipo e do nome, e o texto do card subia
+     30 px em relacao aos vizinhos */
+  .moldura { position: relative; display: flow-root; }
   .moldura__janela {
     position: relative; height: 280px; overflow: hidden; background: var(--color-chocolate);
     transition: box-shadow .35s var(--ease-amo);
@@ -77,10 +81,11 @@
 
   @media (max-width: 520px) {
     .moldura__janela { height: 210px; }
-    .moldura--inteiro .moldura__janela { width: 150px; height: 150px; }
+    /* 20 + 150 + 40: a altura das outras molduras (210), como no canvas */
+    .moldura--inteiro .moldura__janela { width: 150px; height: 150px; margin: 20px auto 40px; }
     .etiqueta { top: 118px; width: 100px; height: 120px; padding: 10px; }
     .etiqueta b, .etiqueta--longa b { font-size: 12.5px; }
-    .fita { top: 160px; font-size: 14px; }
+    .fita { top: 160px; padding: 6px 16px; font-size: 14px; }
     .carimbo { top: 150px; font-size: 14px; }
   }
 }

@@ -147,6 +147,35 @@ describe('estilos', () => {
     expect(3 * Math.max(...larguras) + 2 * vao).toBeLessThanOrEqual(coluna)
   })
 
+  it('bolo inteiro: a moldura contém o círculo, o texto alinha com os outros cards e a fita não cobre o texto', () => {
+    const css = ler('produto.css')
+    const px = (v: string | undefined) => Number.parseFloat(v ?? 'NaN')
+    // sem conter a margem do circulo (margin collapse), a moldura media so o
+    // circulo: a fita, medida da borda dela, caia no tipo e no nome
+    expect(ultimo(regra(css, '.moldura'), 'display')).toBe('flow-root')
+    const celular = /@media \(max-width: 520px\) \{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}/.exec(css)![1]
+    const desktop = css.replace(celular, '')
+    /** margem de cima e de baixo do shorthand */
+    const vertical = (v: string | undefined) => {
+      const p = (v ?? '').split(/\s+/)
+      return [px(p[0]), px(p[2] ?? p[0])]
+    }
+    for (const [nome, bloco] of [['desktop', desktop], ['celular', celular]] as const) {
+      const janela = regra(bloco, '.moldura--inteiro .moldura__janela')
+      const [cima, baixo] = vertical(ultimo(regra(desktop, '.moldura--inteiro .moldura__janela') + janela, 'margin'))
+      const total = cima + px(ultimo(janela, 'height')) + baixo
+      // a altura das outras molduras: o tipo e o nome dos cards de uma fileira alinham
+      expect(total, nome).toBe(px(ultimo(regra(bloco, '.moldura__janela'), 'height')))
+      // a fita com o nome em duas linhas termina antes de o texto do card comecar
+      const fita = regra(desktop, '.fita') + (nome === 'celular' ? regra(bloco, '.fita') : '')
+      const linha = px(/\/([\d.]+)/.exec(ultimo(regra(desktop, '.fita'), 'font') ?? '')?.[1])
+      const corpo = nome === 'celular' ? px(ultimo(fita, 'font-size')) : px(/(\d+)px\//.exec(ultimo(fita, 'font') ?? '')?.[1])
+      const fim = px(ultimo(fita, 'top')) + 2 * corpo * linha + 2 * vertical(ultimo(fita, 'padding'))[0]
+      const texto = total + vertical(ultimo(regra(desktop, '.card-produto__tipo'), 'margin'))[0]
+      expect(fim, nome).toBeLessThan(texto)
+    }
+  })
+
   it.each([
     ['catalogo.css', '.catalogo__grupo-topo .link-sub', '"Ver só <linha>" nos grupos de "Tudo"'],
     ['catalogo.css', '.topo-catalogo__acoes .link-sub', '"Voltar ao início" no 404'],
