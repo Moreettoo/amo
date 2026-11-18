@@ -1,0 +1,44 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/papelaria-fina.html"
+        ],
+        "createdAt": "2026-11-18T13:45:50.640Z",
+        "reason": "user confirmed: na rodada de perguntas de 2026-11-18 o cliente marcou 'Paleta marrom, cobre e creme' como o que deve continuar igual"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/pagina-dupla.html"
+        ],
+        "createdAt": "2026-11-18T13:45:50.856Z",
+        "reason": "user confirmed: na rodada de perguntas de 2026-11-18 o cliente marcou 'Paleta marrom, cobre e creme' como o que deve continuar igual"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-18T13:45:51.088Z",
+        "reason": "user confirmed: na rodada de perguntas de 2026-11-18 o cliente marcou 'Paleta marrom, cobre e creme' como o que deve continuar igual"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/teste-script.html"
+        ],
+        "createdAt": "2026-11-18T15:01:08.672Z",
+        "reason": "user confirmed: na rodada de perguntas de 2026-11-18 o cliente marcou 'Paleta marrom, cobre e creme' como o que deve continuar igual; a pagina de teste de script usa as cores do site"
+      }
+    ]
+  }
+}

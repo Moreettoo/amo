@@ -8,9 +8,9 @@ type Props = ComponentProps<'a'> & {
 }
 
 /**
- * O botao retro: pilula com sombra solida de cobre. No hover (e no foco)
- * desce 2px, a sombra encolhe e um coracao entra; no clique afunda inteiro
- * na propria sombra. O coracao e decoracao e nao entra no nome do link.
+ * O botao: retangulo de canto 2 px, sem sombra. No hover e no foco ele
+ * inverte e vira contorno; a largura nao muda, para nao empurrar o que esta
+ * ao lado. O nome do componente e da classe ficou da v2.
  */
 export function BotaoRetro({ escuro, compacto, className, children, ...resto }: Props) {
   const classes = [
@@ -24,9 +24,6 @@ export function BotaoRetro({ escuro, compacto, className, children, ...resto }: 
   return (
     <a {...resto} className={classes}>
       {children}
-      <span className="btn-retro__cor" aria-hidden="true">
-        ♥
-      </span>
     </a>
   )
 }

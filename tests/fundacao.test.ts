@@ -12,9 +12,9 @@ describe('layout', () => {
     expect(layout).toMatch(/<html[^>]*suppressHydrationWarning/)
   })
 
-  it('usa Caprasimo e DM Sans, e mais nenhuma família', () => {
-    expect(layout).toMatch(/import \{ Caprasimo, DM_Sans \} from 'next\/font\/google'/)
-    expect(layout).not.toMatch(/Bree|Parisienne|Poppins/)
+  it('usa Allura e Poppins, e mais nenhuma família', () => {
+    expect(layout).toMatch(/import \{ Allura, Poppins \} from 'next\/font\/google'/)
+    expect(layout).not.toMatch(/Bree|Parisienne|Caprasimo|DM_Sans|Pinyon/)
   })
 
   it('pinta a barra do navegador de expresso', () => {

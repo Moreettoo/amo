@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMO: ligar as seções</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --expresso: #2B1B16; --chocolate: #4A2E25; --cobre: #C9784A; --cobre-texto: #9A5530;
+    --caramelo: #E2BF96; --creme: #FAF2E9; --papel: #FFFBF5; --linho: #F6EBDD;
+    --suave: #5E4A40; --claro-suave: #EADDD0;
+    --gutter: clamp(20px, 5vw, 56px); --ease: cubic-bezier(.16, 1, .3, 1);
+  }
+  /* o tom: cada secao tem o seu; na ideia 4 quem manda e o body */
+  body, .s[data-cor="creme"] { --fundo: var(--creme); --tinta: var(--expresso); --tinta-suave: var(--suave); --acento: var(--cobre-texto); --fio: rgb(43 27 22 / .18); }
+  body[data-tom="caramelo"], .s[data-cor="caramelo"] { --fundo: var(--caramelo); --tinta: var(--expresso); --tinta-suave: #4A382F; --acento: var(--expresso); --fio: rgb(43 27 22 / .22); }
+  body[data-tom="expresso"], .s[data-cor="expresso"] { --fundo: var(--expresso); --tinta: var(--creme); --tinta-suave: var(--claro-suave); --acento: var(--cobre); --fio: rgb(250 242 233 / .2); }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; font: 400 16px/1.6 Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); padding-bottom: 96px; }
+  img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  a { color: inherit; }
+  h1, h2, p, figure, ol { margin: 0; padding: 0; }
+  :focus-visible { outline: 2.5px solid var(--tinta, var(--expresso)); outline-offset: 3px; }
+  .wrap { position: relative; z-index: 2; max-width: calc(1128px + 2 * var(--gutter)); margin: 0 auto; padding: 0 var(--gutter); }
+
+  .nav { position: sticky; top: 0; z-index: 20; height: 64px; background: var(--creme); color: var(--expresso); border-bottom: 1px solid rgb(43 27 22 / .15); }
+  .nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 100%; }
+  .nav img { width: auto; height: 34px; }
+  .nav span { font-size: 15px; }
+  @media (max-width: 620px) { .nav span { display: none; } }
+
+  main { position: relative; }
+  .s { background: var(--fundo); color: var(--tinta); padding: clamp(64px, 8vw, 104px) 0; }
+  .t { font-weight: 300; font-size: clamp(30px, 3.4vw, 46px); line-height: 1.1; letter-spacing: -.02em; }
+  .t em { display: block; width: max-content; max-width: 100%; font: 400 clamp(58px, 6.6vw, 92px)/1.1 Allura, cursive; letter-spacing: 0; color: var(--acento); white-space: nowrap; }
+  .corpo { max-width: 46ch; margin-top: 22px; font-weight: 300; font-size: 17px; color: var(--tinta-suave); }
+  .btn { display: inline-flex; align-items: center; min-height: 50px; padding: 0 32px; border-radius: 3px; background: var(--tinta); color: var(--fundo); font-weight: 500; font-size: 15px; text-decoration: none; }
+  .foto { position: relative; border-radius: 4px; }
+  .foto img { border-radius: 4px; position: relative; }
+  .foto::before { content: ""; position: absolute; inset: 0; transform: translate(12px, 12px); border: 1px solid var(--cobre); border-radius: 4px; }
+
+  .hero { padding-top: clamp(40px, 6vw, 76px); }
+  .hero__grade { display: grid; gap: 40px; }
+  .hero h1 { position: relative; z-index: 3; font-weight: 300; font-size: clamp(36px, 4.4vw, 58px); line-height: 1.1; letter-spacing: -.03em; }
+  .hero h1 em { display: block; width: max-content; font: 400 clamp(76px, 21.5vw, 168px)/1 Allura, cursive; letter-spacing: 0; color: var(--acento); margin: 6px 0 0 -.03em; }
+  .regra { display: flex; align-items: center; gap: 10px; margin-top: 44px; font-size: 13px; font-weight: 600; letter-spacing: .28em; text-transform: uppercase; color: var(--cobre-texto); }
+  .regra::before { content: ""; width: 12px; height: 12px; background: var(--cobre); clip-path: path("M6 10.3S2.2 7.9 2.2 5.1A2.15 2.15 0 0 1 6 3.8a2.15 2.15 0 0 1 3.8 1.3C9.8 7.9 6 10.3 6 10.3z"); }
+  .acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 32px; margin-top: 30px; }
+  .acoes a:last-child { font-size: 16px; text-decoration: none; }
+  .palco { display: grid; grid-template-columns: 2.2fr 1fr; gap: 40px; }
+  .palco .foto--g { aspect-ratio: 2 / 3; }
+  .palco__lado { display: grid; gap: 22px; }
+
+  .grade { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px 20px; margin-top: 48px; }
+  .card .foto { aspect-ratio: 4 / 5; }
+  .card .foto::before { content: none; }
+  .card b { display: block; margin-top: 16px; font-weight: 400; font-size: 21px; line-height: 1.2; }
+  .card small { font-size: 13px; color: var(--acento); }
+  .vitrine__pe { display: flex; justify-content: flex-end; margin-top: 48px; }
+
+  .duas { display: grid; gap: 44px; align-items: center; }
+  .hoje small { display: block; font-weight: 300; font-size: clamp(24px, 2.6vw, 34px); letter-spacing: -.02em; }
+  .hoje em { display: block; width: max-content; font: 400 clamp(84px, 12vw, 164px)/1 Allura, cursive; color: var(--acento); }
+  .abas { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 34px; }
+  .abas span { display: inline-flex; align-items: center; min-height: 44px; padding: 0 20px; border: 1px solid rgb(43 27 22 / .4); border-radius: 2px; font-size: 15px; }
+  .abas span:first-child { background: var(--expresso); color: var(--creme); }
+  .hoje .foto, .marca .foto, .final .foto { aspect-ratio: 4 / 5; max-width: 440px; width: 100%; justify-self: center; }
+
+  .papel { position: relative; z-index: 3; justify-self: center; width: 100%; max-width: 430px; padding: 44px 36px 40px; border-radius: 3px; background: var(--papel); color: var(--expresso); text-align: center; outline: 1px solid rgb(201 120 74 / .55); outline-offset: -10px; }
+  .papel em { display: block; font: 400 38px/1.1 Allura, cursive; color: var(--cobre-texto); }
+  .papel p { margin-top: 20px; padding-top: 20px; border-top: 1px solid rgb(43 27 22 / .18); font-size: 13px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; }
+  .papel p + p { margin-top: 14px; padding-top: 14px; }
+  .assinatura { margin-top: 18px; font-weight: 300; font-size: 19px; color: var(--tinta-suave); }
+  .final .btn { margin-top: 34px; }
+  .marca .corpo, .rotulos .corpo { max-width: 34ch; }
+  footer { padding: 44px 0; font-size: 14px; color: var(--suave); }
+
+  @media (min-width: 900px) {
+    .hero__grade { grid-template-columns: .82fr 1fr; align-items: center; gap: 24px; }
+    .hero h1 em { font-size: clamp(118px, 13.4vw, 196px); }
+    .grade { grid-template-columns: repeat(4, 1fr); gap: 28px; }
+    .duas { grid-template-columns: 1fr 1fr; gap: 72px; }
+    .marca .foto { order: -1; }
+  }
+
+  /* ---------- 1. o fio da caneta ---------- */
+  .fio { display: none; position: absolute; left: 0; top: 0; z-index: 1; pointer-events: none; overflow: visible; }
+  .i1 .fio { display: block; }
+  .fio__traco { fill: none; stroke: url(#tinta); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .i1.i4 .fio__traco { stroke: var(--cobre); }
+
+  /* ---------- 2. costura: a foto atravessa a emenda ---------- */
+  [data-costura] { position: relative; z-index: 4; will-change: transform; }
+  @media (min-width: 900px) {
+    .i2 .vitrine__pe { justify-content: flex-start; }
+    .i2 .hoje .foto { margin-top: -210px; }
+    .i2 .rotulos { padding-bottom: 0; }
+    .i2 .rotulos .duas { align-items: end; }
+    .i2 .rotulos .duas > div:first-child { padding-bottom: clamp(64px, 8vw, 104px); }
+    .i2 .papel { margin-bottom: -110px; }
+    .i2 .marca { padding-top: 210px; }
+    .i2 .final .foto { margin-top: -220px; }
+  }
+  @media (max-width: 899px) {
+    .i2 .hoje { padding-top: 0; }
+    .i2 .hoje .duas { gap: 36px; }
+    .i2 .hoje .foto { order: -1; margin-top: -70px; max-width: 250px; justify-self: end; }
+    .i2 .rotulos { padding-bottom: 0; }
+    .i2 .papel { margin-bottom: -80px; }
+    .i2 .marca { padding-top: 150px; }
+  }
+
+  /* ---------- 3. o pote que enche ---------- */
+  .pote { display: none; position: fixed; right: 18px; top: 50%; z-index: 15; transform: translateY(-50%); align-items: center; gap: 12px; color: var(--tinta); }
+  .i3 .pote { display: flex; }
+  .pote__nome { font-size: 13px; letter-spacing: .01em; transition: color .5s ease; }
+  .pote__corpo { position: relative; width: 46px; height: 70px; }
+  .pote__corpo svg { width: 100%; height: 100%; overflow: visible; }
+  .pote__lista { position: absolute; left: 0; right: 0; top: 13px; bottom: 3px; display: flex; flex-direction: column-reverse; list-style: none; }
+  .pote__lista li { flex: 1; }
+  .pote__lista a { display: block; height: 100%; }
+  .pote__camada { transform-box: fill-box; transform-origin: 50% 100%; }
+  @media (max-width: 1519px) { .pote__nome { display: none; } }
+  @media (max-width: 899px) { .pote { right: 10px; top: auto; bottom: 150px; transform: none; } .pote__nome { display: none; } .pote__corpo { width: 34px; height: 52px; } }
+
+  /* ---------- 4. papel continuo: o tom da pagina muda de uma vez ---------- */
+  .i4 body { background: var(--fundo); color: var(--tinta); transition: background-color .8s ease, color .8s ease; }
+  .i4 .s { background: none; color: inherit; --fundo: inherit; --tinta: inherit; --tinta-suave: inherit; --acento: inherit; --fio: inherit; }
+  .i4 .s :is(em, .corpo, .assinatura, small, .btn, .abas span) { transition: color .8s ease, background-color .8s ease, border-color .8s ease; }
+  .i4 .abas span { border-color: var(--fio); }
+  .i4 .abas span:first-child { background: var(--tinta); color: var(--fundo); }
+  .i4 .papel em { transition: none; }
+
+  /* ---------- a barra de ideias (so do prototipo) ---------- */
+  .ideias { position: fixed; left: 50%; bottom: 14px; z-index: 30; transform: translateX(-50%); width: min(880px, calc(100vw - 20px)); padding: 12px 14px 12px 18px; border: 1px solid rgb(43 27 22 / .2); border-radius: 6px; background: var(--papel); color: var(--expresso); box-shadow: 0 14px 40px -18px rgb(43 27 22 / .55); }
+  .ideias__linha { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .ideias__linha > span { margin-right: 6px; font-size: 13px; color: var(--suave); }
+  .ideias button { min-height: 44px; padding: 0 16px; border: 1px solid rgb(43 27 22 / .3); border-radius: 3px; background: none; color: var(--expresso); font: 400 14px/1 Poppins, sans-serif; cursor: pointer; }
+  .ideias button[aria-pressed="true"] { background: var(--expresso); border-color: var(--expresso); color: var(--creme); }
+  .ideias button:focus-visible { outline: 2.5px solid var(--expresso); outline-offset: 2px; }
+  .ideias p { margin-top: 8px; font-size: 13.5px; line-height: 1.45; color: var(--suave); }
+  @media (max-width: 620px) { .ideias__linha > span { width: 100%; } .ideias button { flex: 1 1 40%; padding: 0 8px; font-size: 13px; } }
+</style>
+</head>
+<body>
+<header class="nav"><div class="wrap"><img src="../../public/marca/logo-amo.png" alt="AMO"><span>Protótipo: ligação entre as seções</span></div></header>
+
+<main id="pagina">
+  <svg class="fio" aria-hidden="true">
+    <defs><linearGradient id="tinta" gradientUnits="userSpaceOnUse" x1="0" x2="0" y1="0" y2="100"></linearGradient></defs>
+    <path class="fio__traco" d=""/>
+  </svg>
+
+  <section class="s hero" id="inicio" data-cor="creme" data-nome="Início">
+    <div class="wrap hero__grade">
+      <div>
+        <h1>Para quem ama <em data-fio="inicio">comer bem.</em></h1>
+        <p class="regra">Zero açúcar</p>
+        <p class="corpo">Bolos no pote zero açúcar, feitos à mão e cozidos a vapor. O rótulo diz o que tem e o que não tem.</p>
+        <div class="acoes"><a class="btn" href="#sabores">Ver o cardápio</a><a href="#vontade">Escolher pela vontade</a></div>
+      </div>
+      <div class="palco">
+        <figure class="foto foto--g" data-fio="atras"><img src="../../public/produtos/prestigio.webp" alt=""></figure>
+        <div class="palco__lado">
+          <figure class="foto"><img src="../../public/produtos/chocolate.webp" alt=""></figure>
+          <figure class="foto"><img src="../../public/produtos/frutas-amarelas.webp" alt=""></figure>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="s vitrine" id="sabores" data-cor="creme" data-nome="Sabores">
+    <div class="wrap">
+      <h2 class="t">Escolha <em data-fio="sub">pelo sabor</em></h2>
+      <div class="grade">
+        <div class="card"><figure class="foto"><img src="../../public/produtos/prestigio.webp" alt=""></figure><b>Prestígio</b><small>Bolo no pote</small></div>
+        <div class="card"><figure class="foto"><img src="../../public/produtos/pacoca.webp" alt=""></figure><b>Paçoca</b><small>Bolo no pote</small></div>
+        <div class="card"><figure class="foto"><img src="../../public/produtos/mousse-de-maracuja.webp" alt=""></figure><b>Mousse de maracujá</b><small>Bolo no pote</small></div>
+        <div class="card"><figure class="foto"><img src="../../public/produtos/ninho-com-frutas-vermelhas.webp" alt=""></figure><b>Ninho com frutas vermelhas</b><small>Bolo no pote</small></div>
+      </div>
+      <div class="vitrine__pe"><a class="btn" href="#sabores">Ver o catálogo inteiro</a></div>
+    </div>
+  </section>
+
+  <section class="s hoje" id="vontade" data-cor="caramelo" data-nome="Hoje o dia pede">
+    <div class="wrap duas">
+      <div>
+        <h2><small>Hoje o dia pede</small><em data-fio="sub">chocolate.</em></h2>
+        <div class="abas"><span>Chocolate</span><span>Fruta</span><span>Coco</span><span>Um clássico</span></div>
+      </div>
+      <figure class="foto" data-costura data-fio="atras"><img src="../../public/produtos/chocolate.webp" alt=""></figure>
+    </div>
+  </section>
+
+  <section class="s rotulos" id="rotulo" data-cor="expresso" data-nome="No rótulo">
+    <div class="wrap duas">
+      <div>
+        <h2 class="t">O que é saudável aqui está <em data-fio="sub">no rótulo.</em></h2>
+        <p class="corpo">Cada linha tem a sua regra, e os selos dizem o que tem e o que não tem.</p>
+      </div>
+      <div class="papel" data-costura data-fio="atras">
+        <em>Um abraço em forma de sobremesa</em>
+        <p>Zero açúcar</p>
+        <p>Fonte de fibras</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="s marca" id="marca" data-cor="creme" data-nome="A marca">
+    <div class="wrap duas">
+      <div>
+        <h2 class="t">Comer bem não devia cobrar <em data-fio="sub">nada depois</em></h2>
+        <p class="corpo">Receita conhecida em versão saudável: artesanal, cozida a vapor, em pote de vidro reutilizável.</p>
+      </div>
+      <figure class="foto" data-fio="atras"><img src="../../public/produtos/beijinho.webp" alt=""></figure>
+    </div>
+  </section>
+
+  <section class="s final" id="pedir" data-cor="expresso" data-nome="Escolher">
+    <div class="wrap duas">
+      <div>
+        <h2 class="t"><span data-fio="fim" style="display:inline-block">Escolha o seu AMO.</span></h2>
+        <p class="assinatura">AMO por você. Por seu AMO.</p>
+        <a class="btn" href="#sabores">Ver o cardápio</a>
+      </div>
+      <figure class="foto" data-costura data-fio="atras"><img src="../../public/produtos/ninho-com-frutas-vermelhas.webp" alt=""></figure>
+    </div>
+  </section>
+</main>
+<footer><div class="wrap">AMO · Sabores Saudáveis</div></footer>
+
+<nav class="pote" aria-label="Seções da página">
+  <span class="pote__nome"></span>
+  <div class="pote__corpo">
+    <svg viewBox="0 0 46 70" aria-hidden="true">
+      <defs><clipPath id="vidro"><path d="M8 13h30a5 5 0 0 1 5 5v43a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6V18a5 5 0 0 1 5-5z"/></clipPath></defs>
+      <path d="M8 13h30a5 5 0 0 1 5 5v43a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6V18a5 5 0 0 1 5-5z" fill="#FFFBF5"/>
+      <g clip-path="url(#vidro)" class="pote__camadas"></g>
+      <path d="M8 13h30a5 5 0 0 1 5 5v43a6 6 0 0 1-6 6H9a6 6 0 0 1-6-6V18a5 5 0 0 1 5-5z" fill="none" stroke="#C9784A" stroke-width="1.25"/>
+      <rect x="9" y="3" width="28" height="7" rx="2" fill="#FFFBF5" stroke="#C9784A" stroke-width="1.25"/>
+    </svg>
+    <ol class="pote__lista"></ol>
+  </div>
+</nav>
+
+<div class="ideias" role="group" aria-label="Ideias de ligação">
+  <div class="ideias__linha">
+    <span>Ligue e combine:</span>
+    <button type="button" data-ideia="1" aria-pressed="false">1 · Fio</button>
+    <button type="button" data-ideia="2" aria-pressed="false">2 · Costura</button>
+    <button type="button" data-ideia="3" aria-pressed="false">3 · Pote que enche</button>
+    <button type="button" data-ideia="4" aria-pressed="false">4 · Papel contínuo</button>
+  </div>
+  <p class="ideias__texto">Nenhuma ideia ligada: é a página como está hoje. Ligue uma e role a página.</p>
+</div>
+
+<script>
+(() => {
+  const raiz = document.documentElement, corpo = document.body
+  const main = document.getElementById('pagina')
+  const secoes = [...main.querySelectorAll('.s')]
+  const reduz = matchMedia('(prefers-reduced-motion: reduce)')
+  const TEXTOS = {
+    1: 'Fio: um traço só sai do título, sublinha o script de cada seção e passa por trás de cada foto, como o barbante que prende a etiqueta ao pote. Termina num coração e se desenha conforme você rola.',
+    2: 'Costura: nenhuma seção termina num corte reto. Uma foto ou o cartão do rótulo sempre atravessa a emenda e desliza devagar por cima dela.',
+    3: 'Pote que enche: um pote fino na lateral ganha uma camada por seção. Mostra onde você está e cada camada é um atalho.',
+    4: 'Papel contínuo: a página é uma folha só. Em vez de blocos de cor empilhados, o tom da folha inteira muda quando a próxima seção chega.',
+  }
+
+  /* ---------------- 1. o fio ---------------- */
+  const svg = main.querySelector('.fio'), traco = svg.querySelector('.fio__traco'), grad = svg.querySelector('#tinta')
+  const COR_DO_FIO = { creme: '#C9784A', caramelo: '#9A5530', expresso: '#C9784A' }
+  let total = 0, tabela = [], atual = 0, rodando = false
+  const PASSO = 6
+
+  function caixa(el) {
+    const r = el.getBoundingClientRect(), m = main.getBoundingClientRect()
+    return { l: r.left - m.left, r: r.right - m.left, t: r.top - m.top, b: r.bottom - m.top, w: r.width, h: r.height }
+  }
+  const limite = (v, a, b) => Math.max(a, Math.min(b, v))
+
+  function montarFio() {
+    const W = main.clientWidth, H = main.offsetHeight
+    svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`)
+    const largo = W >= 900
+    // As ancoras de cada secao: o script (o fio sublinha) e a foto ou o
+    // cartao (o fio passa por tras). O fio visita primeiro a que esta do
+    // lado de onde ele vem, e por isso vai e volta pela pagina.
+    const pts = []
+    let cx = null, fim = null, solto = null
+    const pelaBeira = (topo) => {
+      if (largo || !solto || topo - 44 < solto.y + 60) return
+      const xg = solto.dir < 0 ? 8 : W - 8
+      pts.push({ x: xg, y: solto.y + 48, tx: 0, ty: 1 }, { x: xg, y: topo - 44, tx: 0, ty: 1 })
+      cx = xg
+    }
+    secoes.forEach((s) => {
+      const itens = [...s.querySelectorAll('[data-fio]')].map((el) => ({ el, tipo: el.dataset.fio, c: caixa(el) }))
+      const meio = (c) => (c.l + c.r) / 2
+      if (itens.length === 2) {
+        const [p, q] = itens
+        const lado_a_lado = p.c.b > q.c.t + 20 && q.c.b > p.c.t + 20
+        if (lado_a_lado && cx !== null) itens.sort((m, n) => Math.abs(meio(m.c) - cx) - Math.abs(meio(n.c) - cx))
+        else itens.sort((m, n) => m.c.t - n.c.t)
+        itens.sort((m, n) => (m.tipo === 'inicio' ? -1 : 0) - (n.tipo === 'inicio' ? -1 : 0) + (m.tipo === 'fim' ? 1 : 0) - (n.tipo === 'fim' ? 1 : 0))
+      }
+      itens.forEach(({ el, tipo, c }) => {
+        const base = c.b - c.h * .12
+        if (tipo !== 'inicio') pelaBeira(c.t)
+        if (tipo === 'inicio') {
+          solto = { y: base + 4, dir: 1 }
+          pts.push({ x: c.l + c.w * .5, y: base + 12, tx: 1, ty: .1 }, { x: c.r + 2, y: base + 4, tx: 1, ty: -.14 })
+          cx = c.r
+        } else if (tipo === 'sub') {
+          const dir = cx > meio(c) ? -1 : 1
+          if (!largo && cx !== 8 && cx !== W - 8) {
+            // no celular ele contorna o titulo pela beirada antes de sublinhar
+            const xg = dir < 0 ? W - 8 : 8, topo = caixa(el.closest('h1, h2')).t
+            pts.push({ x: xg, y: topo - 14, tx: 0, ty: 1 }, { x: xg, y: base - 34, tx: 0, ty: 1 })
+          }
+          const de = dir > 0 ? c.l + 4 : c.r + 12, ate = dir > 0 ? c.r + 14 : c.l - 6
+          pts.push({ x: de, y: base + 5, tx: dir, ty: .07 }, { x: ate, y: base + 5, tx: dir, ty: -.07 })
+          cx = ate
+          solto = { y: base + 5, dir }
+        } else if (tipo === 'atras') {
+          pts.push({ x: meio(c), y: (c.t + c.b) / 2, tx: null })
+          cx = meio(c)
+          solto = null
+        } else if (tipo === 'fim') {
+          const dir = cx > meio(c) ? -1 : 1
+          fim = { x: dir < 0 ? c.r + (largo ? 40 : 26) : c.r + (largo ? 40 : 26), y: base - 4, dir }
+          pts.push({ x: fim.x, y: fim.y, tx: fim.dir * .7, ty: .7 })
+        }
+      })
+    })
+    // atras da foto o fio segue reto de onde veio para onde vai
+    pts.forEach((p, i) => {
+      if (p.tx !== null) return
+      const a = pts[i - 1], b = pts[i + 1] || p, n = Math.hypot(b.x - a.x, b.y - a.y) || 1
+      p.tx = (b.x - a.x) / n; p.ty = (b.y - a.y) / n
+    })
+    let d = `M${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i]
+      // a alca encolhe para a curva caber na pagina sem perder a direcao da pena
+      const h = Math.hypot(b.x - a.x, b.y - a.y) * .38
+      const cabe = (x, t) => (t < 0 ? Math.min(h, Math.max(8, (x - 8) / -t)) : t > 0 ? Math.min(h, Math.max(8, (W - 8 - x) / t)) : h)
+      const ha = cabe(a.x, a.tx), hb = cabe(b.x, -b.tx)
+      d += ` C${(a.x + a.tx * ha).toFixed(1)} ${(a.y + a.ty * ha).toFixed(1)} ${(b.x - b.tx * hb).toFixed(1)} ${(b.y - b.ty * hb).toFixed(1)} ${b.x.toFixed(1)} ${b.y.toFixed(1)}`
+    }
+    // o fim: o coracao do logo, num traco so
+    if (fim) {
+      const t = largo ? 15 : 11, c = { x: fim.x, y: fim.y - t }, k = fim.dir
+      d += ` C${(c.x + k * t * 1.6).toFixed(1)} ${(c.y - t * .2).toFixed(1)} ${(c.x + k * t * .9).toFixed(1)} ${(c.y - t * 1.5).toFixed(1)} ${c.x.toFixed(1)} ${(c.y - t * .45).toFixed(1)}`
+      d += ` C${(c.x - k * t * .9).toFixed(1)} ${(c.y - t * 1.5).toFixed(1)} ${(c.x - k * t * 1.6).toFixed(1)} ${(c.y - t * .2).toFixed(1)} ${fim.x.toFixed(1)} ${fim.y.toFixed(1)}`
+    }
+    traco.setAttribute('d', d)
+
+    // a cor da tinta acompanha o papel de cada secao
+    grad.setAttribute('y2', H)
+    grad.innerHTML = secoes.map((s) => {
+      const S = caixa(s), cor = COR_DO_FIO[s.dataset.cor]
+      return `<stop offset="${(S.t / H).toFixed(5)}" stop-color="${cor}"/><stop offset="${(S.b / H).toFixed(5)}" stop-color="${cor}"/>`
+    }).join('')
+
+    total = traco.getTotalLength()
+    traco.style.strokeDasharray = `${total} ${total}`
+    // ate onde a pena ja desceu, para cada trecho do traco
+    tabela = []
+    let maior = -Infinity
+    for (let l = 0; l <= total; l += PASSO) { maior = Math.max(maior, traco.getPointAtLength(l).y); tabela.push(maior) }
+    pedir()
+  }
+
+  function comprimentoAte(y) {
+    let a = 0, b = tabela.length - 1
+    if (y >= tabela[b]) return total
+    while (a < b) { const m = (a + b) >> 1; if (tabela[m] < y) a = m + 1; else b = m }
+    return Math.min(total, a * PASSO)
+  }
+  function destino() {
+    if (reduz.matches) return total
+    const max = raiz.scrollHeight - innerHeight, p = max > 0 ? scrollY / max : 1
+    return comprimentoAte(-main.getBoundingClientRect().top + innerHeight * (.6 + .4 * p))
+  }
+  function quadro() {
+    const alvo = destino()
+    atual = reduz.matches ? alvo : atual + (alvo - atual) * .14
+    if (Math.abs(alvo - atual) < .6) atual = alvo
+    traco.style.strokeDashoffset = total - atual
+    if (atual !== alvo && raiz.classList.contains('i1')) requestAnimationFrame(quadro); else rodando = false
+  }
+  function pedir() { if (!rodando && raiz.classList.contains('i1') && total) { rodando = true; requestAnimationFrame(quadro) } }
+
+  /* ---------------- 2. costura ---------------- */
+  const costuras = [...main.querySelectorAll('[data-costura]')]
+  function deslizar() {
+    const ligado = raiz.classList.contains('i2') && !reduz.matches
+    costuras.forEach((el) => {
+      if (!ligado) { el.style.transform = ''; return }
+      const r = el.parentElement.getBoundingClientRect()
+      const meio = r.top + r.height / 2 - innerHeight / 2
+      el.style.transform = `translate3d(0, ${(limite(meio, -900, 900) * -.07).toFixed(1)}px, 0)`
+    })
+  }
+
+  /* ---------------- 3. pote ---------------- */
+  const CAMADAS = ['#E2BF96', '#4A2E25', '#F6EBDD', '#9A5530', '#E2BF96', '#C9784A']
+  const grupo = document.querySelector('.pote__camadas'), lista = document.querySelector('.pote__lista'), nome = document.querySelector('.pote__nome')
+  const alt = 54 / secoes.length
+  grupo.innerHTML = secoes.map((s, i) => `<rect class="pote__camada" x="3" y="${(67 - (i + 1) * alt).toFixed(2)}" width="40" height="${(alt + .3).toFixed(2)}" fill="${CAMADAS[i % CAMADAS.length]}"/>`).join('')
+  lista.innerHTML = secoes.map((s) => `<li><a href="#${s.id}" aria-label="${s.dataset.nome}" title="${s.dataset.nome}"></a></li>`).join('')
+  const camadas = [...grupo.children]
+
+  /* ---------------- o que depende da rolagem ---------------- */
+  function aoRolar() {
+    pedir()
+    deslizar()
+    const linha = innerHeight * .55
+    let ativa = secoes[0]
+    secoes.forEach((s, i) => {
+      const r = s.getBoundingClientRect()
+      if (r.top <= linha) ativa = s
+      const cheio = limite((linha - r.top) / r.height, 0, 1)
+      camadas[i].style.transform = `scaleY(${cheio.toFixed(3)})`
+    })
+    if (corpo.dataset.tom !== ativa.dataset.cor) corpo.dataset.tom = ativa.dataset.cor
+    if (nome.textContent !== ativa.dataset.nome) nome.textContent = ativa.dataset.nome
+  }
+
+  /* ---------------- a barra ---------------- */
+  const botoes = [...document.querySelectorAll('[data-ideia]')], texto = document.querySelector('.ideias__texto')
+  function aplicar(ligadas, ultima) {
+    botoes.forEach((b) => {
+      const on = ligadas.includes(b.dataset.ideia)
+      b.setAttribute('aria-pressed', on); raiz.classList.toggle('i' + b.dataset.ideia, on)
+    })
+    texto.textContent = ligadas.length ? TEXTOS[ultima && ligadas.includes(ultima) ? ultima : ligadas[ligadas.length - 1]] : 'Nenhuma ideia ligada: é a página como está hoje. Ligue uma e role a página.'
+    history.replaceState(null, '', '#' + ligadas.join(''))
+    atual = 0
+    requestAnimationFrame(() => { montarFio(); aoRolar() })
+  }
+  botoes.forEach((b) => b.addEventListener('click', () => {
+    const ligadas = botoes.filter((x) => (x === b) !== (x.getAttribute('aria-pressed') === 'true')).map((x) => x.dataset.ideia)
+    aplicar(ligadas, b.dataset.ideia)
+  }))
+
+  addEventListener('scroll', aoRolar, { passive: true })
+  let espera
+  addEventListener('resize', () => { clearTimeout(espera); espera = setTimeout(() => { montarFio(); aoRolar() }, 120) })
+  addEventListener('load', () => { montarFio(); aoRolar() })
+  if (document.fonts) document.fonts.ready.then(() => { montarFio(); aoRolar() })
+  aplicar((location.hash.match(/[1-4]/g) || []).filter((v, i, a) => a.indexOf(v) === i))
+})()
+</script>
+</body>
+</html>

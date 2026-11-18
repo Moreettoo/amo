@@ -6,6 +6,7 @@ import { axe } from 'vitest-axe'
 import PaginaCatalogo, { metadata as metadataDoCatalogo } from '@/app/catalogo/page'
 import PaginaLinha, { dynamicParams, generateMetadata, generateStaticParams } from '@/app/catalogo/[linha]/page'
 import { TelaCatalogo } from '@/components/layout/TelaCatalogo'
+import { duasVozes } from '@/components/sections/TopoCatalogo'
 import { linhasComProduto, montarCatalogo, montarGaveta } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
 
@@ -119,6 +120,25 @@ describe('o topo', () => {
     expect(document.querySelector('.topo-catalogo .selo-carimbo')).toHaveTextContent('Zero açúcar')
   })
 
+  it('o título tem duas vozes e nada acima dele além da trilha: a regra vem depois', () => {
+    render(daLinha)
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1.querySelector('em')).toHaveTextContent('no pote')
+    expect(h1.previousElementSibling).toBe(screen.getByRole('navigation', { name: 'Trilha' }))
+    const regra = document.querySelector('.topo-catalogo .selo-carimbo')!
+    expect(h1.compareDocumentPosition(regra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('duasVozes: a última palavra vai para o script e leva o conectivo que a antecede', () => {
+    expect(duasVozes('Bolos no pote')).toEqual(['Bolos', 'no pote'])
+    expect(duasVozes('O catálogo inteiro')).toEqual(['O catálogo', 'inteiro'])
+    expect(duasVozes('Bolos inteiros')).toEqual(['Bolos', 'inteiros'])
+    expect(duasVozes('Pão de queijo e mel')).toEqual(['Pão de queijo', 'e mel'])
+    // uma palavra so: sem script, e a primeira voz nunca fica vazia
+    expect(duasVozes('Salgados')).toEqual(['Salgados', null])
+    expect(duasVozes('De colher')).toEqual(['De', 'colher'])
+  })
+
   it('em "Tudo": a trilha para em Catálogo, três capas e nenhum selo', () => {
     render(tudoMisto)
     const trilha = screen.getByRole('navigation', { name: 'Trilha' })
@@ -128,6 +148,17 @@ describe('o topo', () => {
     expect(document.querySelectorAll('.topo-catalogo__capa')).toHaveLength(3)
     expect(document.querySelector('.topo-catalogo__capas')).toHaveAttribute('aria-hidden', 'true')
     expect(document.querySelector('.topo-catalogo .selo-carimbo')).toBeNull()
+  })
+
+  it.each([
+    ['numa linha', daLinha],
+    ['em "Tudo"', tudoMisto],
+  ] as [string, ReactElement][])('%s a página fecha com a assinatura da marca, sem divisor de onda', (_, pagina) => {
+    const { container } = render(pagina)
+    const main = screen.getByRole('main')
+    expect(main.lastElementChild).toHaveClass('catalogo__fecho', 'superficie-escura')
+    expect(main.lastElementChild).toHaveTextContent('AMO por você. Por seu AMO.')
+    expect(container.querySelector('.camadas, .rotulo-secao')).toBeNull()
   })
 
   it('os links de sabor da gaveta acham o seu card nesta página', () => {

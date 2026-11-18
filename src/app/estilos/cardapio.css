@@ -1,39 +1,43 @@
 /* A vitrine da home (o cardapio de antes), creme com grao. A grade e o
-   estado vazio tambem servem ao catalogo. `overflow-x: clip` segura fita e
-   etiqueta que saem da borda do card na ultima coluna, sem criar rolagem
-   horizontal. */
+   estado vazio tambem servem ao catalogo. */
 @layer components {
-  .cardapio { overflow-x: clip; padding: 80px 0 96px; }
+  .cardapio { overflow-x: clip; padding: clamp(40px, 5vw, 72px) 0 clamp(72px, 9vw, 120px); }
   .vitrine__topo { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 20px 32px; }
-  /* o link para o catalogo, com a seta e o alvo de 44 px do canvas; a area
-     extra e um ::before, para o traco a mao nao descer junto */
-  .vitrine__ver { font-size: 16px; font-weight: 600; }
-  .vitrine__ver::before { content: ""; position: absolute; inset: -11px -4px; }
+  /* o link para o catalogo, com a seta e o alvo de 44 px; a area extra e um
+     ::before, para o traco a mao nao descer junto */
+  .vitrine__ver { font-size: 15px; font-weight: 500; }
+  .vitrine__ver::before { content: ""; position: absolute; inset: -12px -4px; }
   /* inline-block: o preflight do Tailwind poe todo svg em block */
   .vitrine__seta {
     display: inline-block; width: 18px; height: 18px; margin-left: 10px; vertical-align: -3px;
-    fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+    fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round;
   }
   .vitrine__pe {
     display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
-    margin-top: 64px; padding-top: 32px; border-top: 1.5px dashed rgb(43 27 22 / .2);
+    margin-top: 56px;
   }
-  .vitrine__rotulo { margin: 0 6px 0 0; font-size: 15px; font-weight: 700; color: var(--color-cobre-texto); }
+  .vitrine__rotulo { margin: 0 6px 0 0; font-size: 14px; font-weight: 500; color: var(--color-cobre-texto); }
   .vitrine__linhas { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
   .vitrine__botao { margin-left: auto; }
   .grade {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 56px 26px;
-    margin: 44px 0 0; padding: 0; list-style: none;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 56px 28px;
+    margin: 48px 0 0; padding: 0; list-style: none;
   }
-  .cardapio__vazio { margin-top: 40px; font-size: 18px; color: var(--color-suave); }
+  /* na vitrine sao sempre ate 4: quatro numa fileira ou duas e duas, nunca
+     tres e um orfao */
+  .cardapio .grade { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 900px) {
+    .cardapio .grade { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  .cardapio__vazio { margin-top: 40px; font-size: 17px; color: var(--color-suave); }
   .cardapio__vazio button {
-    position: relative; padding: 0; border: 0; border-bottom: 2px solid var(--color-cobre); background: none;
-    color: var(--color-cobre-texto); font: inherit; font-weight: 700; cursor: pointer;
+    position: relative; padding: 0; border: 0; border-bottom: 1px solid var(--color-cobre); background: none;
+    color: var(--color-cobre-texto); font: inherit; font-weight: 500; cursor: pointer;
   }
   /* alvo de toque de 44 px, invisivel: o visual segue o do texto sublinhado */
   .cardapio__vazio button::before { content: ""; position: absolute; inset-inline: -4px; top: 50%; height: 44px; margin-top: -22px; }
   @media (max-width: 520px) {
-    .grade { grid-template-columns: 1fr 1fr; gap: 40px 14px; }
+    .grade { grid-template-columns: 1fr 1fr; gap: 36px 14px; }
     .vitrine__botao { margin-left: 0; }
   }
 }

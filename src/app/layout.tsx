@@ -1,33 +1,33 @@
 import type { Metadata, Viewport } from 'next'
-import { Caprasimo, DM_Sans } from 'next/font/google'
+import { Allura, Poppins } from 'next/font/google'
 import { InlineScript, MARCAR_JS } from '@/components/InlineScript'
 import { RolagemSuave } from '@/components/RolagemSuave'
 import './globals.css'
 
 /**
- * Display. Caprasimo tem um peso so (400): e a letra gorda e redonda de
- * confeitaria de bairro que a direcao "retro doce" pede. `preload` porque
- * ela esta no H1, acima da dobra.
+ * Script. Allura: limpa e facil de ler, entre a caligrafia formal e a
+ * assinatura (escolha do cliente em 2026-11-18, entre quatro scripts
+ * gratuitas). So entra em frases curtas: o "comer bem." do H1, a frase de cada
+ * secao e a palavra do Hoje o dia pede. `preload` porque esta no H1.
  */
-const caprasimo = Caprasimo({
+const script = Allura({
   subsets: ['latin', 'latin-ext'],
   weight: '400',
   display: 'swap',
   preload: true,
-  variable: '--fonte-caprasimo',
+  variable: '--fonte-script',
 })
 
 /**
- * Texto. DM Sans e variavel em peso e em tamanho optico (`opsz`), entao o
- * corpo de 18 px e o rotulo de 13 px saem cada um com o desenho do seu
- * tamanho, sem baixar arquivo extra por peso.
+ * Texto e titulos. Poppins nao e variavel: os quatro pesos que a pagina usa
+ * (300 nos titulos, 400 no corpo, 500 e 600 nos rotulos) vem declarados.
  */
-const dmSans = DM_Sans({
+const poppins = Poppins({
   subsets: ['latin', 'latin-ext'],
-  axes: ['opsz'],
+  weight: ['300', '400', '500', '600'],
   display: 'swap',
   preload: true,
-  variable: '--fonte-dm-sans',
+  variable: '--fonte-poppins',
 })
 
 export const metadata: Metadata = {
@@ -46,7 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${caprasimo.variable} ${dmSans.variable}`}
+      className={`${script.variable} ${poppins.variable}`}
       suppressHydrationWarning
     >
       <head>

@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { Coracao } from '@/components/icons/Coracao'
 import { caminhoDaLinha } from '@/lib/visao'
 
 const ANCORAS = [
@@ -11,18 +12,22 @@ type Props = {
   linhas: readonly { slug: string; nome: string }[]
 }
 
-/** O coracao que cresce na frente do link. Decorativo: fica fora do nome. */
-function Coracao() {
+/** O coracao que entra na frente do link. Decorativo: fica fora do nome. */
+function CoracaoDoLink() {
   return (
     <span className="rodape-link__cor" aria-hidden="true">
-      ♥
+      <Coracao />
     </span>
   )
 }
 
+/**
+ * Rodape. A coluna de contato volta quando houver contato de verdade: o
+ * provisorio ("(00) 00000-0000") era a ultima coisa que a visitante via.
+ */
 export function Footer({ linhas }: Props) {
   return (
-    <footer className="rodape grao">
+    <footer className="rodape">
       <div className="wrap">
         <div className="rodape__grade">
           <div className="rodape__logo">
@@ -36,46 +41,33 @@ export function Footer({ linhas }: Props) {
               className="h-auto w-[200px] min-[821px]:w-[230px]"
             />
           </div>
-
           <div>
             <h2 id="rodape-linhas">Linhas</h2>
             <ul aria-labelledby="rodape-linhas">
               {linhas.map((l) => (
                 <li key={l.slug}>
                   <a href={caminhoDaLinha(l.slug)} className="rodape-link">
-                    <Coracao />
+                    <CoracaoDoLink />
                     {l.nome}
                   </a>
                 </li>
               ))}
             </ul>
           </div>
-
           <div>
             <h2 id="rodape-marca">A marca</h2>
             <ul aria-labelledby="rodape-marca">
               {ANCORAS.map((a) => (
                 <li key={a.href}>
                   <a href={a.href} className="rodape-link">
-                    <Coracao />
+                    <CoracaoDoLink />
                     {a.rotulo}
                   </a>
                 </li>
               ))}
             </ul>
           </div>
-
-          <div>
-            <h2 id="rodape-contato">Contato</h2>
-            <ul aria-labelledby="rodape-contato">
-              <li className="rodape__texto">contato@amo.com.br</li>
-              <li className="rodape__texto">@amo</li>
-              <li className="rodape__texto">(00) 00000-0000</li>
-            </ul>
-            <p className="rodape__aviso">Contato provisório, a definir.</p>
-          </div>
         </div>
-
         <p className="rodape__copy">
           © 2026 <span translate="no">AMO</span> Sabores Saudáveis
         </p>

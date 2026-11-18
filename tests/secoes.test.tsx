@@ -80,14 +80,14 @@ describe('Faixa cobre', () => {
 
 describe('Final', () => {
   it('com uma linha só, só o título e o botão para o catálogo', () => {
-    render(<Final linhas={real.linhasNoFinal} />)
+    render(<Final linhas={real.linhasNoFinal} foto={real.fotoDoFinal} />)
     expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent('Escolha o seu AMO.')
     expect(screen.getByRole('link', { name: 'Ver o cardápio' })).toHaveAttribute('href', '/catalogo')
     expect(screen.getAllByRole('link')).toHaveLength(1)
   })
 
   it('com várias linhas, uma pílula por linha para a página dela', () => {
-    render(<Final linhas={misto.linhasNoFinal} />)
+    render(<Final linhas={misto.linhasNoFinal} foto={misto.fotoDoFinal} />)
     expect(screen.getByRole('link', { name: 'Salgados' })).toHaveAttribute('href', '/catalogo/salgados')
     expect(screen.getAllByRole('link')).toHaveLength(4)
   })

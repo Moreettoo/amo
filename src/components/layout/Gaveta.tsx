@@ -22,25 +22,6 @@ export const LINKS_DA_HOME = [
 /** A duracao de gaveta-sai e fundo-sai em movimento.css. */
 export const DURACAO_SAIDA = 250
 
-/**
- * A borda ondulada: as camadas do bolo de lado, numa caixa de 28 x 900
- * esticada na altura da janela. Cada curva termina onde a proxima comeca e
- * com a mesma tangente, entao a onda nao quebra.
- */
-function onda(base: number, amplitude: number, passo: number): string {
-  let d = `M0,0 L${base},0`
-  for (let y = 0; y < 900; y += passo) {
-    d += ` C${base + amplitude},${y + passo / 3} ${base - amplitude},${y + (2 * passo) / 3} ${base},${y + passo}`
-  }
-  return `${d} L0,900 Z`
-}
-
-const ONDAS = [
-  { cor: 'cobre', d: onda(21, 6, 180) },
-  { cor: 'caramelo', d: onda(13, 5, 140) },
-  { cor: 'creme', d: onda(5, 4, 160) },
-] as const
-
 /** Os itens entram um depois do outro; o atraso vem de --i (movimento.css). */
 const ordem = (i: number) => ({ '--i': i }) as CSSProperties
 
@@ -71,7 +52,8 @@ type Props = {
 }
 
 /**
- * A gaveta do catalogo: um <dialog> modal vindo da esquerda. O navegador
+ * A gaveta do catalogo: um <dialog> modal vindo da esquerda, uma folha de
+ * borda reta (a borda ondulada da v2 saiu com as ondas do site). O navegador
  * cuida da camada de cima, do fundo inerte e de prender o foco; aqui fica a
  * abertura, a saida animada e o que cada clique faz. A entrada e CSS puro
  * (movimento.css, sob [open]); a saida espera o CSS tocar antes do close().
@@ -131,8 +113,8 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
   }
 
   function aoClicar(e: MouseEvent<HTMLDialogElement>) {
-    // Painel e borda cobrem a caixa do <dialog> inteira: clique com alvo no
-    // proprio <dialog> so pode ter vindo do fundo.
+    // O painel cobre a caixa do <dialog> inteira: clique com alvo no proprio
+    // <dialog> so pode ter vindo do fundo.
     if (e.target === e.currentTarget) return fechar()
     const link = (e.target as Element).closest('a[href]')
     if (!(link instanceof HTMLAnchorElement)) return
@@ -165,13 +147,7 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
       onClose={aoFecharNativo}
       onClick={aoClicar}
     >
-      <svg className="gaveta__onda" viewBox="0 0 28 900" preserveAspectRatio="none" aria-hidden="true">
-        {ONDAS.map((o) => (
-          <path key={o.cor} d={o.d} style={{ fill: `var(--color-${o.cor})` }} />
-        ))}
-      </svg>
-
-      <div className="gaveta__painel grao">
+      <div className="gaveta__painel">
         <div className="gaveta__topo">
           <h2 id={`${id}-titulo`}>Catálogo</h2>
           <button
@@ -197,13 +173,13 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
               style={ordem(0)}
             >
               <span className="gaveta__texto">
-                <span className="gaveta__regra">{primeira.regra}</span>
                 <span className="gaveta__nome">{primeira.nome}</span>
+                <span className="gaveta__regra">{primeira.regra}</span>
                 <span className="gaveta__ver">
                   {textoVerReceitas(primeira.contagem)} <Seta />
                 </span>
               </span>
-              <span className="gaveta__arcos" aria-hidden="true">
+              <span className="gaveta__fotos" aria-hidden="true">
                 {dados.sabores.slice(0, 3).map((s) => (
                   <Image
                     key={s.slug}
@@ -212,7 +188,7 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
                     width={s.imagem.largura}
                     height={s.imagem.altura}
                     loading="lazy"
-                    sizes="56px"
+                    sizes="40px"
                   />
                 ))}
               </span>
@@ -261,8 +237,8 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
                       </span>
                     </span>
                     <span className="gaveta__texto">
-                      <span className="gaveta__regra">{l.regra}</span>
                       <span className="gaveta__nome">{l.nome}</span>
+                      <span className="gaveta__regra">{l.regra}</span>
                       <span className="gaveta__conta">{contarReceitas(l.contagem)}</span>
                     </span>
                     <span className="gaveta__seta" aria-hidden="true">

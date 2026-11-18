@@ -1,20 +1,18 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { renderToString } from 'react-dom/server'
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
 import { Pilula, PilulaLink } from '@/components/ui/Pilula'
 import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
-import { Camadas } from '@/components/ui/Camadas'
 import { SeloCarimbo } from '@/components/ui/SeloCarimbo'
 import { ComAmo } from '@/components/ui/ComAmo'
 
 describe('BotaoRetro', () => {
-  it('é um link cujo nome não inclui o coração decorativo', () => {
+  it('é um link sem enfeite dentro: no hover a largura não muda', () => {
     render(<BotaoRetro href="#cardapio">Ver o cardápio</BotaoRetro>)
     const link = screen.getByRole('link', { name: 'Ver o cardápio' })
     expect(link).toHaveAttribute('href', '#cardapio')
     expect(link).toHaveClass('btn-retro')
-    expect(link.querySelector('[aria-hidden="true"]')).toHaveTextContent('♥')
+    expect(link.querySelector('[aria-hidden="true"]')).toBeNull()
   })
 
   it('escuro e compacto são classes, nada mais', () => {
@@ -67,24 +65,6 @@ describe('LinkSublinhado', () => {
     expect(container.querySelectorAll('.link-sub__traco')).toHaveLength(1)
     expect(container.querySelector('.link-sub__traco path')).toHaveAttribute('pathLength', '1')
     expect(container.querySelector('.icone')).not.toHaveClass('link-sub__traco')
-  })
-})
-
-describe('Camadas', () => {
-  it('o estrato do hero tem três camadas sobre expresso', () => {
-    const { container } = render(<Camadas estrato="heroCardapio" />)
-    const raiz = container.firstElementChild as HTMLElement
-    expect(raiz).toHaveAttribute('aria-hidden', 'true')
-    expect(raiz.querySelectorAll('svg')).toHaveLength(3)
-    // var() lido do HTML do servidor: o CSSOM do jsdom nem sempre aceita var()
-    const html = renderToString(<Camadas estrato="heroCardapio" />)
-    expect(html).toContain('background-color:var(--color-expresso)')
-    expect(html).toContain('fill:var(--color-cobre)')
-  })
-
-  it.each(['cardapioHoje', 'hojeRotulos', 'rotulosMarca'] as const)('%s tem uma camada', (estrato) => {
-    const { container } = render(<Camadas estrato={estrato} />)
-    expect(container.querySelectorAll('svg')).toHaveLength(1)
   })
 })
 

@@ -3,9 +3,7 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { flushSync } from 'react-dom'
 import { GradeProdutos } from '@/components/ui/GradeProdutos'
-import { IconeCamadas } from '@/components/ui/IconeCamadas'
 import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
-import { classeDoFormato } from '@/components/ui/MolduraProduto'
 import { PapelRotulo } from '@/components/ui/PapelRotulo'
 import { Pilula } from '@/components/ui/Pilula'
 import { contarReceitas, filtrar, type VistaCatalogo } from '@/lib/visao'
@@ -28,8 +26,9 @@ type Props = { vista: VistaCatalogo }
 
 /**
  * O corpo do catalogo: a coluna de linhas (com 2 ou mais), os filtros de
- * vontade e de selo, os grupos de receitas e, numa linha, o rotulo dela. A
- * linha nao e filtro: e a rota.
+ * vontade e de selo, os grupos de receitas e, numa linha, o rotulo dela num
+ * bloco expresso de fora a fora, como a secao de rotulos da home. A linha
+ * nao e filtro: e a rota.
  */
 export function CatalogoPagina({ vista }: Props) {
   const busca = useSyncExternalStore(semAssinatura, buscaDoCliente, buscaDoServidor)
@@ -96,24 +95,18 @@ export function CatalogoPagina({ vista }: Props) {
   }
 
   return (
-    <div className="catalogo grao">
+    <div className="catalogo">
       <div className="wrap catalogo__corpo">
         {/* div e nao aside: dentro do <main>, um complementary reprova no axe
             (landmark-complementary-is-top-level). O landmark e o nav. */}
         {vista.itensLinha.length > 0 ? (
           <div className="catalogo__lado">
             <nav aria-label="Linhas" className="catalogo__linhas">
-              <p className="rotulo-secao catalogo__rotulo">Linhas</p>
+              <p className="catalogo__rotulo">Linhas</p>
               <ul>
                 {vista.itensLinha.map((i) => (
                   <li key={i.href}>
                     <a href={i.href} aria-current={i.atual ? 'page' : undefined} className="catalogo__linha">
-                      <span
-                        className={`catalogo__forma catalogo__forma--${i.formato === null ? 'tudo' : classeDoFormato(i.formato)}`}
-                        aria-hidden="true"
-                      >
-                        {i.formato === null ? <IconeCamadas /> : null}
-                      </span>
                       <span className="catalogo__linha-nome">{i.nome}</span>
                       <span className="catalogo__linha-conta">{i.contagem}</span>
                     </a>
@@ -208,17 +201,20 @@ export function CatalogoPagina({ vista }: Props) {
               </button>
             </p>
           ) : null}
-
-          {vista.linha ? (
-            <section aria-labelledby="titulo-rotulo-linha" className="catalogo__rotulo-linha">
-              <h2 id="titulo-rotulo-linha" className="rotulo-secao">
-                O rótulo da linha
-              </h2>
-              <PapelRotulo linha={vista.linha} nomesDosSelos={vista.nomesDosSelos} giro="-1deg" largo />
-            </section>
-          ) : null}
         </div>
       </div>
+
+      {/* fora do .wrap do corpo: o bloco expresso vai de fora a fora */}
+      {vista.linha ? (
+        <section aria-labelledby="titulo-rotulo-linha" className="catalogo__rotulo-linha superficie-escura">
+          <div className="wrap catalogo__rotulo-grade">
+            <h2 id="titulo-rotulo-linha" className="titulo-secao">
+              O rótulo <em>da linha</em>
+            </h2>
+            <PapelRotulo linha={vista.linha} nomesDosSelos={vista.nomesDosSelos} giro="0deg" largo />
+          </div>
+        </section>
+      ) : null}
     </div>
   )
 }

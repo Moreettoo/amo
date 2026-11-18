@@ -102,12 +102,9 @@ describe('Nav', () => {
     expect(within(dialogo).getByRole('link', { name: /Salgados/ })).toHaveAttribute('aria-current', 'page')
   })
 
-  it('sem JS o botão Catálogo some, e o logo volta ao respiro da v2 na ponta da pílula', () => {
+  it('sem JS o botão Catálogo some', () => {
     montarNav()
-    const nav = screen.getByRole('navigation', { name: 'Principal' })
     expect(screen.getByRole('button', { name: 'Catálogo' })).toHaveClass('so-js')
-    expect(nav.className).toContain('[html:not(.js)_&]:pl-4')
-    expect(nav.className).toContain('min-[821px]:[html:not(.js)_&]:pl-6')
   })
 
   it('opaca desde o primeiro pixel: ao rolar só a sombra muda, a altura nunca', () => {
@@ -157,10 +154,11 @@ describe('Footer', () => {
     ])
   })
 
-  it('usa placeholder de contato visivelmente falso e avisa que é provisório', () => {
+  it('não mostra contato enquanto não houver contato de verdade', () => {
     montar()
-    expect(screen.getByText('(00) 00000-0000')).toBeInTheDocument()
-    expect(screen.getByText(/contato provisório/i)).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Contato' })).toBeNull()
+    expect(screen.queryByText('(00) 00000-0000')).toBeNull()
+    expect(screen.queryByText(/contato provisório/i)).toBeNull()
   })
 
   it('o AMO do copyright está blindado contra tradutor', () => {

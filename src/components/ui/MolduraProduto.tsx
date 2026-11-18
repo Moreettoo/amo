@@ -13,8 +13,6 @@ type Props = {
   formato: Formato
   nome: string
   children: ReactNode
-  /** o que vai por cima da foto, dentro da janela (os selos do card) */
-  sobreFoto?: ReactNode
 }
 
 /**
@@ -23,14 +21,11 @@ type Props = {
  * repete o nome do h3 e por isso e aria-hidden. Ele fica fora da janela
  * (que recorta a foto) para poder sair da borda.
  */
-export function MolduraProduto({ formato, nome, children, sobreFoto }: Props) {
+export function MolduraProduto({ formato, nome, children }: Props) {
   const classe = classeDoFormato(formato)
   return (
     <div className={`moldura moldura--${classe}`}>
-      <div className="moldura__janela">
-        {children}
-        {sobreFoto}
-      </div>
+      <div className="moldura__janela">{children}</div>
       <Acessorio classe={classe} nome={nome} />
     </div>
   )

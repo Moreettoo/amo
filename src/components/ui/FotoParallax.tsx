@@ -1,8 +1,8 @@
 'use client'
 
 import Image from 'next/image'
-import { useRef } from 'react'
-import { motion, useReducedMotion, useScroll, useTransform } from 'motion/react'
+import { useRef, useSyncExternalStore } from 'react'
+import { motion, useScroll, useTransform } from 'motion/react'
 import type { ImagemProduto } from '@/lib/catalogo'
 
 /**
@@ -16,6 +16,15 @@ import type { ImagemProduto } from '@/lib/catalogo'
  * `transform` inline: aqui ele e o deslocamento de rolagem e nao esconde
  * nada (tests/ssr.test.tsx).
  */
+const CONSULTA_REDUZIR = '(prefers-reduced-motion: reduce)'
+function assinarReduzir(avisar: () => void) {
+  const consulta = window.matchMedia(CONSULTA_REDUZIR)
+  consulta.addEventListener('change', avisar)
+  return () => consulta.removeEventListener('change', avisar)
+}
+const reduzirNoCliente = () => window.matchMedia(CONSULTA_REDUZIR).matches
+const reduzirNoServidor = () => false
+
 type Props = {
   imagem: ImagemProduto
   sizes: string
@@ -43,10 +52,14 @@ export function FotoParallax({
   proporcao,
 }: Props) {
   const refCaixa = useRef<HTMLDivElement>(null)
-  const reduzir = useReducedMotion()
+  // A preferencia so vale depois da hidratacao: na primeira renderizacao o
+  // cliente repete o HTML do servidor (com o transform) e so entao tira o
+  // deslocamento. Lida direto no render, ela divergia do servidor e o React
+  // acusava erro de hidratacao em quem pede movimento reduzido.
+  const reduzir = useSyncExternalStore(assinarReduzir, reduzirNoCliente, reduzirNoServidor)
 
-  // Os hooks rodam sempre, com ou sem reduced-motion: o que muda e o style
-  // ser aplicado, porque a ordem de hooks nao pode depender de media query.
+  // Os hooks rodam sempre, com ou sem reduced-motion: o que muda sao os
+  // valores do style, porque a ordem de hooks nao pode depender de media query.
   const { scrollYProgress } = useScroll({
     target: refCaixa,
     offset: ['start end', 'end start'],
@@ -57,7 +70,7 @@ export function FotoParallax({
     <div ref={refCaixa} className={`overflow-hidden ${className ?? ''}`}>
       <motion.div
         data-parallax
-        style={reduzir ? undefined : { y, scale: 1.1 }}
+        style={{ y: reduzir ? 0 : y, scale: reduzir ? 1 : 1.1 }}
         className={proporcao}
       >
         <Image

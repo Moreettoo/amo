@@ -3,7 +3,6 @@ import { Nav } from '@/components/layout/Nav'
 import { CatalogoPagina } from '@/components/sections/CatalogoPagina'
 import { FaixaCobre } from '@/components/sections/FaixaCobre'
 import { TopoCatalogo } from '@/components/sections/TopoCatalogo'
-import { Camadas } from '@/components/ui/Camadas'
 import type { Linha } from '@/lib/catalogo'
 import type { DadosGaveta, VistaCatalogo } from '@/lib/visao'
 
@@ -14,17 +13,22 @@ type Props = {
   linhas: readonly Linha[]
 }
 
-/** A pagina do catalogo montada: as duas rotas so carregam o cadastro e
- *  chamam esta tela. */
+/**
+ * A pagina do catalogo montada: as duas rotas so carregam o cadastro e
+ * chamam esta tela. Ela termina como a home: um bloco expresso com a
+ * assinatura da marca. Numa linha, esse bloco comeca no rotulo dela (o fim
+ * do CatalogoPagina) e os dois se juntam num fecho so.
+ */
 export function TelaCatalogo({ vista, gaveta, linhas }: Props) {
   return (
     <>
       <Nav gaveta={gaveta} linhaAtual={vista.linha?.slug ?? null} />
       <main id="conteudo" className="scroll-mt-24">
         <TopoCatalogo vista={vista} />
-        <Camadas estrato="heroCardapio" />
         <CatalogoPagina vista={vista} />
-        <FaixaCobre />
+        <div className="catalogo__fecho superficie-escura">
+          <FaixaCobre />
+        </div>
       </main>
       <Footer linhas={linhas} />
     </>

@@ -24,3 +24,7 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 .vercel
+
+# impeccable: capturas de revisao e cache local nao entram no repositorio
+.impeccable/review/
+.impeccable/hook.cache.json

@@ -23,6 +23,16 @@ describe('a página 404', () => {
     expect(metadata.title).toBe('Página não encontrada · AMO')
   })
 
+  it('o título abre o bloco em duas vozes; o "Erro 404" vem depois dele, não como rótulo acima', () => {
+    const { container } = render(pagina)
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1.querySelector('em')).toHaveTextContent('encontrada')
+    expect(h1.previousElementSibling).toBeNull()
+    const erro = screen.getByText('Erro 404')
+    expect(h1.compareDocumentPosition(erro) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(container.querySelector('.camadas, .rotulo-secao')).toBeNull()
+  })
+
   it('dois caminhos de volta: o catálogo e o início, ambos <a href> comuns', () => {
     render(pagina)
     const main = screen.getByRole('main')

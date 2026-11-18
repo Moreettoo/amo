@@ -29,10 +29,10 @@ const slugs = (xs: readonly { slug: string }[]) => xs.map((x) => x.slug)
 const copia = (c: Catalogo): Catalogo => JSON.parse(JSON.stringify(c))
 
 describe('montarVisao com o cadastro de hoje', () => {
-  it('o destaque é o Prestígio e o palco vai Paçoca, Prestígio, Mousse de maracujá', async () => {
+  it('o destaque é o Prestígio, e as laterais do palco são sabores que a vitrine e a marca não mostram', async () => {
     const v = montarVisao(await carregarCatalogo())
     expect(v.destaque.slug).toBe('prestigio')
-    expect(slugs(v.palco)).toEqual(['pacoca', 'prestigio', 'mousse-de-maracuja'])
+    expect(slugs(v.palco)).toEqual(['chocolate', 'prestigio', 'frutas-amarelas'])
     expect(v.regraDoDestaque).toBe('Zero açúcar')
   })
 
@@ -91,7 +91,8 @@ describe('montarVisao com o catálogo misto', () => {
 
   it('o palco prefere linha ou formato diferente do destaque', () => {
     const v = montarVisao(CATALOGO_MISTO)
-    expect(slugs(v.palco)).toEqual(['torta-de-frango', 'prestigio', 'cenoura-com-cacau'])
+    // torta de frango e cenoura com cacau ja abrem a vitrine; o palco mostra as outras duas
+    expect(slugs(v.palco)).toEqual(['quiche-de-alho-poro', 'prestigio', 'chocolate-com-morango'])
   })
 })
 

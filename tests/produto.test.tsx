@@ -77,6 +77,8 @@ describe('CardProduto', () => {
     const selos = screen.getByRole('list', { name: 'Selos' })
     expect(selos).toHaveTextContent('Zero açúcar')
     expect(selos).toHaveTextContent('Fonte de fibras')
+    // os selos moram no texto do card: por cima da foto tapavam o pote e o rótulo
+    expect(selos.closest('.moldura')).toBeNull()
   })
 
   it('sem frase, sem parágrafo de frase', () => {

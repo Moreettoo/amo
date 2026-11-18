@@ -24,9 +24,8 @@ export function Vitrine({ produtos, linhas, total, tipos, nomesDosSelos }: Props
       <div className="wrap">
         <div className="vitrine__topo">
           <div>
-            <p className="rotulo-secao">O cardápio</p>
             <h2 id="titulo-cardapio" className="titulo-secao">
-              Escolha pelo sabor
+              Escolha <em>pelo sabor</em>
             </h2>
           </div>
           <LinkSublinhado href={CAMINHO_CATALOGO} traco={2} className="vitrine__ver">
@@ -40,7 +39,12 @@ export function Vitrine({ produtos, linhas, total, tipos, nomesDosSelos }: Props
         <ul role="list" className="grade">
           {produtos.map((p) => (
             <li key={p.slug}>
-              <CardProduto produto={p} tipo={tipos[p.linha] ?? ''} nomesDosSelos={nomesDosSelos} />
+              <CardProduto
+                produto={p}
+                tipo={tipos[p.linha] ?? ''}
+                nomesDosSelos={nomesDosSelos}
+                href={`${CAMINHO_CATALOGO}#produto-${p.slug}`}
+              />
             </li>
           ))}
         </ul>

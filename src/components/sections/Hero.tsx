@@ -10,43 +10,43 @@ type Props = {
   /** da esquerda para a direita, com o destaque no meio */
   palco: readonly Produto[]
   destaque: Produto
-  /** a regra da linha do destaque, no selo */
+  /** a regra da linha do destaque, entre dois fios, logo abaixo do titulo */
   regra: string
 }
 
 /**
- * Hero, expresso. A copy e da marca, nao de um produto. O que vem do
- * cadastro e o palco e o selo. A foto do destaque e a unica da pagina com
+ * Hero, creme. "Para quem ama" em Poppins leve e "comer bem." em script,
+ * que passa por cima da borda da foto do destaque. Logo abaixo vem a regra
+ * da linha e o texto que diz o que e vendido. O que vem do cadastro e o
+ * palco e a regra. A foto do destaque e a unica da pagina com
  * pre-carregamento (tests/pagina.test.tsx guarda isso no DOM e no codigo).
  */
 export function Hero({ palco, destaque, regra }: Props) {
   return (
-    <section id="topo" aria-labelledby="titulo-hero" className="hero superficie-escura scroll-mt-24">
-      <div className="wrap">
-        <p className="hero__pilula">Sabores saudáveis</p>
-        <h1 id="titulo-hero" className="hero__titulo">
-          <span className="hero__linha">
-            <span>Para quem</span>
-          </span>{' '}
-          <span className="hero__linha">
-            <span>
-              ama <em>comer</em>
-            </span>
-          </span>{' '}
-          <span className="hero__linha">
-            <span>
-              <em>bem.</em>
-            </span>
-          </span>
-        </h1>
-        <p className="hero__lead">
-          Receitas em versão saudável. Cada uma diz no rótulo o que tem e o que não tem.
-        </p>
-        <div className="hero__acoes">
-          <BotaoRetro href={CAMINHO_CATALOGO}>Ver o cardápio</BotaoRetro>
-          <LinkSublinhado href="#hoje" traco={1}>
-            Escolher pela vontade
-          </LinkSublinhado>
+    <section id="topo" aria-labelledby="titulo-hero" className="hero scroll-mt-24">
+      <div className="wrap hero__grade">
+        <div className="hero__texto">
+          <h1 id="titulo-hero" className="hero__titulo">
+            <span className="hero__linha">
+              <span>Para quem ama</span>
+            </span>{' '}
+            <em>comer bem.</em>
+          </h1>
+          <div className="hero__regra">
+            <SeloCarimbo texto={regra} />
+          </div>
+          <p className="hero__lead">
+            Bolos no pote zero açúcar, feitos à mão e cozidos a vapor. O rótulo diz o que tem e o que não
+            tem.
+          </p>
+          <div className="hero__acoes">
+            <BotaoRetro href={CAMINHO_CATALOGO} escuro>
+              Ver o cardápio
+            </BotaoRetro>
+            <LinkSublinhado href="#hoje" traco={1}>
+              Escolher pela vontade
+            </LinkSublinhado>
+          </div>
         </div>
 
         <div className="palco">
@@ -61,7 +61,7 @@ export function Hero({ palco, destaque, regra }: Props) {
                   {meio ? (
                     <FotoParallax
                       imagem={p.imagem}
-                      sizes="(max-width: 820px) 40vw, 330px"
+                      sizes="(max-width: 899px) 92vw, 380px"
                       preload
                       className="h-full w-full"
                       proporcao="h-full w-full"
@@ -69,7 +69,7 @@ export function Hero({ palco, destaque, regra }: Props) {
                   ) : (
                     <FotoParallax
                       imagem={p.imagem}
-                      sizes="(max-width: 820px) 30vw, 270px"
+                      sizes="(max-width: 899px) 45vw, 172px"
                       carregamento="eager"
                       prioridade="low"
                       className="h-full w-full"
@@ -80,9 +80,6 @@ export function Hero({ palco, destaque, regra }: Props) {
               </div>
             )
           })}
-          <div className="palco__selo">
-            <SeloCarimbo texto={regra} />
-          </div>
         </div>
       </div>
     </section>

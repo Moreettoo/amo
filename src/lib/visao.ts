@@ -12,7 +12,13 @@ export const FILTRO_VAZIO: Filtro = { linha: null, selo: null, vontade: null }
 
 export type OpcaoLinha = { slug: string; nome: string; contagem: number }
 export type OpcaoSelo = { id: string; nome: string }
-export type GrupoVontade = { slug: string; palavra: string; produtos: Produto[] }
+export type GrupoVontade = {
+  slug: string
+  palavra: string
+  produtos: Produto[]
+  /** a foto grande da vontade: um produto que nao e a capa de outra */
+  capa: Produto
+}
 
 export type Visao = {
   destaque: Produto
@@ -31,6 +37,8 @@ export type Visao = {
   /** as mesmas, so quando ha 2 ou mais */
   linhasNoFinal: Linha[]
   fotoDaMarca: ImagemProduto
+  /** a foto do fecho da pagina */
+  fotoDoFinal: ImagemProduto
   /** a vitrine da home (montarVitrine) */
   vitrine: Produto[]
   /** as linhas com a contagem, para os atalhos da vitrine; vazio com uma so */
@@ -41,15 +49,28 @@ export type Visao = {
 
 export const porOrdem = (a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem
 
+/** A foto da secao A marca; sem esse produto no catalogo, vale a do destaque. */
+const SLUG_DA_FOTO_DA_MARCA = 'beijinho'
+
 export function montarVisao(c: Catalogo): Visao {
   const produtos = [...c.produtos].sort(porOrdem)
   const destaque = produtos.find((p) => p.destaque) ?? produtos[0]
 
   // As laterais mostram o alcance do cardapio: primeiro quem e de outra linha
-  // ou outro formato, depois o resto, sempre por ordem.
+  // ou outro formato, depois o resto, sempre por ordem. Dentro de cada grupo
+  // vem antes quem a pagina nao mostra em outro lugar (a vitrine logo abaixo
+  // e a foto da marca), para a mesma foto nao aparecer duas vezes seguidas.
   const outros = produtos.filter((p) => p.slug !== destaque.slug)
   const diferente = (p: Produto) => p.linha !== destaque.linha || p.formato !== destaque.formato
-  const laterais = [...outros.filter(diferente), ...outros.filter((p) => !diferente(p))].slice(0, 2)
+  const jaNaPagina = new Set([...montarVitrine(c).map((p) => p.slug), SLUG_DA_FOTO_DA_MARCA])
+  const ineditosPrimeiro = (lista: Produto[]) => [
+    ...lista.filter((p) => !jaNaPagina.has(p.slug)),
+    ...lista.filter((p) => jaNaPagina.has(p.slug)),
+  ]
+  const laterais = [
+    ...ineditosPrimeiro(outros.filter(diferente)),
+    ...ineditosPrimeiro(outros.filter((p) => !diferente(p))),
+  ].slice(0, 2)
   const palco = laterais.length === 0 ? [destaque] : [laterais[0], destaque, ...laterais.slice(1)]
 
   const contar = (pred: (p: Produto) => boolean) => produtos.filter(pred).length
@@ -60,7 +81,7 @@ export function montarVisao(c: Catalogo): Visao {
       ? rotulos.map((l) => ({ slug: l.slug, nome: l.nome, contagem: contar((p) => p.linha === l.slug) }))
       : []
 
-  const vontades = [...c.vontades]
+  const grupos = [...c.vontades]
     .sort(porOrdem)
     .map((v) => ({
       slug: v.slug,
@@ -68,6 +89,21 @@ export function montarVisao(c: Catalogo): Visao {
       produtos: produtos.filter((p) => p.vontades.includes(v.slug)),
     }))
     .filter((g) => g.produtos.length > 0)
+
+  // Cada vontade abre com uma foto so dela: a primeira do grupo que ainda
+  // nao e a capa de outra vontade nem a foto do hero. Sem sobra, repete.
+  const capasUsadas = new Set([destaque.slug])
+  const vontades = grupos.map((g) => {
+    const capa = g.produtos.find((p) => !capasUsadas.has(p.slug)) ?? g.produtos[0]
+    capasUsadas.add(capa.slug)
+    return { ...g, capa }
+  })
+
+  // O fecho mostra quem menos apareceu: o ultimo por ordem fora do palco e
+  // da foto da marca.
+  const noPalco = new Set(palco.map((p) => p.slug))
+  const doFinal =
+    [...produtos].reverse().find((p) => !noPalco.has(p.slug) && p.slug !== SLUG_DA_FOTO_DA_MARCA) ?? destaque
 
   return {
     destaque,
@@ -78,7 +114,8 @@ export function montarVisao(c: Catalogo): Visao {
     vontades,
     rotulos,
     linhasNoFinal: rotulos.length >= 2 ? rotulos : [],
-    fotoDaMarca: (produtos.find((p) => p.slug === 'beijinho') ?? destaque).imagem,
+    fotoDaMarca: (produtos.find((p) => p.slug === SLUG_DA_FOTO_DA_MARCA) ?? destaque).imagem,
+    fotoDoFinal: doFinal.imagem,
     vitrine: montarVitrine(c),
     linhasNaVitrine,
     total: produtos.length,

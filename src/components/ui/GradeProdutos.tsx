@@ -16,12 +16,11 @@ type Props = {
   semEntrada?: string | null
 }
 
-const MOLA = [0.34, 1.4, 0.64, 1] as const
-
 /**
  * A grade de cards com o FLIP do Motion: quem fica desliza para o novo
- * lugar, quem entra cresce. Sob movimento reduzido o MotionConfig desliga o
- * deslocamento.
+ * lugar, quem entra cresce. Tudo na curva da casa (EASE_AMO): a mola de
+ * antes passava do ponto e voltava, e o site novo nao tem quique. Sob
+ * movimento reduzido o MotionConfig desliga o deslocamento.
  */
 export function GradeProdutos({ produtos, tipos, nomesDosSelos, comAncora = false, semEntrada = null }: Props) {
   return (
@@ -39,7 +38,7 @@ export function GradeProdutos({ produtos, tipos, nomesDosSelos, comAncora = fals
               exit={{ opacity: 0, scale: 0.85, transition: { duration: 0.2 } }}
               transition={{
                 layout: { duration: 0.56, ease: EASE_AMO },
-                default: { duration: 0.42, delay: 0.09, ease: MOLA },
+                default: { duration: 0.42, delay: 0.09, ease: EASE_AMO },
               }}
             >
               <CardProduto produto={p} tipo={tipos[p.linha] ?? ''} nomesDosSelos={nomesDosSelos} />

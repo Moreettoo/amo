@@ -76,13 +76,36 @@ describe('todo o CSS', () => {
     for (const { nome, css } of todos) expect(css, nome).not.toMatch(/infinite/)
   })
 
-  it('cobre puro só é cor de texto no "comer bem." do hero', () => {
+  it('sem mola: nenhuma curva passa do ponto e volta', () => {
+    // a borda ondulada da gaveta entrava com cubic-bezier(.34, 1.4, .64, 1);
+    // y fora de 0 a 1 e o quique que o site novo nao tem
+    for (const { nome, css } of todos) {
+      for (const [curva, , y1, , y2] of css.matchAll(/cubic-bezier\(\s*([\d.-]+),\s*([\d.-]+),\s*([\d.-]+),\s*([\d.-]+)\s*\)/g)) {
+        for (const y of [y1, y2]) {
+          expect(Number(y), `${nome}: ${curva}`).toBeGreaterThanOrEqual(0)
+          expect(Number(y), `${nome}: ${curva}`).toBeLessThanOrEqual(1)
+        }
+      }
+    }
+  })
+
+  it('todo @keyframes declarado é usado', () => {
+    for (const [, nome] of movimento.matchAll(KEYFRAMES)) {
+      expect(blocoDoPortao(), nome).toMatch(new RegExp(`animation:\\s*${nome}\\s`))
+    }
+  })
+
+  it('cobre puro só é cor de texto na frase em script das superfícies escuras', () => {
     const seletores = outros.flatMap(({ css }) =>
       [...css.matchAll(/([^{}]+)\{[^{}]*?(?<![-\w])color:\s*var\(--color-cobre\)[^{}]*\}/g)].map((m) =>
         m[1].trim(),
       ),
     )
-    expect(seletores.filter((s) => s !== '.hero__titulo em')).toEqual([])
+    // cobre sobre expresso mede 4.93:1; sobre creme, 3.02:1, e por isso o
+    // script das superficies claras vai em cobre-texto
+    // (o titulo de secao e o H1 do topo do catalogo e do 404)
+    const escuras = ['.superficie-escura .titulo-secao em', '.superficie-escura .topo-catalogo__titulo em']
+    expect(seletores.filter((s) => !escuras.includes(s))).toEqual([])
   })
 
   it('efeito de mouse só dentro de @media (hover: hover)', () => {
@@ -105,7 +128,15 @@ describe('a abertura leve da gaveta (spec §4.7)', () => {
 
   it('entra sob [open] com fill backwards e sai sob [data-fechando] com forwards', () => {
     const r = regras()
-    expect(r).toHaveLength(8)
+    // o painel, o fundo e os itens na entrada; o painel e o fundo na saida.
+    // As tres regras da borda ondulada sairam com ela.
+    expect(r.map((x) => x.seletor)).toEqual([
+      'html.js .gaveta[open]',
+      'html.js .gaveta[open]::backdrop',
+      'html.js .gaveta[open] .gaveta__item',
+      'html.js .gaveta[data-fechando]',
+      'html.js .gaveta[data-fechando]::backdrop',
+    ])
     for (const { seletor, animacao } of r) {
       expect(animacao, seletor).toMatch(seletor.includes('[data-fechando]') ? /forwards$/ : /backwards$/)
     }

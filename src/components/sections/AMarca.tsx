@@ -19,9 +19,8 @@ export function AMarca({ foto }: { foto: ImagemProduto }) {
           />
         </div>
         <div>
-          <p className="rotulo-secao">A marca</p>
           <h2 id="titulo-marca" className="titulo-secao">
-            Comer bem não devia cobrar nada depois
+            Comer bem não devia cobrar <em>nada depois</em>
           </h2>
           <p className="texto">
             <span translate="no">AMO</span> nasceu de uma ideia simples: o que é gostoso não precisa pesar

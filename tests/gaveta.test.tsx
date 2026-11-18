@@ -239,11 +239,18 @@ describe('Gaveta: o conteúdo', () => {
     expect(dialogo()).toHaveAttribute('data-lenis-prevent')
   })
 
-  it('a borda ondulada é decorativa, três camadas', () => {
+  it('a borda é reta: sem a onda da v2, o painel é o único filho do diálogo', () => {
+    // o clique fora conta com isso: alvo no proprio <dialog> so pode ser o fundo
     render(<Bancada dados={misto} linhaAtual={null} aoFechar={() => {}} />)
-    const onda = dialogo().querySelector('.gaveta__onda')!
-    expect(onda).toHaveAttribute('aria-hidden', 'true')
-    expect(onda.querySelectorAll('path')).toHaveLength(3)
+    expect(dialogo().querySelector('.gaveta__onda')).toBeNull()
+    expect([...dialogo().children].map((el) => el.className)).toEqual(['gaveta__painel'])
+  })
+
+  it('as fotos do cartão da linha única são decorativas', async () => {
+    await abrir(real)
+    const fotos = dialogo().querySelector('.gaveta__unica .gaveta__fotos')!
+    expect(fotos).toHaveAttribute('aria-hidden', 'true')
+    expect(fotos.querySelectorAll('img')).toHaveLength(3)
   })
 
   it('passa no axe aberta', async () => {

@@ -37,11 +37,13 @@ describe('Hero', () => {
     expect(screen.getByRole('link', { name: 'Escolher pela vontade' })).toHaveAttribute('href', '#hoje')
   })
 
-  it('é a superfície escura #topo, com o deslocamento da nav', () => {
+  it('é a seção #topo, clara, com o deslocamento da nav', () => {
     const { container } = montar()
     const secao = container.querySelector('section')!
     expect(secao).toHaveAttribute('id', 'topo')
-    expect(secao).toHaveClass('superficie-escura', 'scroll-mt-24')
+    expect(secao).toHaveClass('scroll-mt-24')
+    // creme: o foco fica expresso, como nas outras superficies claras
+    expect(secao).not.toHaveClass('superficie-escura')
   })
 
   it('o destaque fica no meio do palco', () => {

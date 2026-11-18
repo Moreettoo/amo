@@ -1,91 +1,49 @@
 /* Moldura por formato e o card do cardapio. */
 @layer components {
-  /* flow-root: a moldura contem a margem do circulo do bolo inteiro. Com a
-     margem vazando (margin collapse) ela media so o circulo, a fita, medida
-     da borda dela, caia em cima do tipo e do nome, e o texto do card subia
-     30 px em relacao aos vizinhos */
+  /* flow-root: a moldura contem a margem do circulo do bolo inteiro */
   .moldura { position: relative; display: flow-root; }
   .moldura__janela {
-    position: relative; height: 280px; overflow: hidden; background: var(--color-chocolate);
-    transition: box-shadow .35s var(--ease-amo);
+    position: relative; aspect-ratio: 4 / 5; overflow: hidden; border-radius: 4px; background: var(--color-linho);
   }
-  .moldura--pote .moldura__janela { border-radius: 999px 999px 22px 22px; }
-  .moldura--inteiro .moldura__janela { width: 250px; height: 250px; max-width: 100%; margin: 15px auto; border-radius: 50%; }
-  .moldura--unidade .moldura__janela { border-radius: 28px; }
-  .moldura--neutra .moldura__janela { border-radius: 16px; }
-  .moldura__foto { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease-amo); }
+  .moldura--inteiro .moldura__janela { width: min(250px, 100%); aspect-ratio: 1; margin: 15px auto; border-radius: 50%; }
+  .moldura--unidade .moldura__janela, .moldura--neutra .moldura__janela { aspect-ratio: 1; }
+  .moldura__foto { width: 100%; height: 100%; object-fit: cover; transition: transform .9s var(--ease-amo); }
   .liq { width: 100%; height: 100%; }
 
-  .selos-foto {
-    position: absolute; z-index: 2; left: 10px; bottom: 10px;
-    display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
-    max-width: 62%; margin: 0; padding: 0; list-style: none;
-  }
-  .selos-foto li {
-    padding: 4px 10px; border-radius: 999px; background: rgb(255 251 245 / .95);
-    color: var(--color-chocolate); font-size: 12.5px; font-weight: 700;
-    transition: opacity .25s ease, transform .35s cubic-bezier(.34, 1.5, .64, 1);
-  }
-  .selos-foto li:nth-child(2) { transition-delay: .06s; }
-  .moldura--inteiro .selos-foto { left: 50%; bottom: 26px; align-items: center; max-width: 80%; transform: translateX(-50%); }
+  /* O acessorio da v2 (etiqueta, fita, carimbo) repetia o nome por cima da
+     foto. No card ele some: a foto fica limpa e o nome mora no h3. */
+  .moldura > .etiqueta, .moldura > .fita, .moldura > .carimbo { display: none; }
 
-  /* etiqueta oval do pote */
-  .etiqueta {
-    position: absolute; z-index: 3; right: -8px; top: 152px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    width: 134px; height: 158px; padding: 14px; border-radius: 50%;
-    background: var(--color-papel); color: var(--color-expresso); text-align: center;
-    box-shadow: 0 12px 26px -12px rgb(43 27 22 / .55), inset 0 0 0 1px rgb(43 27 22 / .12);
-    transform: rotate(-8deg);
-  }
-  .etiqueta::before {
-    content: ""; position: absolute; top: 12px; left: 50%; width: 10px; height: 10px; margin-left: -5px;
-    border-radius: 50%; background: var(--color-caramelo);
-  }
-  .etiqueta b { margin-top: 8px; font: 400 17px/1.08 var(--font-display); text-wrap: balance; }
-  .etiqueta--longa b { font-size: 13.5px; }
-  .etiqueta small { margin-top: 4px; font-size: 13px; font-weight: 700; color: var(--color-cobre-texto); }
-  .etiqueta i { margin-top: 4px; font-style: normal; font-size: 12px; color: var(--color-vinho); }
-
-  /* fita do bolo inteiro. Quebra em linhas com nome longo: em nowrap,
-     "Ninho com frutas vermelhas" vazava do card e cobria o vizinho. */
-  .fita {
-    position: absolute; z-index: 3; left: 50%; top: 226px; padding: 8px 22px;
-    width: max-content; max-width: 100%;
-    background: var(--color-vinho); color: var(--color-papel);
-    font: 400 17px/1.2 var(--font-display); text-align: center; text-wrap: balance;
-    clip-path: polygon(0 0, 100% 0, 94% 50%, 100% 100%, 0 100%, 6% 50%);
-    transform: translateX(-50%) rotate(-3deg);
-  }
-
-  /* carimbo kraft da unidade */
-  .carimbo {
-    position: absolute; z-index: 3; left: 14px; top: 200px; padding: 9px 14px; border-radius: 4px;
-    background: var(--color-kraft); color: var(--color-expresso); font: 400 17px/1.2 var(--font-display);
-    box-shadow: inset 0 0 0 2px rgb(43 27 22 / .25), inset 0 0 0 5px var(--color-kraft), inset 0 0 0 6.5px rgb(43 27 22 / .35);
-    transform: rotate(-6deg);
-  }
+  /* a legenda da foto: o nome do sabor numa voz so, embaixo da foto. Nada
+     de cartao por cima do pote, nem segundo script na secao. Hoje so o Hoje
+     o dia pede usa. */
+  .etiqueta { display: flex; flex-direction: column; gap: 2px; min-width: 0; color: var(--color-expresso); }
+  .etiqueta b { font: 400 18px/1.3 var(--font-sans); letter-spacing: -.01em; }
+  .etiqueta small { font-size: 12px; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; color: var(--color-chocolate); }
+  .etiqueta i { display: none; }
 
   /* card */
-  .card-produto { position: relative; transition: transform .35s var(--ease-amo); }
-  .card-produto__tipo { margin: 18px 0 0; font-size: 13.5px; font-weight: 700; color: var(--color-cobre-texto); }
-  .card-produto h3 { margin-top: 4px; font-size: 24px; line-height: 1.1; }
-  .card-produto__frase { margin: 8px 0 0; font-size: 16px; line-height: 1.5; color: var(--color-suave); }
+  .card-produto { position: relative; }
+  .card-produto__tipo { margin: 3px 0 0; font-size: 13px; font-weight: 500; color: var(--color-cobre-texto); }
+  /* os selos em texto, embaixo do tipo: a foto fica inteira a mostra */
+  .card-produto__selos {
+    display: flex; flex-wrap: wrap; gap: 2px 14px; margin: 8px 0 0; padding: 0; list-style: none;
+    color: var(--color-suave); font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase;
+  }
+  .card-produto h3 { margin-top: 18px; font-size: 22px; font-weight: 400; line-height: 1.2; letter-spacing: -.01em; transition: color .25s ease; }
+  .card-produto__frase { margin: 6px 0 0; font-size: 15px; line-height: 1.6; color: var(--color-suave); }
+  /* o link do nome cobre o card inteiro */
+  .card-produto__link { color: inherit; text-decoration: none; }
+  .card-produto__link::after { content: ""; position: absolute; z-index: 4; inset: 0; }
+  .card-produto:has(.card-produto__link:focus-visible) .moldura__foto { transform: scale(1.04); }
   @media (hover: hover) {
-    .selos-foto li { opacity: 0; transform: translateY(10px); }
-    .card-produto:hover { transform: translateY(-6px); }
-    .card-produto:hover .moldura__janela { box-shadow: 8px 8px 0 var(--color-caramelo); }
-    .card-produto:hover .moldura__foto { transform: scale(1.06); }
-    .card-produto:hover .selos-foto li { opacity: 1; transform: none; }
+    .card-produto:has(.card-produto__link):hover .moldura__foto { transform: scale(1.04); }
+    .card-produto:has(.card-produto__link):hover h3 { color: var(--color-cobre-texto); }
   }
 
   @media (max-width: 520px) {
-    .moldura__janela { height: 210px; }
-    /* 20 + 150 + 40: a altura das outras molduras (210), como no canvas */
-    .moldura--inteiro .moldura__janela { width: 150px; height: 150px; margin: 20px auto 40px; }
-    .etiqueta { top: 118px; width: 100px; height: 120px; padding: 10px; }
-    .etiqueta b, .etiqueta--longa b { font-size: 12.5px; }
-    .fita { top: 160px; padding: 6px 16px; font-size: 14px; }
-    .carimbo { top: 150px; font-size: 14px; }
+    .moldura--inteiro .moldura__janela { width: min(150px, 100%); margin: 20px auto 40px; }
+    .card-produto h3 { font-size: 18px; }
+    .card-produto__frase { font-size: 14px; }
   }
 }

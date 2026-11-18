@@ -27,11 +27,11 @@
   --color-claro-suave: #EADDD0;
   --color-vinho: #8E2F3C;
 
-  --font-display: var(--fonte-caprasimo), Georgia, serif;
-  --font-sans: var(--fonte-dm-sans), system-ui, -apple-system, sans-serif;
+  --font-display: var(--fonte-poppins), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--fonte-poppins), system-ui, -apple-system, sans-serif;
+  --font-script: var(--fonte-script), "Snell Roundhand", "Apple Chancery", cursive;
 
   --ease-amo: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-mola: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 @layer base {
@@ -41,6 +41,9 @@
        (.superficie-escura) trocam por cobre. Cobre em toda parte reprovaria
        no caramelo (1.93:1). */
     --foco: var(--color-expresso);
+    /* O fio fino que separa tudo: expresso diluido nas superficies claras,
+       creme diluido nas escuras. */
+    --fio: rgb(43 27 22 / .18);
   }
 
   html {
@@ -84,6 +87,9 @@
   }
 
   body {
+    /* o grao do cartao, na pagina inteira: por secao ele deixava um degrau
+       de tom entre uma e outra */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .11 0 0 0 0 .08 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     background-color: var(--color-creme);
     color: var(--color-expresso);
     font-family: var(--font-sans);
@@ -91,12 +97,18 @@
     -webkit-tap-highlight-color: color-mix(in srgb, var(--color-cobre) 24%, transparent);
   }
 
-  /* Caprasimo tem um peso so: pedir outro faria o navegador engordar o
-     desenho por sintese. */
+  /* Titulos em Poppins leve: o peso fino e a voz da pagina. O script
+     (--font-script) so entra em frases curtas, nunca em titulo inteiro. */
   h1, h2, h3 {
     font-family: var(--font-display);
-    font-weight: 400;
+    font-weight: 300;
+    letter-spacing: -.02em;
     text-wrap: balance;
+  }
+
+  ::selection {
+    background-color: var(--color-caramelo);
+    color: var(--color-expresso);
   }
 
   p {
@@ -108,7 +120,7 @@
     outline-offset: 3px;
   }
 
-  .superficie-escura { --foco: var(--color-cobre); }
+  .superficie-escura { --foco: var(--color-cobre); --fio: rgb(250 242 233 / .2); }
 
   /* Filtros, abas e regiao viva so funcionam com JS. Sem ele, somem, em vez
      de virar botao que nao faz nada. */

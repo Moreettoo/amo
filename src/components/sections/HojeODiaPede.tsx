@@ -5,7 +5,8 @@ import { useMotionValueEvent, useScroll } from 'motion/react'
 import { useEffect, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { useRolagem } from '@/components/RolagemSuave'
 import { PalavraTroca } from '@/components/ui/PalavraTroca'
-import { Pilula, PilulaLink } from '@/components/ui/Pilula'
+import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
+import { Pilula } from '@/components/ui/Pilula'
 import { PoteEnche } from '@/components/ui/PoteEnche'
 import { useTrava } from '@/components/ui/useTrava'
 import { CAMINHO_CATALOGO, type GrupoVontade } from '@/lib/visao'
@@ -113,7 +114,8 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
   }
 
   const grupo = vontades[indice]
-  const [principal, ...outros] = grupo.produtos
+  const principal = grupo.capa
+  const outros = grupo.produtos.filter((p) => p.slug !== principal.slug)
   const quantos = grupo.produtos.length
 
   return (
@@ -122,7 +124,6 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
         <div className="hoje__painel">
           <div className="wrap hoje__grade">
             <div className="hoje__texto">
-              <p className="rotulo-secao">Não sabe o que escolher?</p>
               <h2 id="titulo-hoje">Hoje o dia pede</h2>
 
               <div role="tabpanel" id="hoje-painel" aria-labelledby={`hoje-aba-${grupo.slug}`}>
@@ -131,9 +132,9 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
                   <b>{contarOpcoes(quantos)}:</b> {listarNomes(grupo.produtos.map((p) => p.nome))}.
                 </p>
                 <div className="hoje__opcoes">
-                  <PilulaLink href={`${CAMINHO_CATALOGO}?vontade=${grupo.slug}`}>
+                  <LinkSublinhado href={`${CAMINHO_CATALOGO}?vontade=${grupo.slug}`} traco={2}>
                     {textoVerNoCardapio(quantos)}
-                  </PilulaLink>
+                  </LinkSublinhado>
                 </div>
               </div>
 
@@ -197,7 +198,6 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
               <div className="etiqueta" aria-hidden="true">
                 <b>{principal.nome}</b>
                 <small>{tipos[principal.linha]}</small>
-                <i>♥</i>
               </div>
             </div>
           </div>

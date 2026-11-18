@@ -8,7 +8,7 @@ import { IconeCamadas } from '@/components/ui/IconeCamadas'
 import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
 import { CAMINHO_CATALOGO, type DadosGaveta } from '@/lib/visao'
 
-/** 12px do `top-3` + 64 de altura + 20 de folga = os 96 do DESLOCAMENTO_NAV
+/** 64 de altura + 32 de folga = os 96 do DESLOCAMENTO_NAV
  *  (RolagemSuave) e do `scroll-mt-24` das secoes. */
 export const ALTURA_NAV = 64
 
@@ -19,7 +19,7 @@ type Props = {
 }
 
 /**
- * Nav em pilula creme, flutuando sobre o topo escuro da pagina. Opaca desde o
+ * Nav em linha: barra creme de fora a fora, com um fio embaixo. Opaca desde o
  * primeiro pixel; ao rolar muda uma coisa so, a sombra. O botao Catalogo abre
  * a gaveta; "Ver cardapio" leva a pagina do catalogo. No celular os links da
  * home moram na gaveta, e o menu de antes saiu.
@@ -37,26 +37,19 @@ export function Nav({ gaveta, linhaAtual = null }: Props) {
 
   return (
     <>
-      {/* pointer-events-none no involucro, auto nos filhos: com a margem
-          negativa ele cobre o topo da pagina, e sem isso engoliria clique e
-          hover de tudo que passa por baixo. */}
-      <div
-        style={{ marginBottom: -ALTURA_NAV }}
-        className="pointer-events-none sticky top-3 z-40 px-[var(--gutter)]"
-      >
-        <div className="relative mx-auto max-w-[1180px]">
-          {/* Sem JS o botao Catalogo some e o logo abre a pilula: volta o
-              respiro que ele tinha na v2, longe da curva da ponta. */}
-          <nav
-            aria-label="Principal"
-            style={{ height: ALTURA_NAV }}
-            className={
-              'pointer-events-auto flex items-center gap-2.5 rounded-full bg-creme pl-2.5 pr-2 ' +
-              'transition-[box-shadow] duration-300 min-[821px]:gap-[26px] min-[821px]:pr-2.5 ' +
-              '[html:not(.js)_&]:pl-4 min-[821px]:[html:not(.js)_&]:pl-6 ' +
-              (rolou ? 'shadow-[0_10px_30px_-12px_rgb(0_0_0_/_0.45)]' : 'shadow-none')
-            }
-          >
+      {/* A margem negativa deixa a barra por cima do topo da pagina, que ja
+          reserva a altura dela. Opaca e de fora a fora: nao ha o que clicar
+          por baixo. */}
+      <div style={{ marginBottom: -ALTURA_NAV }} className="sticky top-0 z-40">
+        <nav
+          aria-label="Principal"
+          style={{ height: ALTURA_NAV }}
+          className={
+            'border-b border-expresso/15 bg-creme px-[var(--gutter)] transition-[box-shadow] duration-300 ' +
+            (rolou ? 'shadow-[0_12px_30px_-22px_rgb(43_27_22_/_0.5)]' : 'shadow-none')
+          }
+        >
+          <div className="mx-auto flex h-full max-w-[1128px] items-center gap-2.5 min-[821px]:gap-[26px]">
             <button
               ref={botaoRef}
               type="button"
@@ -73,7 +66,7 @@ export function Nav({ gaveta, linhaAtual = null }: Props) {
             {/* Dimensoes intrinsecas do arquivo (tests/logo.test.ts guarda os
                 dois numeros): com elas a proporcao declarada fecha exata e o
                 next/image nao avisa no console. */}
-            <a href="/#topo" className="shrink-0 rounded-md">
+            <a href="/#topo" className="flex min-h-[44px] shrink-0 items-center rounded-md">
               <Image
                 src="/marca/logo-amo.png"
                 alt="AMO Sabores Saudáveis"
@@ -99,8 +92,8 @@ export function Nav({ gaveta, linhaAtual = null }: Props) {
             <BotaoRetro href={CAMINHO_CATALOGO} escuro compacto className="ml-auto min-[821px]:ml-0">
               Ver cardápio
             </BotaoRetro>
-          </nav>
-        </div>
+          </div>
+        </nav>
       </div>
 
       {/* Fora do involucro: o <dialog> herdaria o pointer-events: none dele. */}

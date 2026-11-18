@@ -145,8 +145,8 @@ describe('a página completa', () => {
     }
   })
 
-  it('o hero é o único lugar que pinta texto de cobre puro', () => {
+  it('o "comer bem." do hero, sobre creme, vai em cobre-texto e não em cobre puro', () => {
     const css = readFileSync(resolve(import.meta.dirname, '../src/app/estilos/hero.css'), 'utf8')
-    expect(css).toMatch(/\.hero__titulo em \{[^}]*color: var\(--color-cobre\)/)
+    expect(css).toMatch(/\.hero__titulo em \{[^}]*color: var\(--color-cobre-texto\)/)
   })
 })

@@ -42,10 +42,11 @@ describe('estilos', () => {
     expect(ultimo(regra(css, '.hoje__texto'), 'container-type')).toBe('inline-size')
   })
 
-  it('a fita do bolo inteiro quebra em linhas com nome longo, em vez de vazar do card', () => {
-    const fita = regra(ler('produto.css'), '.fita')
-    expect(ultimo(fita, 'white-space')).not.toBe('nowrap')
-    expect(ultimo(fita, 'max-width')).toBeTruthy()
+  it('o acessório da v2 (etiqueta, fita, carimbo) não aparece no card: a foto fica limpa', () => {
+    const css = ler('produto.css')
+    expect(ultimo(regra(css, '.moldura > .fita'), 'display')).toBe('none')
+    expect(ultimo(regra(css, '.moldura > .etiqueta'), 'display')).toBe('none')
+    expect(ultimo(regra(css, '.moldura > .carimbo'), 'display')).toBe('none')
   })
 
   it('o pino do Hoje: CSS e JS com a mesma condição, e tela estreita exige 800px de altura', () => {
@@ -68,14 +69,33 @@ describe('estilos', () => {
     expect(ultimo(gaveta, 'height')).toBe('100%')
   })
 
-  it('o cartão da linha única sobe no foco do teclado como sobe no hover', () => {
+  it('o cartão da linha única reage ao foco do teclado como reage ao mouse, sem sombra nem salto', () => {
     const css = ler('gaveta.css')
     const hover = regra(css, '.gaveta__unica:hover')
     const foco = regra(css, '.gaveta__unica:focus-visible')
-    expect(ultimo(foco, 'box-shadow')).toBeTruthy()
-    expect(ultimo(foco, 'transform')).toBeTruthy()
-    expect(ultimo(foco, 'box-shadow')).toBe(ultimo(hover, 'box-shadow'))
-    expect(ultimo(foco, 'transform')).toBe(ultimo(hover, 'transform'))
+    expect(ultimo(foco, 'border-color')).toBeTruthy()
+    expect(ultimo(foco, 'border-color')).toBe(ultimo(hover, 'border-color'))
+    // a seta anda igual nos dois
+    const seta = (estado: string) => ultimo(regra(css, `.gaveta__unica:${estado} .gaveta__icone`), 'transform')
+    expect(seta('focus-visible')).toBeTruthy()
+    expect(seta('focus-visible')).toBe(seta('hover'))
+    // o cartao da v2 subia sobre uma sombra dura; o de agora so escurece o contorno
+    expect(`${hover}\n${foco}`).not.toMatch(/box-shadow|transform/)
+  })
+
+  it('o catálogo, o 404 e a gaveta não trazem as formas da v2: sombra dura, giro, arco, tracejado, onda', () => {
+    for (const arquivo of ['catalogo.css', 'gaveta.css']) {
+      const css = ler(arquivo)
+      // sombra deslocada sem desfoque ("6px 6px 0 cor")
+      expect(css, arquivo).not.toMatch(/box-shadow:\s*-?\d+px\s+-?\d+px\s+0\s/)
+      expect(css, arquivo).not.toMatch(/rotate\(/)
+      expect(css, arquivo).not.toMatch(/999px/)
+      expect(css, arquivo).not.toMatch(/dashed|dotted/)
+      expect(css, arquivo).not.toMatch(/onda|camadas/)
+      // o rotulo em script acima do titulo saiu: o script mora no <em> do titulo
+      expect(css, arquivo).not.toMatch(/rotulo-secao/)
+    }
+    expect(ler('pecas.css')).not.toMatch(/\.rotulo-secao|\.camadas|dashed/)
   })
 
   it('no celular a fileira de pílulas das linhas rola de lado e não estica a grade do catálogo', () => {
@@ -84,17 +104,24 @@ describe('estilos', () => {
 
   // Achados da verificacao no navegador (Task 9 do catalogo).
 
-  it('o selo do topo do catálogo fica na coluna do conteúdo: na margem ele rolava a página de lado', () => {
-    expect(ultimo(regra(ler('catalogo.css'), '.topo-catalogo__selo'), 'right')).toBe('var(--gutter)')
+  it('a regra do topo do catálogo fica no fluxo da coluna de texto: solta no canto ela rolava a página de lado', () => {
+    const css = ler('catalogo.css')
+    expect(css).not.toMatch(/\.topo-catalogo__selo/)
+    expect(regra(css, '.topo-catalogo__regra')).not.toMatch(/position|right|left/)
   })
 
-  it('no celular a gaveta mede min(340px, 88vw), borda incluída, como na spec', () => {
-    expect(ultimo(regra(ler('gaveta.css'), '.gaveta'), '--painel')).toBe('calc(min(340px, 88vw) - var(--borda))')
+  it('no celular a gaveta mede min(340px, 88vw), como na spec, e o painel é a gaveta inteira', () => {
+    const gaveta = regra(ler('gaveta.css'), '.gaveta')
+    expect(ultimo(gaveta, '--painel')).toBe('min(340px, 88vw)')
+    // sem a borda ondulada ao lado, a largura do <dialog> e a do painel
+    expect(ultimo(gaveta, 'width')).toBe('var(--painel)')
   })
 
-  it('no celular os arcos do cartão da linha única encolhem, e o nome não some embaixo deles', () => {
-    const arcos = regra(ler('gaveta.css'), '.gaveta__arcos img')
-    const larguras = [...arcos.matchAll(/(?<![-\w])width:\s*([\d.]+)px;/g)].map((m) => Number(m[1]))
+  it('no celular as fotos do cartão da linha única encolhem, e o nome não some embaixo delas', () => {
+    const css = ler('gaveta.css')
+    expect(ultimo(regra(css, '.gaveta__fotos'), 'flex')).toBe('none')
+    const fotos = regra(css, '.gaveta__fotos img')
+    const larguras = [...fotos.matchAll(/(?<![-\w])width:\s*([\d.]+)px;/g)].map((m) => Number(m[1]))
     expect(larguras.length).toBeGreaterThan(1)
     expect(larguras.at(-1)).toBeLessThan(larguras[0])
   })
@@ -132,7 +159,7 @@ describe('estilos', () => {
 
   // Achados da revisao final do catalogo.
 
-  it('em "Tudo" as capas do topo não encolhem, a redonda segue redonda e três das mais largas cabem na coluna', () => {
+  it('em "Tudo" as capas do topo não encolhem, a do bolo inteiro segue quadrada e três das mais largas cabem na coluna', () => {
     const css = ler('catalogo.css')
     const px = (v: string | undefined) => Number.parseFloat(v ?? 'NaN')
     expect(ultimo(regra(css, '.topo-catalogo__capa'), 'flex')).toBe('none')
@@ -143,37 +170,17 @@ describe('estilos', () => {
     expect(px(ultimo(inteiro, 'width'))).toBe(px(ultimo(inteiro, 'height')))
     const larguras = ['pote', 'inteiro', 'unidade', 'neutra'].map((f) => px(ultimo(capa(f), 'width')))
     const vao = px(ultimo(regra(css, '.topo-catalogo__capas--varias'), 'gap'))
-    // ate tres capas, de qualquer formato: o pior caso e tres da mais larga
-    expect(3 * Math.max(...larguras) + 2 * vao).toBeLessThanOrEqual(coluna)
+    // ate tres capas, de qualquer formato: o pior caso e tres da mais larga,
+    // mais a sobra a direita onde cai o fio deslocado da ultima
+    const sobra = px(ultimo(regra(css, '.topo-catalogo__capas--varias'), 'padding')?.split(' ')[1])
+    expect(sobra).toBeGreaterThan(0)
+    expect(3 * Math.max(...larguras) + 2 * vao + sobra).toBeLessThanOrEqual(coluna)
   })
 
-  it('bolo inteiro: a moldura contém o círculo, o texto alinha com os outros cards e a fita não cobre o texto', () => {
-    const css = ler('produto.css')
-    const px = (v: string | undefined) => Number.parseFloat(v ?? 'NaN')
-    // sem conter a margem do circulo (margin collapse), a moldura media so o
-    // circulo: a fita, medida da borda dela, caia no tipo e no nome
-    expect(ultimo(regra(css, '.moldura'), 'display')).toBe('flow-root')
-    const celular = /@media \(max-width: 520px\) \{((?:[^{}]*\{[^{}]*\})*[^{}]*)\}/.exec(css)![1]
-    const desktop = css.replace(celular, '')
-    /** margem de cima e de baixo do shorthand */
-    const vertical = (v: string | undefined) => {
-      const p = (v ?? '').split(/\s+/)
-      return [px(p[0]), px(p[2] ?? p[0])]
-    }
-    for (const [nome, bloco] of [['desktop', desktop], ['celular', celular]] as const) {
-      const janela = regra(bloco, '.moldura--inteiro .moldura__janela')
-      const [cima, baixo] = vertical(ultimo(regra(desktop, '.moldura--inteiro .moldura__janela') + janela, 'margin'))
-      const total = cima + px(ultimo(janela, 'height')) + baixo
-      // a altura das outras molduras: o tipo e o nome dos cards de uma fileira alinham
-      expect(total, nome).toBe(px(ultimo(regra(bloco, '.moldura__janela'), 'height')))
-      // a fita com o nome em duas linhas termina antes de o texto do card comecar
-      const fita = regra(desktop, '.fita') + (nome === 'celular' ? regra(bloco, '.fita') : '')
-      const linha = px(/\/([\d.]+)/.exec(ultimo(regra(desktop, '.fita'), 'font') ?? '')?.[1])
-      const corpo = nome === 'celular' ? px(ultimo(fita, 'font-size')) : px(/(\d+)px\//.exec(ultimo(fita, 'font') ?? '')?.[1])
-      const fim = px(ultimo(fita, 'top')) + 2 * corpo * linha + 2 * vertical(ultimo(fita, 'padding'))[0]
-      const texto = total + vertical(ultimo(regra(desktop, '.card-produto__tipo'), 'margin'))[0]
-      expect(fim, nome).toBeLessThan(texto)
-    }
+  it('bolo inteiro: a moldura contém a margem do círculo', () => {
+    // sem conter a margem (margin collapse), a moldura media so o circulo e
+    // o texto do card subia em relacao aos vizinhos
+    expect(ultimo(regra(ler('produto.css'), '.moldura'), 'display')).toBe('flow-root')
   })
 
   it.each([

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Barra fina</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Ms+Madi&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --chocolate:#4A2E25; --cobre:#C9784A; --caramelo:#E2BF96; --creme:#FAF2E9; --papel:#FFFBF5; --vinho:#8E2F3C; --suave:#5E4A40; --claro:#EADDD0; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 1440px; height: 900px; overflow: hidden; font-family: Poppins, system-ui, sans-serif; background: var(--expresso); color: var(--creme); }
+  .folha { display: grid; grid-template-columns: 88px 772px 300px 280px; grid-template-rows: 68px 1fr; width: 1440px; height: 900px; position: relative; }
+  .aba { grid-column: 1 / -1; background: var(--caramelo); color: var(--expresso); display: flex; align-items: center; padding: 0 32px 0 120px; gap: 40px; border-bottom: 1px solid rgba(43,27,22,.28); font-size: 14px; font-weight: 500; }
+  .aba .marca { font-size: 22px; font-weight: 600; letter-spacing: .32em; margin-right: auto; }
+  .aba .cta { background: var(--expresso); color: var(--creme); padding: 11px 22px; border-radius: 3px; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  .lombada { background: var(--cobre); color: var(--expresso); display: flex; align-items: center; justify-content: center; padding: 32px 12px; border-right: 1px solid rgba(43,27,22,.3); }
+  .lombada span { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 13px; font-weight: 600; letter-spacing: .42em; text-transform: uppercase; white-space: nowrap; }
+  .frente { padding: 84px 0 0 32px; position: relative; }
+  .sobre { font-size: 13px; letter-spacing: .34em; text-transform: uppercase; color: var(--caramelo); font-weight: 500; }
+  .frente h1 { white-space: nowrap; font-weight: 300; font-size: 84px; line-height: 1; letter-spacing: -.025em; margin-top: 50px; }
+  .estampa { font-family: "Ms Madi", cursive; color: var(--cobre); font-size: 232px; line-height: .8; position: absolute; left: 24px; top: 236px; white-space: nowrap; z-index: 3; }
+  .lead { position: absolute; left: 32px; top: 520px; width: 440px; font-size: 19px; line-height: 1.6; color: var(--claro); font-weight: 300; }
+  .acoes { position: absolute; left: 32px; top: 660px; display: flex; align-items: center; gap: 30px; }
+  .botao { background: var(--cobre); color: var(--expresso); font-weight: 600; font-size: 15px; letter-spacing: .08em; text-transform: uppercase; padding: 19px 34px; border-radius: 3px; }
+  .elo { font-size: 16px; border-bottom: 1px solid var(--cobre); padding-bottom: 4px; }
+  .janela { position: relative; overflow: hidden; border-left: 1px solid rgba(250,242,233,.2); }
+  .janela img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; display: block; }
+  .fio { position: absolute; height: 1px; background: var(--papel); right: 0; }
+  .fio::before { content: ""; position: absolute; left: -4px; top: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--papel); }
+  .verso { background: var(--creme); color: var(--expresso); padding: 44px 26px 0 26px; position: relative; }
+  .verso h2 { font-size: 12px; letter-spacing: .34em; text-transform: uppercase; font-weight: 600; color: #9A5530; padding-bottom: 16px; border-bottom: 1px solid rgba(43,27,22,.25); }
+  .nota { position: absolute; left: 30px; right: 30px; font-size: 15px; font-weight: 500; line-height: 1.35; }
+  .nota small { display: block; font-size: 12px; letter-spacing: .2em; text-transform: uppercase; color: var(--suave); font-weight: 500; margin-bottom: 4px; }
+  .numeros { position: absolute; left: 30px; right: 30px; bottom: 44px; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid rgba(43,27,22,.25); padding-top: 18px; }
+  .numeros b { display: block; font-size: 56px; font-weight: 300; line-height: 1; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+  .numeros span { font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--suave); }
+  .faixa { position: absolute; left: 0; top: 68px; width: 5px; height: 190px; background: var(--expresso); z-index: 4; }
+</style>
+</head>
+<body>
+<div class="folha">
+  <header class="aba">
+    <span class="marca">AMO</span>
+    <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+    <span class="cta">Ver cardápio</span>
+  </header>
+  <div class="lombada"><span>Zero açúcar · Bolos no pote · Sabores saudáveis</span></div>
+  <section class="frente">
+    <h1>Para quem ama</h1>
+    <div class="estampa">comer bem.</div>
+    <p class="lead">Receitas em versão saudável. Cada uma diz no rótulo o que tem e o que não tem.</p>
+    <div class="acoes"><span class="botao">Ver o cardápio</span><span class="elo">Escolher pela vontade</span></div>
+  </section>
+  <div class="janela">
+    <img src="http://localhost:3000/produtos/prestigio.webp" alt="">
+    <i class="fio" style="top: 318px; width: 96px"></i>
+    <i class="fio" style="top: 506px; width: 132px"></i>
+    <i class="fio" style="top: 668px; width: 70px"></i>
+  </div>
+  <aside class="verso">
+    <h2>No rótulo</h2>
+    <p class="nota" style="top: 290px"><small>Processo</small>Cozido a vapor</p>
+    <p class="nota" style="top: 478px"><small>Doçura</small>Adoçado com eritritol e stevia</p>
+    <p class="nota" style="top: 640px"><small>Embalagem</small>Pote de vidro reutilizável</p>
+    <div class="numeros">
+      <div><b>7</b><span>sabores</span></div>
+      <div><b>6</b><span>selos</span></div>
+      <div><b>0</b><span>açúcar</span></div>
+    </div>
+  </aside>
+  <i class="faixa"></i>
+</div>
+</body>
+</html>

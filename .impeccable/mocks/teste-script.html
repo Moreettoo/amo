@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AMO: teste de script</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Mrs+Saint+Delafield&family=Ms+Madi&family=Pinyon+Script&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --caramelo:#E2BF96; --creme:#FAF2E9; --papel:#FFFBF5; --suave:#5E4A40; --fio:rgb(43 27 22 / .18); }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); padding: 40px clamp(20px, 5vw, 64px) 80px; }
+  header { max-width: 1180px; margin: 0 auto 36px; }
+  header h1 { font-weight: 300; font-size: clamp(26px, 3vw, 38px); letter-spacing: -.02em; }
+  header p { max-width: 68ch; margin-top: 10px; font-size: 16px; line-height: 1.6; color: var(--suave); }
+  .opcao { max-width: 1180px; margin: 0 auto; padding: 36px 0 44px; border-top: 1px solid var(--fio); display: grid; gap: 28px 56px; grid-template-columns: 1fr; }
+  @media (min-width: 900px) { .opcao { grid-template-columns: 1.15fr .85fr; } }
+  .nome { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+  .nome b { font-weight: 500; font-size: 18px; }
+  .nome span { font-size: 14px; color: var(--suave); }
+  .hero .linha { font-weight: 300; font-size: clamp(30px, 4vw, 52px); letter-spacing: -.03em; line-height: 1.1; }
+  .s { font-weight: 400; line-height: 1.1; color: var(--cobre-texto); white-space: nowrap; }
+  .hero .s { font-size: clamp(70px, 11vw, 150px); margin-left: -.03em; }
+  .lado { display: grid; gap: 22px; align-content: start; }
+  .bloco { padding: 20px 24px 22px; border-radius: 3px; }
+  .bloco small { display: block; font-size: 15px; font-weight: 300; margin-bottom: 2px; }
+  .hoje { background: var(--caramelo); }
+  .hoje .s { color: var(--expresso); font-size: clamp(48px, 6vw, 78px); }
+  .rotulo { background: var(--expresso); color: var(--creme); }
+  .rotulo .s { color: var(--cobre); font-size: clamp(44px, 5vw, 66px); }
+  .cartao { background: var(--papel); border: 1px solid rgb(201 120 74 / .55); text-align: center; }
+  .cartao .s { font-size: clamp(26px, 3vw, 36px); white-space: normal; }
+  .pinyon .s { font-family: "Pinyon Script", cursive; }
+  .madi .s { font-family: "Ms Madi", cursive; }
+  .allura .s { font-family: "Allura", cursive; }
+  .delafield .s { font-family: "Mrs Saint Delafield", cursive; font-size-adjust: none; }
+  .delafield .hero .s { font-size: clamp(90px, 14vw, 190px); }
+  .delafield .hoje .s { font-size: clamp(62px, 8vw, 100px); }
+  .delafield .rotulo .s { font-size: clamp(58px, 6.6vw, 86px); }
+  .delafield .cartao .s { font-size: clamp(34px, 4vw, 48px); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Qual script fica na AMO?</h1>
+  <p>As mesmas frases do site em quatro fontes script gratuitas. A primeira é a que está no ar agora. As outras três são de assinatura, mais próximas de Madina e Ananda. Me diga o nome da que preferir e eu troco no site inteiro.</p>
+</header>
+
+<section class="opcao pinyon">
+  <div class="nome"><b>1. Pinyon Script (a atual)</b><span>Caligrafia formal de pena, a mais próxima do "m" do logo. Lembra convite.</span></div>
+  <div class="hero"><p class="linha">Para quem ama</p><p class="s">comer bem.</p></div>
+  <div class="lado">
+    <div class="bloco hoje"><small>Hoje o dia pede</small><p class="s">chocolate.</p><p class="s">um clássico.</p></div>
+    <div class="bloco rotulo"><small>O que é saudável aqui está</small><p class="s">no rótulo.</p></div>
+    <div class="bloco cartao"><p class="s">Um abraço em forma de sobremesa</p></div>
+  </div>
+</section>
+
+<section class="opcao madi">
+  <div class="nome"><b>2. Ms Madi</b><span>Assinatura a pincel, solta e atual. A mais próxima de Ananda.</span></div>
+  <div class="hero"><p class="linha">Para quem ama</p><p class="s">comer bem.</p></div>
+  <div class="lado">
+    <div class="bloco hoje"><small>Hoje o dia pede</small><p class="s">chocolate.</p><p class="s">um clássico.</p></div>
+    <div class="bloco rotulo"><small>O que é saudável aqui está</small><p class="s">no rótulo.</p></div>
+    <div class="bloco cartao"><p class="s">Um abraço em forma de sobremesa</p></div>
+  </div>
+</section>
+
+<section class="opcao allura">
+  <div class="nome"><b>3. Allura</b><span>Script limpa e legível, meio-termo entre o formal e a assinatura.</span></div>
+  <div class="hero"><p class="linha">Para quem ama</p><p class="s">comer bem.</p></div>
+  <div class="lado">
+    <div class="bloco hoje"><small>Hoje o dia pede</small><p class="s">chocolate.</p><p class="s">um clássico.</p></div>
+    <div class="bloco rotulo"><small>O que é saudável aqui está</small><p class="s">no rótulo.</p></div>
+    <div class="bloco cartao"><p class="s">Um abraço em forma de sobremesa</p></div>
+  </div>
+</section>
+
+<section class="opcao delafield">
+  <div class="nome"><b>4. Mrs Saint Delafield</b><span>Assinatura de traço fino e alto, a mais delicada. A mais próxima de Madina.</span></div>
+  <div class="hero"><p class="linha">Para quem ama</p><p class="s">comer bem.</p></div>
+  <div class="lado">
+    <div class="bloco hoje"><small>Hoje o dia pede</small><p class="s">chocolate.</p><p class="s">um clássico.</p></div>
+    <div class="bloco rotulo"><small>O que é saudável aqui está</small><p class="s">no rótulo.</p></div>
+    <div class="bloco cartao"><p class="s">Um abraço em forma de sobremesa</p></div>
+  </div>
+</section>
+</body>
+</html>

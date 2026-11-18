@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { Coracao } from '@/components/icons/Coracao'
 import { IconeSelo } from '@/components/icons/selos'
 import { ComAmo } from '@/components/ui/ComAmo'
 import type { Linha } from '@/lib/catalogo'
@@ -47,7 +48,7 @@ export function PapelRotulo({ linha, nomesDosSelos, giro, largo = false }: Props
       </div>
       {linha.frase ? (
         <p className="papel-rotulo__faixa">
-          <ComAmo texto={linha.frase} /> <span aria-hidden="true">♥</span>
+          <ComAmo texto={linha.frase} /> <Coracao className="papel-rotulo__coracao" />
         </p>
       ) : null}
     </article>

@@ -42,7 +42,9 @@ describe('Hoje o dia pede', () => {
     expect(within(painel).getByText('Chocolate.')).toHaveClass('sr-only')
     expect(within(painel).getByText(/Prestígio e Chocolate\./).textContent).toBe('2 opções: Prestígio e Chocolate.')
     expect(within(painel).getByRole('link', { name: 'Ver as 2 no cardápio' })).toHaveAttribute('href', '/catalogo?vontade=chocolate')
-    expect(screen.getByAltText(visao.vontades[0].produtos[0].imagem.alt)).toBeInTheDocument()
+    // a foto grande e a capa da vontade: o Prestigio ja e a foto do hero
+    expect(visao.vontades[0].capa.slug).toBe('chocolate')
+    expect(screen.getByAltText(visao.vontades[0].capa.imagem.alt)).toBeInTheDocument()
     expect(container.querySelector('.hoje__lado .etiqueta')).toHaveAttribute('aria-hidden', 'true')
     const minis = container.querySelectorAll('.hoje__pilha img')
     expect(minis).toHaveLength(1)
@@ -90,7 +92,7 @@ describe('Hoje o dia pede', () => {
 
   it('com um produto só: "1 opção" e "Ver no cardápio"', () => {
     const beijinho = catalogo.produtos.find((p) => p.slug === 'beijinho')!
-    montar([{ slug: 'coco', palavra: 'Coco', produtos: [beijinho] }])
+    montar([{ slug: 'coco', palavra: 'Coco', produtos: [beijinho], capa: beijinho }])
     const painel = screen.getByRole('tabpanel')
     expect(within(painel).getByText(/Beijinho\./).textContent).toBe('1 opção: Beijinho.')
     expect(within(painel).getByRole('link', { name: 'Ver no cardápio' })).toBeInTheDocument()
