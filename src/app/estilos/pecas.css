@@ -93,6 +93,16 @@
 
   /* foto: retangulo de canto 4 px com um fio cobre deslocado atras. Nao
      clica, e por isso nao reage ao mouse. O nome da classe ficou da v2. */
+  /* O fio que liga as secoes da home (src/components/layout/Fio.tsx). Fica
+     por cima do fundo das secoes e por baixo das fotos e dos cartoes, que
+     sao posicionados e vem depois dele. No painel preso ele vai atras de
+     tudo (z-index -1; o painel isola). */
+  .fio { position: absolute; top: 0; left: 0; overflow: hidden; pointer-events: none; }
+  .fio path { fill: none; stroke: var(--color-cobre); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .fio--janela { z-index: -1; }
+  /* cobre sobre caramelo some; ali o traco vai em cobre-texto */
+  .fio--janela path { stroke: var(--color-cobre-texto); }
+
   .arco-foto { position: relative; isolation: isolate; border-radius: 4px; background: var(--color-linho); }
   .arco-foto > div { border-radius: 4px; }
   .arco-foto::before {

@@ -10,7 +10,7 @@ export function AMarca({ foto }: { foto: ImagemProduto }) {
   return (
     <section id="marca" aria-labelledby="titulo-marca" className="marca grao scroll-mt-24">
       <div className="wrap marca__grade">
-        <div className="arco-foto marca__foto">
+        <div className="arco-foto marca__foto" data-fio="atras">
           <FotoParallax
             imagem={foto}
             sizes="(max-width: 820px) 90vw, 400px"
@@ -20,7 +20,7 @@ export function AMarca({ foto }: { foto: ImagemProduto }) {
         </div>
         <div>
           <h2 id="titulo-marca" className="titulo-secao">
-            Comer bem não devia cobrar <em>nada depois</em>
+            Comer bem não devia cobrar <em data-fio="sub">nada depois</em>
           </h2>
           <p className="texto">
             <span translate="no">AMO</span> nasceu de uma ideia simples: o que é gostoso não precisa pesar

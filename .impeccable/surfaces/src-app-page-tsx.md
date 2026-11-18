@@ -33,6 +33,7 @@ DECISÕES DEPOIS DO CONTRATO (2026-11-18):
 - Primeira tela: as duas fotos laterais ficaram no lugar da lista de sabores porque o pedido era uma proposta "semelhante com o atual", e o palco atual tinha três fotos.
 - Faixa cobre: saiu da home; a assinatura "AMO por você. Por seu AMO." mora na seção final, numa voz só (o cliente rejeitou a mistura de caixa alta com script nessa linha).
 - Revisão de acabamento: os selos saíram de cima das fotos e foram para o texto do card; na seção da vontade a legenda e as miniaturas ficam embaixo da foto, sem sobrepor; na gaveta o nome vem antes da regra.
-- Em aberto com o cliente: um nome só para o destino (hoje catálogo, cardápio e receitas), a voz da seção final e a ligação entre as seções (`.impeccable/mocks/conexoes.html`, quatro ideias; nenhuma escolhida ainda).
+- Ligação entre as seções: entre as quatro ideias de `.impeccable/mocks/conexoes.html` o cliente escolheu o Fio e a Costura. No celular o primeiro trajeto do fio (reto pela beirada, com curva fechada) foi rejeitado por ele; ficou o que sai e volta pelas laterais da tela em curvas abertas. A costura entre a vitrine e "Hoje o dia pede" não existe porque o painel preso recorta o que passa dele.
+- Em aberto com o cliente: um nome só para o destino (hoje catálogo, cardápio e receitas) e a voz da seção final.
 
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance

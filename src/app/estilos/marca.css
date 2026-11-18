@@ -21,7 +21,16 @@
   }
   .final__linhas { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
   .final__botao { margin-top: 34px; }
-  .final__foto { width: calc(100% - 12px); aspect-ratio: 5 / 4; }
+  .final__foto { width: calc(100% - 12px); aspect-ratio: 5 / 4; --desliza: 0px; }
+  .final__frase { display: inline-block; }
+  /* A costura: em colunas, a foto do fecho sobe para dentro da secao da
+     marca. O que ela invade e o respiro de baixo de la, do lado do texto. */
+  @media (min-width: 821px) {
+    .final__foto {
+      z-index: 1; --desliza: 30px;
+      margin-top: calc(-1 * (clamp(72px, 8vw, 112px) + var(--costura)));
+    }
+  }
 
   /* A assinatura da marca numa voz so. A home a leva dentro do fecho; no
      catalogo ela fecha o bloco expresso do fim (.catalogo__fecho). Sem os

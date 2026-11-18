@@ -4,7 +4,9 @@
    em script da secao: ela se reescreve a cada troca. */
 @layer components {
   .hoje { overflow-x: clip; background: var(--color-caramelo); }
-  .hoje__painel { padding: 96px 0 88px; }
+  /* relative + isolate: o trecho do fio (svg.fio--janela) mora aqui dentro,
+     atras do conteudo, com ou sem pino */
+  .hoje__painel { position: relative; isolation: isolate; padding: 96px 0 88px; }
   .hoje__grade { display: grid; gap: 28px; align-items: center; width: 100%; }
   /* minmax(0, ...): sem ele a coluna crescia com a palavra (nowrap) e
      empurrava a foto para fora entre 821 e ~960px. A palavra mede a propria

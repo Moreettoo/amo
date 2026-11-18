@@ -121,7 +121,8 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
   return (
     <section id="hoje" aria-labelledby="titulo-hoje" className="hoje scroll-mt-24">
       <div ref={trilhoRef} className="hoje__trilho" style={{ '--n': n } as CSSProperties}>
-        <div className="hoje__painel">
+        <div className="hoje__painel" data-fio-janela>
+          <svg className="fio fio--janela" aria-hidden="true" focusable="false" />
           <div className="wrap hoje__grade">
             <div className="hoje__texto">
               <h2 id="titulo-hoje">Hoje o dia pede</h2>
@@ -183,7 +184,7 @@ export function HojeODiaPede({ vontades, tipos }: Props) {
                   </div>
                 ))}
               </div>
-              <div className="hoje__moldura">
+              <div className="hoje__moldura" data-fio="atras">
                 <PoteEnche key={principal.slug}>
                   <Image
                     src={principal.imagem.src}

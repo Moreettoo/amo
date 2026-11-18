@@ -13,6 +13,23 @@
   .mesa { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px; align-items: start; margin-top: 52px; }
   .mesa--unica { grid-template-columns: minmax(0, 820px); }
 
+  /* A costura: com uma linha so, o cartao do rotulo nao cabe na secao e
+     fica pendurado sobre a seguinte, para a emenda nao ser um corte reto.
+     A secao perde o respiro de baixo e a proxima ganha o que o cartao
+     invade. */
+  .rotulos, .marca, .final { --costura: clamp(56px, 6.5vw, 96px); }
+  /* flow-root: sem ele a margem negativa do cartao vazava da secao e era a
+     secao seguinte que subia, em vez de o cartao descer */
+  .rotulos:has(.mesa--unica) { display: flow-root; padding-bottom: 0; }
+  .mesa--unica { position: relative; z-index: 1; margin-bottom: calc(-1 * var(--costura)); }
+  .rotulos:has(.mesa--unica) + .marca { padding-top: calc(clamp(72px, 8vw, 112px) + var(--costura)); }
+  /* sobre o creme a sombra do cartao fica mais leve */
+  .mesa--unica .papel-rotulo { box-shadow: 0 26px 50px -30px rgb(43 27 22 / .5); }
+  @media (min-width: 1024px) {
+    /* o titulo se centra na parte escura, e nao no cartao inteiro */
+    .rotulos .wrap:has(.mesa--unica) .titulo-secao { padding-bottom: var(--costura); }
+  }
+
   .papel-rotulo {
     position: relative; padding: 40px 40px 0; border-radius: 2px;
     background: var(--color-papel); color: var(--color-expresso);

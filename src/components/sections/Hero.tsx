@@ -30,7 +30,7 @@ export function Hero({ palco, destaque, regra }: Props) {
             <span className="hero__linha">
               <span>Para quem ama</span>
             </span>{' '}
-            <em>comer bem.</em>
+            <em data-fio="inicio">comer bem.</em>
           </h1>
           <div className="hero__regra">
             <SeloCarimbo texto={regra} />
@@ -57,7 +57,7 @@ export function Hero({ palco, destaque, regra }: Props) {
                 key={p.slug}
                 className={`palco__item palco__item--${meio ? 'meio' : 'lado'} palco__item--${classeDoFormato(p.formato)}`}
               >
-                <div className="arco-foto">
+                <div className="arco-foto" data-fio={meio ? 'atras' : undefined}>
                   {meio ? (
                     <FotoParallax
                       imagem={p.imagem}

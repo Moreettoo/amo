@@ -6,6 +6,10 @@
   /* o link para o catalogo, com a seta e o alvo de 44 px; a area extra e um
      ::before, para o traco a mao nao descer junto */
   .vitrine__ver { font-size: 15px; font-weight: 500; }
+  /* Numa coluna so o fio da home passa sob o script do titulo, de ponta a
+     ponta, e riscaria este link. O botao do pe da vitrine leva ao mesmo
+     lugar. */
+  @media (max-width: 899px) { .vitrine__ver { display: none; } }
   .vitrine__ver::before { content: ""; position: absolute; inset: -12px -4px; }
   /* inline-block: o preflight do Tailwind poe todo svg em block */
   .vitrine__seta {

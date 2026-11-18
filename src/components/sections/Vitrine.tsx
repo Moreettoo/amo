@@ -25,7 +25,7 @@ export function Vitrine({ produtos, linhas, total, tipos, nomesDosSelos }: Props
         <div className="vitrine__topo">
           <div>
             <h2 id="titulo-cardapio" className="titulo-secao">
-              Escolha <em>pelo sabor</em>
+              Escolha <em data-fio="sub">pelo sabor</em>
             </h2>
           </div>
           <LinkSublinhado href={CAMINHO_CATALOGO} traco={2} className="vitrine__ver">

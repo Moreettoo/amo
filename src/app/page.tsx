@@ -1,3 +1,4 @@
+import { Fio } from '@/components/layout/Fio'
 import { Footer } from '@/components/layout/Footer'
 import { Nav } from '@/components/layout/Nav'
 import { AMarca } from '@/components/sections/AMarca'
@@ -20,7 +21,8 @@ export default async function Home() {
   return (
     <>
       <Nav gaveta={montarGaveta(catalogo)} />
-      <main id="conteudo" className="scroll-mt-24">
+      <main id="conteudo" className="relative scroll-mt-24">
+        <Fio />
         <Hero palco={visao.palco} destaque={visao.destaque} regra={visao.regraDoDestaque} />
         <Vitrine
           produtos={visao.vitrine}

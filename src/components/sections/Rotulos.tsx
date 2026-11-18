@@ -23,9 +23,9 @@ export function Rotulos({ linhas, nomesDosSelos }: Props) {
     <section id="rotulos" aria-labelledby="titulo-rotulos" className="rotulos superficie-escura scroll-mt-24">
       <div className="wrap">
         <h2 id="titulo-rotulos" className="titulo-secao">
-          {unica ? 'O que é saudável aqui está' : 'Cada linha tem a sua regra. Todas estão'} <em>no rótulo.</em>
+          {unica ? 'O que é saudável aqui está' : 'Cada linha tem a sua regra. Todas estão'} <em data-fio="sub">no rótulo.</em>
         </h2>
-        <div ref={ref} className={`mesa${unica ? ' mesa--unica' : ''}${visto ? ' play' : ''}`}>
+        <div ref={ref} data-fio="atras" className={`mesa${unica ? ' mesa--unica' : ''}${visto ? ' play' : ''}`}>
           {linhas.map((linha, i) => (
             <div key={linha.slug} className="mesa__item">
               <PapelRotulo
