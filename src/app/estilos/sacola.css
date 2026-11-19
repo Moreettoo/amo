@@ -1,0 +1,205 @@
+/* A sacola: o botao da nav, a gaveta da direita e a pagina /sacola, "o fio
+   das etapas". Mesmas pecas da casa: fio de 1 px que segura, canto de 2 px,
+   Poppins leve, script so na frase do titulo, coracao cobre que aponta. */
+@layer components {
+  /* o botao da nav: a sacola de traco fino e a contagem num quadradinho */
+  .botao-sacola {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: none;
+    height: 44px; min-width: 44px; padding: 0 2px;
+    border: 0; border-radius: 2px; background: transparent; color: var(--color-expresso);
+    font: 400 15px/1 var(--font-sans); cursor: pointer; transition: color .25s ease;
+  }
+  .botao-sacola svg {
+    width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; stroke-linecap: round;
+  }
+  .botao-sacola__conta {
+    display: grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 2px;
+    background: var(--color-expresso); color: var(--color-creme);
+    font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums;
+  }
+  .botao-sacola:focus-visible { color: var(--color-cobre-texto); }
+
+  /* o contador baixo e o "Tirar" */
+  .quantidade--compacta .quantidade__botao { position: relative; width: 36px; height: 36px; }
+  /* o desenho fica em 36, o alvo do toque vai a 44 */
+  .quantidade--compacta .quantidade__botao::before { content: ""; position: absolute; inset: -4px; }
+  .quantidade--compacta .quantidade__valor { min-width: 22px; font-size: 15px; }
+  .sacola__tirar {
+    position: relative; padding: 0; border: 0; background: none; color: var(--color-suave);
+    font: 400 13px var(--font-sans); cursor: pointer;
+    text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; text-decoration-color: var(--fio);
+    transition: color .2s ease, text-decoration-color .2s ease;
+  }
+  .sacola__tirar::before { content: ""; position: absolute; inset-inline: -8px; top: 50%; height: 44px; margin-top: -22px; }
+  .sacola__tirar:focus-visible { color: var(--color-expresso); text-decoration-color: var(--color-cobre); }
+
+  /* a gaveta da sacola */
+  .sacola-gaveta__itens { margin: 0; padding: 0; list-style: none; }
+  .sacola-gaveta__item { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 14px; align-items: center; padding: 12px 0; }
+  .sacola-gaveta__item img { width: 56px; height: 70px; object-fit: cover; border-radius: 3px; background: var(--color-linho); }
+  .sacola-gaveta__nome { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0; font-size: 16px; }
+  .sacola-gaveta__nome a { color: inherit; text-decoration: none; transition: color .25s ease; }
+  .sacola-gaveta__nome a:focus-visible { color: var(--color-cobre-texto); }
+  .sacola-gaveta__nome b { flex: none; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .sacola-gaveta__acoes { display: flex; align-items: center; gap: 16px; margin-top: 8px; }
+  .sacola-gaveta__pe { margin-top: auto; padding-top: 18px; }
+  .sacola-gaveta__subtotal {
+    display: flex; justify-content: space-between; align-items: baseline; margin: 0; padding-top: 16px;
+    border-top: 1px solid var(--fio); font-size: 15px; font-weight: 500;
+  }
+  .sacola-gaveta__subtotal b { font-size: 26px; font-weight: 300; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .sacola-gaveta__nota { margin: 4px 0 18px; font-size: 13px; color: var(--color-suave); }
+  .sacola-gaveta__fechar-pedido { width: 100%; padding-inline: 12px; }
+  .sacola-gaveta__continuar {
+    display: block; width: 100%; min-height: 44px; margin-top: 6px; border: 0; background: none; cursor: pointer;
+    color: var(--color-expresso); font: 400 15px var(--font-sans); transition: color .25s ease;
+  }
+  .sacola-gaveta__continuar:focus-visible { color: var(--color-cobre-texto); }
+  .sacola-gaveta__vazia p { margin: 14px 0 22px; font-size: 15px; line-height: 1.6; color: var(--color-suave); }
+
+  /* a pagina */
+  .sacola-pagina { padding: calc(64px + clamp(28px, 4vw, 48px)) 0 clamp(72px, 8vw, 112px); }
+  .sacola-pagina__titulo { margin: 0; font-size: clamp(32px, 4.4vw, 52px); line-height: 1.1; letter-spacing: -.03em; }
+  .sacola-pagina__titulo em {
+    display: block; width: max-content; max-width: 100%; font-family: var(--font-script); font-style: normal;
+    font-size: 1.5em; line-height: 1.05; letter-spacing: 0; color: var(--color-cobre-texto);
+  }
+  .fechamento__vazia { max-width: 46ch; margin-top: 28px; }
+  .fechamento__vazia p { margin: 0 0 22px; font-size: 17px; line-height: 1.65; color: var(--color-suave); }
+  .fechamento--lendo { min-height: 60vh; }
+
+  .fechamento {
+    display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: clamp(48px, 7vw, 80px); align-items: start;
+    margin-top: clamp(26px, 3vw, 36px);
+  }
+
+  /* o fio: 1 px pela margem, segurando as etapas; o coracao pousa na atual */
+  .etapas { position: relative; margin: 0; padding: 0 0 0 40px; list-style: none; }
+  .etapas::before { content: ""; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 1px; background: var(--fio); }
+  .etapas__coracao {
+    position: absolute; top: 0; left: 0; width: 13px; height: 13px; margin-top: -6.5px;
+    background: var(--color-cobre); mask: var(--coracao) center / contain no-repeat;
+    transform: translateY(var(--y)); transition: transform .5s var(--ease-amo);
+  }
+  .etapa { padding-bottom: 26px; }
+  .etapa__topo { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+  .etapa__nome { margin: 0; font-size: 18px; font-weight: 400; letter-spacing: -.01em; color: var(--color-suave); }
+  /* o foco so chega aqui pelo script, para o leitor de tela seguir a etapa;
+     o titulo nao e controle, entao nao ganha anel */
+  .etapa__nome:focus-visible { outline: none; }
+  .etapa--atual .etapa__nome, .etapa--pronta .etapa__nome { color: var(--color-expresso); }
+  .etapa--atual .etapa__nome { font-size: 22px; }
+  .etapa__alterar {
+    position: relative; flex: none; padding: 0; border: 0; background: none; cursor: pointer;
+    color: var(--color-suave); font: 400 14px var(--font-sans);
+    text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; text-decoration-color: var(--fio);
+    transition: color .2s ease, text-decoration-color .2s ease;
+  }
+  .etapa__alterar::before { content: ""; position: absolute; inset-inline: -8px; top: 50%; height: 44px; margin-top: -22px; }
+  .etapa__alterar:focus-visible { color: var(--color-expresso); text-decoration-color: var(--color-cobre); }
+  .etapa__resumo, .etapa__dica { margin: 4px 0 0; font-size: 14px; line-height: 1.55; color: var(--color-suave); }
+  .etapa__resumo { color: var(--color-expresso); font-variant-numeric: tabular-nums; }
+  .etapa__aviso { margin: 14px 0 0; font-size: 13px; color: var(--color-suave); }
+
+  /* os potes */
+  .potes { margin: 8px 0 0; padding: 0; list-style: none; }
+  .pote {
+    display: grid; grid-template-columns: 64px minmax(0, 1fr) auto 92px; gap: 20px; align-items: center; padding: 14px 0;
+  }
+  .pote + .pote { border-top: 1px solid var(--fio); }
+  .pote img { width: 64px; height: 80px; object-fit: cover; border-radius: 3px; background: var(--color-linho); }
+  .pote__nome { display: grid; gap: 2px; margin: 0; font-size: 16px; }
+  .pote__nome a { color: inherit; text-decoration: none; transition: color .25s ease; }
+  .pote__nome a:focus-visible { color: var(--color-cobre-texto); }
+  .pote__nome small { font-size: 13px; color: var(--color-suave); }
+  .pote__unidade { white-space: nowrap; }
+  .pote__acoes { display: flex; align-items: center; gap: 16px; }
+  .pote__preco { font-size: 16px; font-weight: 400; text-align: right; font-variant-numeric: tabular-nums; }
+
+  /* os campos: o rotulo visivel em cima, o contorno fino da casa */
+  .campos { display: flex; flex-wrap: wrap; gap: 14px 10px; margin-top: 14px; }
+  .campos .campo { display: grid; align-content: start; gap: 6px; font-size: 13px; color: var(--color-suave); }
+  .campos .campo--cep { width: 160px; }
+  .campos .campo--numero { width: 110px; }
+  .campos .campo--meio { flex: 1 1 220px; }
+  .campos .campo--largo { flex: 1 1 100%; }
+  .campos .campo input[aria-invalid="true"] { border-color: var(--color-cobre-texto); }
+  .campo__erro, .campos__erro { font-size: 13px; line-height: 1.5; color: var(--color-cobre-texto); }
+  .campos__erro { flex-basis: 100%; min-height: 1.5em; margin: 0; font-size: 14px; }
+
+  /* o pagamento: duas opcoes de contorno fino; a escolhida firma o contorno */
+  .pagamento { display: grid; gap: 10px; margin: 14px 0 0; padding: 0; border: 0; }
+  .pagamento__opcao {
+    position: relative; display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 12px 16px;
+    border: 1px solid rgb(43 27 22 / .38); border-radius: 2px; cursor: pointer; font-size: 16px;
+    transition: border-color .2s ease;
+  }
+  .pagamento__opcao input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--color-expresso); cursor: pointer; }
+  .pagamento__opcao:has(input:checked) { border-color: var(--color-expresso); box-shadow: inset 0 0 0 1px var(--color-expresso); }
+
+  /* o resumo: preso ao lado enquanto as etapas rolam */
+  .resumo { position: sticky; top: 96px; }
+  .resumo__rotulo {
+    margin: 0; font-family: var(--font-sans); font-size: 12px; font-weight: 600; letter-spacing: .24em;
+    text-transform: uppercase; color: var(--color-cobre-texto);
+  }
+  .resumo__contas, .feito__contas { margin: 10px 0 0; }
+  .resumo__contas div, .feito__contas div {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 8px 0; font-size: 15px;
+  }
+  .resumo__contas dd, .feito__contas dd { margin: 0; font-variant-numeric: tabular-nums; }
+  .resumo__falta { font-size: 14px; color: var(--color-suave); }
+  .resumo__total { margin-top: 8px; padding-top: 16px !important; border-top: 1px solid var(--fio); }
+  .resumo__total dt { font-weight: 500; }
+  .resumo__total dd { font-size: 34px; font-weight: 300; letter-spacing: -.02em; }
+  .resumo__botao { width: 100%; margin-top: 18px; padding-inline: 16px; }
+  .resumo__botao[disabled] { cursor: progress; opacity: .75; }
+  .resumo__voltar {
+    display: flex; justify-content: center; align-items: center; min-height: 44px; margin-top: 6px;
+    color: var(--color-expresso); font-size: 14px; text-decoration: none; transition: color .25s ease;
+  }
+  .resumo__voltar:focus-visible { color: var(--color-cobre-texto); }
+  .resumo__nota { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: var(--color-suave); }
+
+  /* o pedido feito */
+  .feito { max-width: 620px; }
+  .sacola-pagina__titulo:focus { outline: none; }
+  .feito__pix { margin: 10px 0 0; font-size: 14px; color: var(--color-suave); }
+  .feito__texto { margin: 14px 0 0; max-width: 52ch; font-size: 16px; line-height: 1.65; color: var(--color-suave); }
+  .feito__contas { margin-top: 22px; padding-top: 8px; border-top: 1px solid var(--fio); }
+  .feito .btn-retro { margin-top: 26px; }
+
+  @media (hover: hover) {
+    .botao-sacola:hover { color: var(--color-cobre-texto); }
+    .sacola__tirar:hover, .etapa__alterar:hover { color: var(--color-expresso); text-decoration-color: var(--color-cobre); }
+    .sacola-gaveta__nome a:hover, .pote__nome a:hover { color: var(--color-cobre-texto); }
+    .sacola-gaveta__continuar:hover, .resumo__voltar:hover { color: var(--color-cobre-texto); }
+    .pagamento__opcao:hover { border-color: var(--color-expresso); }
+  }
+
+  @media (max-width: 820px) {
+    .botao-sacola { width: 44px; padding: 0; }
+    .botao-sacola__conta { position: absolute; margin: -18px -22px 0 0; min-width: 18px; height: 18px; font-size: 11px; }
+    .botao-sacola { position: relative; }
+    .fechamento { grid-template-columns: minmax(0, 1fr); gap: 8px; }
+    .etapas { padding-left: 30px; }
+    .etapas::before { left: 6px; }
+    .pote { grid-template-columns: 56px minmax(0, 1fr) auto; grid-template-areas: "foto nome preco" "foto acoes acoes"; gap: 6px 14px; }
+    .pote img { grid-area: foto; width: 56px; height: 70px; }
+    .pote__nome { grid-area: nome; }
+    .pote__acoes { grid-area: acoes; }
+    .pote__preco { grid-area: preco; align-self: start; width: auto; }
+    /* no celular o resumo vira a barra presa embaixo: o total e o botao */
+    .resumo {
+      top: auto; bottom: 0; z-index: 30; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 16px;
+      margin-inline: calc(-1 * var(--gutter)); padding: 10px var(--gutter) calc(10px + env(safe-area-inset-bottom));
+      border-top: 1px solid var(--fio); background: var(--color-creme); box-shadow: 0 -12px 30px -22px rgb(43 27 22 / .5);
+    }
+    .resumo__rotulo, .resumo__contas div:not(.resumo__total), .resumo__voltar, .resumo__nota { display: none; }
+    .resumo__contas { margin: 0; }
+    .resumo__total { margin: 0; padding: 0 !important; border: 0; display: grid !important; gap: 0 !important; }
+    .resumo__total dt { font-size: 12px; color: var(--color-suave); font-weight: 400; }
+    .resumo__total dd { font-size: 22px; }
+    .resumo__botao { width: auto; max-width: 62vw; margin: 0; min-height: 48px; white-space: normal; text-align: center; font-size: 14px; }
+  }
+}

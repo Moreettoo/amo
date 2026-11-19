@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>A etiqueta pendurada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --papel:#FFFBF5; --linho:#F6EBDD; --suave:#5E4A40; --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1440px; height: 1600px; overflow: hidden; position: relative; font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); }
+  ul { list-style: none; }
+  .wrap { width: 1128px; margin: 0 auto; }
+  header { height: 64px; border-bottom: 1px solid var(--fio); position: relative; z-index: 2; background: var(--creme); }
+  header .wrap { height: 100%; display: flex; align-items: center; gap: 32px; font-size: 15px; }
+  header img { height: 36px; margin-right: auto; }
+  .menu { display: flex; align-items: center; gap: 10px; }
+  .menu i { width: 16px; height: 9px; border-top: 1.4px solid; border-bottom: 1.4px solid; }
+  .sacola { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border: 1px solid var(--contorno); border-radius: 2px; font-size: 14px; }
+  svg.estrela { width: 15px; height: 15px; fill: var(--cobre); }
+
+  .palco { position: relative; height: 836px; }
+  .foto { position: absolute; left: 0; top: 0; width: 700px; height: 836px; object-fit: cover; background: var(--linho); display: block; }
+  .texto { position: absolute; left: 790px; top: 40px; width: 538px; }
+  .trilha { font-size: 14px; color: var(--suave); }
+  .trilha b { color: var(--expresso); font-weight: 500; }
+  .tipo { font-size: 13px; font-weight: 500; color: var(--cobre-texto); margin-top: 34px; }
+  h1 { font-weight: 300; font-size: 58px; letter-spacing: -.03em; line-height: 1.05; margin-top: 2px; }
+  h1 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 40px; white-space: nowrap; letter-spacing: 0; line-height: 1.15; color: var(--cobre-texto); margin-top: 4px; }
+  .nota { display: flex; align-items: center; gap: 4px; margin-top: 14px; font-size: 14px; color: var(--suave); }
+  .nota span { margin-left: 8px; }
+  .desc { font-size: 16px; line-height: 1.65; color: var(--suave); margin-top: 14px; max-width: 46ch; }
+
+  .cartao { position: absolute; left: 560px; top: 420px; width: 420px; background: var(--papel); border-radius: 2px; padding: 30px 34px 30px; box-shadow: 0 30px 60px -30px rgb(43 27 22 / .45); }
+  .cartao::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgb(201 120 74 / .6); border-radius: 2px; pointer-events: none; }
+  .cartao .furo { position: absolute; left: 50%; top: -34px; width: 1px; height: 46px; background: var(--cobre); }
+  .regra { font-size: 12px; font-weight: 600; letter-spacing: .26em; text-transform: uppercase; display: flex; align-items: center; margin-top: 8px; }
+  .regra svg { width: 11px; height: 11px; fill: var(--cobre); margin-right: 10px; }
+  .preco { display: flex; align-items: baseline; gap: 10px; margin-top: 14px; }
+  .preco b { font-weight: 300; font-size: 44px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .preco small { font-size: 14px; color: var(--suave); }
+  .compra { display: flex; gap: 10px; margin-top: 16px; }
+  .qtd { display: inline-flex; align-items: center; border: 1px solid var(--contorno); border-radius: 2px; height: 50px; }
+  .qtd i { width: 38px; text-align: center; font-style: normal; font-size: 18px; font-weight: 300; }
+  .qtd b { width: 24px; text-align: center; font-weight: 500; }
+  .botao { flex: 1; height: 50px; background: var(--expresso); color: var(--creme); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 15px; letter-spacing: .02em; }
+  .entrega { margin-top: 20px; padding-top: 16px; border-top: 1px solid rgb(43 27 22 / .2); }
+  .entrega p { font-size: 14px; font-weight: 500; }
+  .cep { display: flex; gap: 8px; margin-top: 10px; }
+  .campo { height: 44px; border: 1px solid var(--contorno); border-radius: 2px; padding: 0 14px; display: flex; align-items: center; font-size: 15px; color: var(--suave); }
+  .campo.cep1 { flex: 1; }
+  .campo.calc { color: var(--expresso); font-weight: 500; font-size: 14px; }
+  .uber { font-size: 13px; color: var(--suave); margin-top: 10px; }
+
+  .selos { position: absolute; left: 1040px; top: 470px; width: 290px; font-size: 14px; }
+  .selos li { display: flex; align-items: center; gap: 12px; padding: 6px 0; }
+  .selos .ico { width: 18px; height: 18px; border: 1.4px solid var(--expresso); border-radius: 50%; flex: none; }
+  .selos .modo { margin-top: 18px; color: var(--suave); line-height: 1.8; }
+  .selos .modo b { display: block; color: var(--expresso); font-weight: 500; }
+
+  .coments { margin-top: 140px; }
+  .topo-c { display: flex; justify-content: space-between; align-items: flex-end; }
+  h2 { font-weight: 300; font-size: 40px; letter-spacing: -.02em; line-height: 1.2; }
+  h2 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 1.6em; line-height: 1; letter-spacing: 0; color: var(--cobre-texto); }
+  .media { display: flex; align-items: center; gap: 14px; font-size: 14px; color: var(--suave); }
+  .media b { font-weight: 300; font-size: 48px; color: var(--expresso); letter-spacing: -.03em; }
+  .escrever { height: 44px; padding: 0 20px; display: flex; align-items: center; border: 1px solid var(--expresso); border-radius: 2px; font-size: 14px; font-weight: 500; color: var(--expresso); margin-left: 18px; }
+  .cartinhas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; margin-top: 40px; }
+  .cartinha { position: relative; background: var(--papel); border-radius: 2px; padding: 28px 28px 26px; }
+  .cartinha::before { content: ""; position: absolute; inset: 6px; border: 1px solid rgb(201 120 74 / .35); border-radius: 2px; }
+  .cartinha p { font-size: 15px; line-height: 1.6; margin-top: 12px; }
+  .cartinha .quem { font-size: 13px; color: var(--suave); margin-top: 16px; }
+  .cartinha .quem b { color: var(--expresso); font-weight: 500; }
+  .aviso { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center; font-size: 12px; color: var(--suave); }
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute"><symbol id="e" viewBox="0 0 20 20"><path d="M10 1.8l2.5 5.3 5.7.7-4.2 3.9 1.1 5.7L10 14.6l-5.1 2.8 1.1-5.7-4.2-3.9 5.7-.7z"/></symbol><symbol id="c" viewBox="0 0 20 18"><path d="M10 17S1 11.4 1 5.6A4.6 4.6 0 0 1 10 3.7a4.6 4.6 0 0 1 9 1.9C19 11.4 10 17 10 17z"/></symbol></svg>
+  <header><div class="wrap">
+    <span class="menu"><i></i>Catálogo</span>
+    <img src="http://localhost:3000/marca/logo-amo.png" alt="AMO">
+    <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+    <span class="sacola">Sacola 0</span>
+  </div></header>
+
+  <div class="palco">
+    <img class="foto" src="http://localhost:3000/produtos/prestigio.webp" alt="">
+    <div class="texto">
+      <p class="trilha">Início &nbsp;›&nbsp; Catálogo &nbsp;›&nbsp; Doces &nbsp;›&nbsp; <b>Prestígio</b></p>
+      <p class="tipo">Bolo no pote</p>
+      <h1>Prestígio <em>um abraço em forma de sobremesa</em></h1>
+      <p class="nota"><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><span>4,8 · 23 comentários</span></p>
+      <p class="desc">Massa de chocolate úmida, cozida a vapor, com creme de coco e coco ralado por cima.</p>
+    </div>
+
+    <div class="cartao">
+      <span class="furo"></span>
+      <p class="regra"><svg><use href="#c"/></svg>Zero açúcar</p>
+      <div class="preco"><b>R$ 18,90</b><small>o pote</small></div>
+      <div class="compra"><span class="qtd"><i>−</i><b>1</b><i>+</i></span><span class="botao">Adicionar à sacola</span></div>
+      <div class="entrega">
+        <p>Entrega hoje pelo Uber</p>
+        <div class="cep"><span class="campo cep1">Seu CEP</span><span class="campo">Número</span><span class="campo calc">Calcular</span></div>
+        <p class="uber">R$ 12,40 · chega em até 45 min depois do pedido</p>
+      </div>
+    </div>
+
+    <ul class="selos">
+      <li><i class="ico"></i>Adoçado com eritritol e stevia</li>
+      <li><i class="ico"></i>Cozido a vapor</li>
+      <li><i class="ico"></i>Fonte de fibras</li>
+      <li><i class="ico"></i>Pote de vidro reutilizável</li>
+      <li><i class="ico"></i>Produzido artesanalmente</li>
+      <li class="modo"><span><b>Como aproveitar seu AMO</b>Abra com amor, pegue sua colher, saboreie sem culpa e cuide do pote.</span></li>
+    </ul>
+  </div>
+
+  <div class="wrap coments">
+    <div class="topo-c">
+      <h2>Quem provou <em>conta</em></h2>
+      <div class="media"><b>4,8</b><span>de 5, em<br>23 comentários</span><span class="escrever">Deixar o meu</span></div>
+    </div>
+    <div class="cartinhas">
+      <div class="cartinha"><p class="quem" style="margin-top:0"><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg></p><p>Não acreditei que era sem açúcar. O coco é de verdade e o bolo é molhadinho até o fundo do pote.</p><p class="quem"><b>Carla M.</b> · há 3 dias</p></div>
+      <div class="cartinha"><p class="quem" style="margin-top:0"><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg></p><p>Sou diabética e foi o primeiro doce em meses que comi tranquila. Chegou rápido e bem embalado.</p><p class="quem"><b>Renata S.</b> · há 1 semana</p></div>
+      <div class="cartinha"><p class="quem" style="margin-top:0"><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg></p><p>Guardei o pote para levar o próximo no trabalho. O tamanho é certo para depois do almoço.</p><p class="quem"><b>Juliana P.</b> · há 2 semanas</p></div>
+    </div>
+  </div>
+  <p class="aviso">Esboço. Preço, notas, comentários, descrição e frete são de exemplo.</p>
+</body>
+</html>

@@ -88,7 +88,7 @@ describe('Final', () => {
 
   it('com várias linhas, uma pílula por linha para a página dela', () => {
     render(<Final linhas={misto.linhasNoFinal} foto={misto.fotoDoFinal} />)
-    expect(screen.getByRole('link', { name: 'Salgados' })).toHaveAttribute('href', '/catalogo/salgados')
+    expect(screen.getByRole('link', { name: 'Salgados' })).toHaveAttribute('href', '/catalogo#linha-salgados')
     expect(screen.getAllByRole('link')).toHaveLength(4)
   })
 })

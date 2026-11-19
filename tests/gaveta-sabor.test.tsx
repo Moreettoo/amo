@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 
 /**
- * Achado A1 da revisao final: com um filtro ligado na pagina da linha, o
+ * Achado A1 da revisao final: com um filtro ligado na pagina do catalogo, o
  * sabor da gaveta que o filtro esconde nao estava no DOM. A gaveta fechava,
  * o RolagemSuave nao achava o alvo e nada rolava. Aqui as tres pecas
  * juntas, como na pagina: o RolagemSuave (com um Lenis falso), a nav com a
@@ -43,13 +43,13 @@ afterEach(() => {
   window.history.replaceState(null, '', '/')
 })
 
-function montar(catalogo: Catalogo, linha: string, busca = '') {
-  window.history.replaceState(null, '', `/catalogo/${linha}${busca}`)
+function montar(catalogo: Catalogo, busca = '') {
+  window.history.replaceState(null, '', `/catalogo${busca}`)
   render(
     <RolagemSuave>
-      <Nav gaveta={montarGaveta(catalogo)} linhaAtual={linha} />
+      <Nav gaveta={montarGaveta(catalogo)} />
       <main>
-        <CatalogoPagina vista={montarCatalogo(catalogo, linha)} />
+        <CatalogoPagina vista={montarCatalogo(catalogo)} />
       </main>
     </RolagemSuave>,
   )
@@ -84,7 +84,7 @@ function chegouAo(slug: string) {
 
 describe('sabor da gaveta escondido pelo filtro da página', () => {
   it('a vontade ligada na página sai, e a gaveta leva ao card do sabor', async () => {
-    const user = montar(real, 'bolos-no-pote')
+    const user = montar(real)
     const chocolate = screen.getByRole('button', { name: 'Chocolate 2' })
     await user.click(chocolate)
     await waitFor(() => expect(cards()).toHaveLength(2))
@@ -98,7 +98,7 @@ describe('sabor da gaveta escondido pelo filtro da página', () => {
   })
 
   it('o mesmo com a vontade que chegou pela URL (?vontade=)', async () => {
-    const user = montar(real, 'bolos-no-pote', '?vontade=chocolate')
+    const user = montar(real, '?vontade=chocolate')
     await waitFor(() => expect(cards()).toHaveLength(2))
 
     await clicarSabor(user, 'Paçoca')
@@ -108,7 +108,7 @@ describe('sabor da gaveta escondido pelo filtro da página', () => {
   })
 
   it('o selo ligado também sai', async () => {
-    const user = montar(soSalgados, 'salgados')
+    const user = montar(soSalgados)
     const selo = screen.getByRole('button', { name: 'Sem conservante' })
     await user.click(selo)
     await waitFor(() => expect(cards()).toHaveLength(1))
@@ -121,7 +121,7 @@ describe('sabor da gaveta escondido pelo filtro da página', () => {
   })
 
   it('sabor que o filtro mostra: o filtro fica, e a gaveta leva ao card', async () => {
-    const user = montar(real, 'bolos-no-pote')
+    const user = montar(real)
     const chocolate = screen.getByRole('button', { name: 'Chocolate 2' })
     await user.click(chocolate)
     await waitFor(() => expect(cards()).toHaveLength(2))
@@ -131,5 +131,23 @@ describe('sabor da gaveta escondido pelo filtro da página', () => {
     chegouAo('prestigio')
     expect(chocolate).toHaveAttribute('aria-pressed', 'true')
     expect(cards()).toHaveLength(2)
+  })
+
+  it('linha da gaveta escondida pelo filtro: o filtro sai e a gaveta leva à seção da linha', async () => {
+    const user = montar(CATALOGO_MISTO)
+    const fruta = screen.getByRole('button', { name: 'Fruta 4' })
+    await user.click(fruta)
+    await waitFor(() => expect(cards()).toHaveLength(4))
+    expect(document.getElementById('linha-salgados')).toBeNull()
+
+    await user.click(botaoCatalogo())
+    await user.click(within(gaveta()).getByRole('link', { name: /Salgados/ }))
+
+    expect(gaveta().open).toBe(false)
+    const secao = document.getElementById('linha-salgados')
+    expect(secao).not.toBeNull()
+    expect(fruta).toHaveAttribute('aria-pressed', 'false')
+    expect(chamadas).toHaveLength(1)
+    expect(chamadas[0][0]).toBe(secao)
   })
 })

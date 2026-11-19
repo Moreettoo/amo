@@ -66,9 +66,9 @@ describe('Vitrine com três linhas', () => {
     expect(
       within(lista).getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')]),
     ).toEqual([
-      ['Bolos no pote 7', '/catalogo/bolos-no-pote'],
-      ['Bolos inteiros 2', '/catalogo/bolos-inteiros'],
-      ['Salgados 2', '/catalogo/salgados'],
+      ['Bolos no pote 7', '/catalogo#linha-bolos-no-pote'],
+      ['Bolos inteiros 2', '/catalogo#linha-bolos-inteiros'],
+      ['Salgados 2', '/catalogo#linha-salgados'],
     ])
     expect(screen.getByRole('link', { name: 'Ver as 11 receitas' })).toHaveAttribute('href', '/catalogo')
   })

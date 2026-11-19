@@ -3,20 +3,19 @@
 import Image from 'next/image'
 import { useEffect, useRef, useState } from 'react'
 import { Gaveta, LINKS_DA_HOME } from '@/components/layout/Gaveta'
+import { GavetaSacola } from '@/components/layout/GavetaSacola'
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
 import { IconeCamadas } from '@/components/ui/IconeCamadas'
 import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
+import { useSacola } from '@/components/ui/useSacola'
+import { contarPotes, EVENTO_ABRIR_SACOLA, textoPotes } from '@/lib/sacola'
 import { CAMINHO_CATALOGO, type DadosGaveta } from '@/lib/visao'
 
 /** 64 de altura + 32 de folga = os 96 do DESLOCAMENTO_NAV
  *  (RolagemSuave) e do `scroll-mt-24` das secoes. */
 export const ALTURA_NAV = 64
 
-type Props = {
-  gaveta: DadosGaveta
-  /** a linha aberta no catalogo; null na home e em "Tudo" */
-  linhaAtual?: string | null
-}
+type Props = { gaveta: DadosGaveta }
 
 /**
  * Nav em linha: barra creme de fora a fora, com um fio embaixo. Opaca desde o
@@ -24,10 +23,22 @@ type Props = {
  * a gaveta; "Ver cardapio" leva a pagina do catalogo. No celular os links da
  * home moram na gaveta, e o menu de antes saiu.
  */
-export function Nav({ gaveta, linhaAtual = null }: Props) {
+export function Nav({ gaveta }: Props) {
+  const { loja } = gaveta
   const [rolou, setRolou] = useState(false)
   const [aberta, setAberta] = useState(false)
   const botaoRef = useRef<HTMLButtonElement>(null)
+  const [sacolaAberta, setSacolaAberta] = useState(false)
+  const sacolaRef = useRef<HTMLButtonElement>(null)
+  const linhas = useSacola(loja)
+  const potes = linhas ? contarPotes(linhas) : 0
+
+  // quem poe um pote na sacola (a pagina do produto) pede para ela abrir
+  useEffect(() => {
+    const abrir = () => setSacolaAberta(true)
+    window.addEventListener(EVENTO_ABRIR_SACOLA, abrir)
+    return () => window.removeEventListener(EVENTO_ABRIR_SACOLA, abrir)
+  }, [])
 
   useEffect(() => {
     const aoRolar = () => setRolou(window.scrollY > 40)
@@ -92,6 +103,21 @@ export function Nav({ gaveta, linhaAtual = null }: Props) {
             <BotaoRetro href={CAMINHO_CATALOGO} escuro compacto className="ml-auto min-[821px]:ml-0">
               Ver cardápio
             </BotaoRetro>
+
+            <button
+              ref={sacolaRef}
+              type="button"
+              aria-haspopup="dialog"
+              aria-expanded={sacolaAberta}
+              aria-controls="sacola"
+              aria-label={potes ? `Sacola, ${textoPotes(potes)}` : 'Sacola, vazia'}
+              onClick={() => setSacolaAberta(true)}
+              className="so-js botao-sacola"
+            >
+              <IconeSacola />
+              <span className="max-[820px]:sr-only">Sacola</span>
+              {potes ? <b className="botao-sacola__conta">{potes}</b> : null}
+            </button>
           </div>
         </nav>
       </div>
@@ -100,13 +126,31 @@ export function Nav({ gaveta, linhaAtual = null }: Props) {
       <Gaveta
         id="gaveta"
         dados={gaveta}
-        linhaAtual={linhaAtual}
         aberta={aberta}
         aoFechar={(devolverFoco) => {
           setAberta(false)
           if (devolverFoco) botaoRef.current?.focus()
         }}
       />
+      <GavetaSacola
+        id="sacola"
+        loja={loja}
+        aberta={sacolaAberta}
+        aoFechar={(devolverFoco) => {
+          setSacolaAberta(false)
+          if (devolverFoco) sacolaRef.current?.focus()
+        }}
+      />
     </>
+  )
+}
+
+/** A sacola de papel em traco fino, com a alca. */
+function IconeSacola() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M5 8h14l-1 12H6L5 8Z" />
+      <path d="M9 10V7a3 3 0 0 1 6 0v3" />
+    </svg>
   )
 }

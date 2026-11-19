@@ -3,7 +3,7 @@ import { CardProduto } from '@/components/ui/CardProduto'
 import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
 import { PilulaLink } from '@/components/ui/Pilula'
 import type { Produto } from '@/lib/catalogo'
-import { CAMINHO_CATALOGO, caminhoDaLinha, textoVerReceitas, type OpcaoLinha } from '@/lib/visao'
+import { CAMINHO_CATALOGO, caminhoDaLinha, caminhoDoProduto, textoVerReceitas, type OpcaoLinha } from '@/lib/visao'
 
 type Props = {
   produtos: readonly Produto[]
@@ -43,7 +43,7 @@ export function Vitrine({ produtos, linhas, total, tipos, nomesDosSelos }: Props
                 produto={p}
                 tipo={tipos[p.linha] ?? ''}
                 nomesDosSelos={nomesDosSelos}
-                href={`${CAMINHO_CATALOGO}#produto-${p.slug}`}
+                href={caminhoDoProduto(p.slug)}
               />
             </li>
           ))}

@@ -1,53 +1,41 @@
 import { describe, it, expect } from 'vitest'
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { ReactElement } from 'react'
 import { render, screen, within } from '@testing-library/react'
 import { renderToString } from 'react-dom/server'
 import { axe } from 'vitest-axe'
-import PaginaCatalogo, { metadata as metadataDoCatalogo } from '@/app/catalogo/page'
-import PaginaLinha, { dynamicParams, generateMetadata, generateStaticParams } from '@/app/catalogo/[linha]/page'
+import PaginaCatalogo, { generateMetadata } from '@/app/catalogo/page'
 import { TelaCatalogo } from '@/components/layout/TelaCatalogo'
 import { duasVozes } from '@/components/sections/TopoCatalogo'
 import { linhasComProduto, montarCatalogo, montarGaveta } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
 
-const params = (linha: string) => ({ params: Promise.resolve({ linha }) })
-const daLinha = await PaginaLinha(params('bolos-no-pote'))
-const tudoMisto = (
+const deHoje = await PaginaCatalogo()
+const misto = (
   <TelaCatalogo
-    vista={montarCatalogo(CATALOGO_MISTO, null)}
+    vista={montarCatalogo(CATALOGO_MISTO)}
     gaveta={montarGaveta(CATALOGO_MISTO)}
     linhas={linhasComProduto(CATALOGO_MISTO)}
   />
 )
 
-describe('as rotas', () => {
-  it('uma página por linha com produto, e nenhuma outra', async () => {
-    expect(await generateStaticParams()).toEqual([{ linha: 'bolos-no-pote' }])
-    expect(dynamicParams).toBe(false)
+describe('a rota', () => {
+  it('o catálogo é uma página só: a rota por linha não existe mais', () => {
+    expect(existsSync(resolve(import.meta.dirname, '../src/app/catalogo/[linha]'))).toBe(false)
   })
 
-  it('slug que não é linha dá 404', async () => {
-    await expect(PaginaLinha(params('tortas'))).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404')
-  })
-
-  it('título e descrição da página da linha', async () => {
-    expect(await generateMetadata(params('bolos-no-pote'))).toEqual({
-      title: 'Bolos no pote · Catálogo · AMO',
-      description: 'Bolos no pote, zero açúcar. Um abraço em forma de sobremesa.',
+  it('título e descrição da página, tirados do cadastro', async () => {
+    expect(await generateMetadata()).toEqual({
+      title: 'Catálogo · AMO',
+      description: 'Doces. Cada linha com a sua regra no rótulo.',
     })
-    expect(await generateMetadata(params('tortas'))).toEqual({})
-    expect(metadataDoCatalogo.title).toBe('Catálogo · AMO')
-  })
-
-  it('com uma linha só, /catalogo é a página dela', async () => {
-    render(await PaginaCatalogo())
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Bolos no pote')
   })
 })
 
 describe.each([
-  ['a página de uma linha', daLinha],
-  ['"Tudo" com três linhas', tudoMisto],
+  ['o catálogo de hoje', deHoje],
+  ['o catálogo com duas categorias', misto],
 ] as [string, ReactElement][])('%s', (_, pagina) => {
   const montar = () => render(pagina)
 
@@ -67,11 +55,11 @@ describe.each([
     }
   })
 
-  it('exatamente uma imagem sem lazy nem eager: a capa, pré-carregada', () => {
+  it('exatamente uma imagem sem lazy nem eager: a primeira foto da primeira grade, pré-carregada', () => {
     const { container } = montar()
     const semLoading = [...container.querySelectorAll('img')].filter((img) => !img.hasAttribute('loading'))
     expect(semLoading).toHaveLength(1)
-    expect(semLoading[0].closest('.topo-catalogo__capa')).toBeTruthy()
+    expect(semLoading[0].closest('#prestigio')).toBeTruthy()
   })
 
   it('sem afordância morta, sem preço, sem reticências', () => {
@@ -88,6 +76,18 @@ describe.each([
     expect(ids.length - new Set(ids).size).toBe(0)
   })
 
+  it('todo link para uma âncora do catálogo acha o alvo nesta página, e o alvo desconta a nav', () => {
+    const { container } = montar()
+    const links = [...container.querySelectorAll<HTMLAnchorElement>('a[href^="/catalogo#"], a[href^="#"]')]
+    expect(links.length).toBeGreaterThan(0)
+    for (const a of links) {
+      const id = a.getAttribute('href')!.split('#')[1]
+      const alvo = container.querySelector(`[id="${id}"]`)
+      expect(alvo, a.getAttribute('href')!).toBeTruthy()
+      expect(alvo!).toHaveClass('scroll-mt-24')
+    }
+  })
+
   it('todo "AMO" de texto está dentro de translate="no"', () => {
     const { container } = montar()
     const caminhante = document.createTreeWalker(container, NodeFilter.SHOW_TEXT)
@@ -101,6 +101,15 @@ describe.each([
     expect(vistos).toBeGreaterThan(0)
   })
 
+  it('a página fecha com a assinatura da marca, sem o rótulo da linha antes dela', () => {
+    const { container } = montar()
+    const main = screen.getByRole('main')
+    expect(main.lastElementChild).toHaveClass('catalogo__fecho', 'superficie-escura')
+    expect(main.lastElementChild).toHaveTextContent('AMO por você. Por seu AMO.')
+    expect(screen.queryByRole('heading', { name: /O rótulo da linha/ })).toBeNull()
+    expect(container.querySelector('.papel-rotulo, .camadas, .rotulo-secao')).toBeNull()
+  })
+
   it('passa no axe', async () => {
     const { container } = montar()
     expect(await axe(container)).toHaveNoViolations()
@@ -108,25 +117,26 @@ describe.each([
 })
 
 describe('o topo', () => {
-  it('numa linha: a trilha até ela, o nome, a frase, a contagem e o selo da regra', () => {
-    render(daLinha)
+  it('creme: a trilha para em Catálogo, o título em duas vozes e o lead; sem capa, sem selo, sem contagem', () => {
+    const { container } = render(deHoje)
     const trilha = screen.getByRole('navigation', { name: 'Trilha' })
     expect(within(trilha).getByRole('link', { name: 'Início' })).toHaveAttribute('href', '/')
-    expect(within(trilha).getByRole('link', { name: 'Catálogo' })).toHaveAttribute('href', '/catalogo')
-    expect(within(trilha).getByText('Bolos no pote')).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Bolos no pote')
-    expect(screen.getByText('Um abraço em forma de sobremesa.')).toBeInTheDocument()
-    expect(screen.getByText('7 receitas')).toHaveClass('topo-catalogo__conta')
-    expect(document.querySelector('.topo-catalogo .selo-carimbo')).toHaveTextContent('Zero açúcar')
+    expect(within(trilha).getByText('Catálogo')).toHaveAttribute('aria-current', 'page')
+    expect(within(trilha).queryByRole('link', { name: 'Catálogo' })).toBeNull()
+    const h1 = screen.getByRole('heading', { level: 1 })
+    expect(h1).toHaveTextContent('O catálogo inteiro')
+    expect(h1.querySelector('em')).toHaveTextContent('inteiro')
+    expect(h1.previousElementSibling).toBe(trilha)
+    const topo = h1.closest('.topo-catalogo')!
+    expect(topo).toHaveClass('topo-catalogo--claro')
+    expect(topo).not.toHaveClass('superficie-escura')
+    expect(within(topo as HTMLElement).getByText('Cada linha com a sua regra no rótulo.')).toBeInTheDocument()
+    expect(container.querySelector('.topo-catalogo__capas, .topo-catalogo__conta, .topo-catalogo .selo-carimbo')).toBeNull()
   })
 
-  it('o título tem duas vozes e nada acima dele além da trilha: a regra vem depois', () => {
-    render(daLinha)
-    const h1 = screen.getByRole('heading', { level: 1 })
-    expect(h1.querySelector('em')).toHaveTextContent('no pote')
-    expect(h1.previousElementSibling).toBe(screen.getByRole('navigation', { name: 'Trilha' }))
-    const regra = document.querySelector('.topo-catalogo .selo-carimbo')!
-    expect(h1.compareDocumentPosition(regra) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  it('com duas categorias, o lead diz quais são', () => {
+    render(misto)
+    expect(screen.getByText('Doces e salgados. Cada linha com a sua regra no rótulo.')).toHaveClass('topo-catalogo__lead')
   })
 
   it('duasVozes: a última palavra vai para o script e leva o conectivo que a antecede', () => {
@@ -138,43 +148,20 @@ describe('o topo', () => {
     expect(duasVozes('Salgados')).toEqual(['Salgados', null])
     expect(duasVozes('De colher')).toEqual(['De', 'colher'])
   })
+})
 
-  it('em "Tudo": a trilha para em Catálogo, três capas e nenhum selo', () => {
-    render(tudoMisto)
-    const trilha = screen.getByRole('navigation', { name: 'Trilha' })
-    expect(within(trilha).getByText('Catálogo')).toHaveAttribute('aria-current', 'page')
-    expect(within(trilha).queryByRole('link', { name: 'Catálogo' })).toBeNull()
-    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('O catálogo inteiro')
-    expect(document.querySelectorAll('.topo-catalogo__capa')).toHaveLength(3)
-    expect(document.querySelector('.topo-catalogo__capas')).toHaveAttribute('aria-hidden', 'true')
-    expect(document.querySelector('.topo-catalogo .selo-carimbo')).toBeNull()
-  })
-
-  it.each([
-    ['numa linha', daLinha],
-    ['em "Tudo"', tudoMisto],
-  ] as [string, ReactElement][])('%s a página fecha com a assinatura da marca, sem divisor de onda', (_, pagina) => {
-    const { container } = render(pagina)
+describe('os títulos em ordem', () => {
+  it('hoje: h1, h2 da categoria, h3 da linha e h4 em cada um dos 7 cards', () => {
+    render(deHoje)
     const main = screen.getByRole('main')
-    expect(main.lastElementChild).toHaveClass('catalogo__fecho', 'superficie-escura')
-    expect(main.lastElementChild).toHaveTextContent('AMO por você. Por seu AMO.')
-    expect(container.querySelector('.camadas, .rotulo-secao')).toBeNull()
-  })
-
-  it('os links de sabor da gaveta acham o seu card nesta página', () => {
-    const { container } = render(daLinha)
-    const links = [...container.querySelectorAll<HTMLAnchorElement>('a[href^="/catalogo/bolos-no-pote#"]')]
-    expect(links).toHaveLength(7)
-    for (const a of links) {
-      const alvo = container.querySelector(`#${a.getAttribute('href')!.split('#')[1]}`)
-      expect(alvo, a.href).toBeTruthy()
-      expect(alvo!).toHaveClass('scroll-mt-24')
-    }
+    const titulos = [...main.querySelectorAll('h1,h2,h3,h4')].map((h) => `${h.tagName} ${h.textContent}`)
+    expect(titulos.slice(0, 4)).toEqual(['H1 O catálogo inteiro', 'H2 Doces', 'H3 Bolos no pote', 'H4 Prestígio'])
+    expect(titulos.filter((t) => t.startsWith('H4'))).toHaveLength(7)
   })
 })
 
-describe('o HTML do servidor da página da linha', () => {
-  const html = renderToString(daLinha)
+describe('o HTML do servidor', () => {
+  const html = renderToString(deHoje)
   const doc = new DOMParser().parseFromString(html, 'text/html')
 
   it('não esconde nada por estilo inline e não sai com a classe play', () => {
@@ -187,7 +174,7 @@ describe('o HTML do servidor da página da linha', () => {
     expect(doc.querySelectorAll('.play')).toHaveLength(0)
   })
 
-  it('pré-carrega exatamente uma imagem: a capa', () => {
+  it('pré-carrega exatamente uma imagem: a primeira foto da grade', () => {
     const preloads = [...html.matchAll(/<link[^>]*rel="preload"[^>]*>/g)]
       .map((m) => m[0])
       .filter((tag) => /as="image"/.test(tag))
@@ -195,8 +182,8 @@ describe('o HTML do servidor da página da linha', () => {
     expect(preloads[0]).toContain('prestigio')
   })
 
-  it('a página inteira está no HTML: os 7 cards e o rótulo da linha', () => {
+  it('a página inteira está no HTML: o capítulo, a linha e os 7 cards', () => {
+    expect(doc.querySelector('section#doces section#linha-bolos-no-pote')).toBeTruthy()
     expect(doc.querySelectorAll('.catalogo article.card-produto')).toHaveLength(7)
-    expect(doc.querySelector('.catalogo__rotulo-linha .papel-rotulo')).toBeTruthy()
   })
 })

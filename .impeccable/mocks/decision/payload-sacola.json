@@ -1,0 +1,46 @@
+{
+  "title": "AMO: a sacola e o fechamento do pedido",
+  "question": "Três jeitos de montar a página /sacola, onde a pessoa revisa os potes, informa a entrega e os dados e fecha o pedido. Em todos, ao adicionar um pote abre uma gaveta pela direita com o resumo e o botão 'Ver sacola'; o que muda aqui é a página. O visual é o do site (creme, cobre, script e Poppins). Preços e frete são de exemplo; o pagamento fica simulado até escolhermos o meio. Escolha um, peça outra rodada ou escreva um ajuste.",
+  "options": [
+    {
+      "id": "sacola-comanda",
+      "kind": "assigned",
+      "label": "A comanda",
+      "kicker": "THE ROLL",
+      "lineage": "A comanda do balcão da confeitaria, o pedido anotado linha a linha",
+      "thesis": "O pedido inteiro é um cartão de papel: cada pote uma linha com pontilhado até o preço, a entrega e o total, e o fechamento logo ao lado.",
+      "palette": ["#FAF2E9", "#FFFBF5", "#2B1B16", "#C9784A", "#9A5530"],
+      "materials": ["cartão de papel com moldura cobre", "linhas pontilhadas até o preço", "miniaturas dos potes"],
+      "viewport": "À esquerda a comanda em papel: miniatura, sabor, quantidade e preço de cada pote, a entrega pelo Uber e o total grande. À direita, em creme, o fechamento: entrega, seus dados e pagamento, com o botão no fim.",
+      "risk": "Com muitos sabores a comanda cresce; acima de seis linhas ela rola por dentro.",
+      "html": ".impeccable/mocks/decision/sacola-comanda.html"
+    },
+    {
+      "id": "sacola-fio",
+      "kind": "dealt",
+      "label": "O fio das etapas",
+      "lineage": "O fio cobre da home, agora costurando as etapas do pedido",
+      "thesis": "Uma coluna só com quatro etapas (sacola, entrega, seus dados, pagamento) presas num fio vertical; o coração desce até a etapa atual e o resumo fica preso à direita.",
+      "palette": ["#FAF2E9", "#2B1B16", "#C9784A", "#9A5530", "#5E4A40"],
+      "materials": ["fio vertical de 1 px com o coração", "etapas que abrem no lugar", "resumo preso ao lado"],
+      "viewport": "Título 'Sua sacola' em duas vozes; abaixo, o fio desce pela margem e segura as quatro etapas: a primeira aberta com os potes, as outras fechadas com o que falta. À direita, o resumo com subtotal, frete e total, e o botão.",
+      "risk": "Quatro etapas numa página só pedem cuidado para a pessoa não se perder ao voltar uma etapa.",
+      "html": ".impeccable/mocks/decision/sacola-fio.html"
+    },
+    {
+      "id": "sacola-pergunta",
+      "kind": "dealt",
+      "label": "Uma pergunta por vez",
+      "lineage": "A atendente que pergunta uma coisa de cada vez no balcão",
+      "thesis": "Depois de revisar a sacola, cada tela faz uma pergunta só, grande e calma ('Para onde vai o seu AMO?'), com o pedido pequeno no canto.",
+      "palette": ["#FAF2E9", "#FFFBF5", "#2B1B16", "#C9784A", "#E2BF96"],
+      "materials": ["pergunta em duas vozes", "um campo grande por tela", "pedido resumido no canto"],
+      "viewport": "Barra fina de progresso no topo (2 de 4); no centro a pergunta 'Para onde vai o seu AMO?' com o CEP e o número em campos grandes e o valor do Uber logo abaixo; à direita, o pedido em miniatura com o total.",
+      "risk": "Mais telas até o fim; quem já sabe o que quer pode achar lento.",
+      "html": ".impeccable/mocks/decision/sacola-pergunta.html"
+    }
+  ],
+  "reroll": true,
+  "buildPath": { "value": "code" },
+  "steer": true
+}

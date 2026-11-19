@@ -98,8 +98,47 @@ describe('estilos', () => {
     expect(ler('pecas.css')).not.toMatch(/\.rotulo-secao|\.camadas|dashed/)
   })
 
-  it('no celular a fileira de pílulas das linhas rola de lado e não estica a grade do catálogo', () => {
-    expect(ultimo(regra(ler('catalogo.css'), '.catalogo__corpo'), 'grid-template-columns')).toBe('minmax(0, 1fr)')
+  it('no celular o miolo do catálogo é uma coluna só, que não estica com o que rola de lado dentro dela', () => {
+    expect(ultimo(regra(ler('catalogo.css'), '.catalogo__miolo'), 'grid-template-columns')).toBe('minmax(0, 1fr)')
+  })
+
+  it('o topo creme do catálogo: script em cobre de leitura e texto secundário em suave, nunca cobre puro nem claro-suave', () => {
+    const css = ler('catalogo.css')
+    expect(ultimo(regra(css, '.topo-catalogo--claro .topo-catalogo__titulo em'), 'color')).toBe('var(--color-cobre-texto)')
+    expect(ultimo(regra(css, '.topo-catalogo--claro .topo-catalogo__lead'), 'color')).toBe('var(--color-suave)')
+    expect(ultimo(regra(css, '.topo-catalogo--claro .trilha'), 'color')).toBe('var(--color-suave)')
+    expect(ultimo(regra(css, '.topo-catalogo--claro'), 'color')).toBe('var(--color-expresso)')
+  })
+
+  // Achados da revisao final do sumario.
+
+  it('o nome do capítulo termina de aparecer assim que entra inteiro na tela: parado, nunca fica meio apagado', () => {
+    expect(ultimo(regra(ler('movimento.css'), 'html.js .capitulo__titulo'), 'animation-range')).toBe('entry 0% entry 100%')
+  })
+
+  it('no celular, com a fileira do sumário presa, o alvo da âncora para abaixo dela e não embaixo', () => {
+    const css = ler('catalogo.css')
+    // nav de 64 + fileira de 69; o !important vence o scroll-mt-24 do Tailwind, que mora numa camada depois
+    const alvo = css.match(/\.catalogo__miolo--com-sumario \.scroll-mt-24\s*\{([^}]*)\}/)?.[1] ?? ''
+    expect(alvo).toMatch(/scroll-margin-top:\s*150px\s*!important/)
+  })
+
+  it('no celular cada grupo de filtros é uma fileira só, que rola de lado: as fotos não descem a página', () => {
+    const fileira = [...ler('catalogo.css').matchAll(/\.catalogo__pilulas\s*\{([^}]*)\}/g)].map((m) => m[1]).join('\n')
+    expect(ultimo(fileira, 'flex-wrap')).toBe('nowrap')
+    expect(ultimo(fileira, 'overflow-x')).toBe('auto')
+    // em coluna com quebra, a fileira mediria o proprio conteudo e a pagina rolaria de lado
+    expect(ultimo(regra(ler('catalogo.css'), '.catalogo__filtros'), 'flex-wrap')).toBe('nowrap')
+  })
+
+  it('o catálogo não inventa tamanho de letra fora da escala para o nome do card', () => {
+    expect(ler('catalogo.css')).not.toMatch(/font-size:\s*20px/)
+  })
+
+  it('as capas do topo e o bloco do rótulo da linha saíram do catálogo', () => {
+    const css = ler('catalogo.css')
+    expect(css).not.toMatch(/topo-catalogo__capa|catalogo__rotulo-linha|catalogo__grupo/)
+    expect(ler('movimento.css')).not.toMatch(/topo-catalogo__capa/)
   })
 
   // Achados da verificacao no navegador (Task 9 do catalogo).
@@ -159,24 +198,6 @@ describe('estilos', () => {
 
   // Achados da revisao final do catalogo.
 
-  it('em "Tudo" as capas do topo não encolhem, a do bolo inteiro segue quadrada e três das mais largas cabem na coluna', () => {
-    const css = ler('catalogo.css')
-    const px = (v: string | undefined) => Number.parseFloat(v ?? 'NaN')
-    expect(ultimo(regra(css, '.topo-catalogo__capa'), 'flex')).toBe('none')
-    const coluna = px(ultimo(regra(css, '.topo-catalogo__grade'), 'grid-template-columns')?.split(' ').at(-1))
-    expect(coluna).toBe(380)
-    const capa = (formato: string) => regra(css, `.topo-catalogo__capas--varias .topo-catalogo__capa--${formato}`)
-    const inteiro = capa('inteiro')
-    expect(px(ultimo(inteiro, 'width'))).toBe(px(ultimo(inteiro, 'height')))
-    const larguras = ['pote', 'inteiro', 'unidade', 'neutra'].map((f) => px(ultimo(capa(f), 'width')))
-    const vao = px(ultimo(regra(css, '.topo-catalogo__capas--varias'), 'gap'))
-    // ate tres capas, de qualquer formato: o pior caso e tres da mais larga,
-    // mais a sobra a direita onde cai o fio deslocado da ultima
-    const sobra = px(ultimo(regra(css, '.topo-catalogo__capas--varias'), 'padding')?.split(' ')[1])
-    expect(sobra).toBeGreaterThan(0)
-    expect(3 * Math.max(...larguras) + 2 * vao + sobra).toBeLessThanOrEqual(coluna)
-  })
-
   it('bolo inteiro: a moldura contém a margem do círculo', () => {
     // sem conter a margem (margin collapse), a moldura media so o circulo e
     // o texto do card subia em relacao aos vizinhos
@@ -184,7 +205,6 @@ describe('estilos', () => {
   })
 
   it.each([
-    ['catalogo.css', '.catalogo__grupo-topo .link-sub', '"Ver só <linha>" nos grupos de "Tudo"'],
     ['catalogo.css', '.topo-catalogo__acoes .link-sub', '"Voltar ao início" no 404'],
     ['cardapio.css', '.cardapio__vazio button', '"Ver todas" no estado vazio'],
   ])('%s: %s tem alvo de 44 px, invisível (%s)', (arquivo, seletor) => {

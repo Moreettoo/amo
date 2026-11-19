@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>A comanda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --papel:#FFFBF5; --linho:#F6EBDD; --suave:#5E4A40; --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1440px; height: 1600px; overflow: hidden; font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); }
+  ul, ol { list-style: none; }
+  .wrap { width: 1128px; margin: 0 auto; }
+  header { height: 64px; border-bottom: 1px solid var(--fio); }
+  header .wrap { height: 100%; display: flex; align-items: center; gap: 32px; font-size: 15px; }
+  header img { height: 36px; margin-right: auto; }
+  .menu { display: flex; align-items: center; gap: 10px; }
+  .menu i { width: 16px; height: 9px; border-top: 1.4px solid; border-bottom: 1.4px solid; }
+  .sacola { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border: 1px solid var(--contorno); border-radius: 2px; font-size: 14px; }
+  .sacola b { font-weight: 500; font-variant-numeric: tabular-nums; }
+  svg.estrela { width: 15px; height: 15px; fill: var(--cobre); }
+  svg.estrela.vazia { fill: none; stroke: var(--cobre); stroke-width: 1.3; }
+
+  .trilha { font-size: 14px; color: var(--suave); padding: 28px 0 30px; }
+  .trilha b { color: var(--expresso); font-weight: 500; }
+  .corpo { display: grid; grid-template-columns: 560px 1fr; gap: 88px; }
+  .foto { position: relative; }
+  .foto::before { content: ""; position: absolute; left: 12px; top: 12px; width: 560px; height: 700px; border: 1px solid var(--cobre); border-radius: 4px; }
+  .foto img { position: relative; width: 560px; height: 700px; object-fit: cover; border-radius: 4px; display: block; background: var(--linho); }
+
+  .tipo { font-size: 13px; font-weight: 500; color: var(--cobre-texto); }
+  h1 { font-weight: 300; font-size: 54px; letter-spacing: -.03em; line-height: 1.05; margin-top: 4px; }
+  h1 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 36px; white-space: nowrap; letter-spacing: 0; line-height: 1.15; color: var(--cobre-texto); margin-top: 4px; }
+  .nota { display: flex; align-items: center; gap: 4px; margin-top: 14px; font-size: 14px; color: var(--suave); }
+  .nota span { margin-left: 8px; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--fio); }
+  .desc { font-size: 16px; line-height: 1.65; color: var(--suave); margin-top: 16px; max-width: 46ch; }
+
+  .comanda { position: relative; background: var(--papel); border-radius: 2px; padding: 26px 30px 28px; margin-top: 26px; box-shadow: 0 24px 50px -34px rgb(43 27 22 / .4); }
+  .comanda::before { content: ""; position: absolute; inset: 7px; border: 1px solid rgb(201 120 74 / .55); border-radius: 2px; pointer-events: none; }
+  .linha { display: flex; align-items: baseline; gap: 10px; font-size: 15px; padding: 9px 0; }
+  .linha .pont { flex: 1; border-bottom: 1.4px dotted rgb(43 27 22 / .35); transform: translateY(-4px); }
+  .linha .v { font-variant-numeric: tabular-nums; }
+  .linha small { font-size: 13px; color: var(--suave); }
+  .qtd { display: inline-flex; align-items: center; border: 1px solid var(--contorno); border-radius: 2px; height: 36px; }
+  .qtd i { width: 36px; text-align: center; font-style: normal; font-size: 17px; font-weight: 300; }
+  .qtd b { width: 28px; text-align: center; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .cep { display: flex; gap: 8px; margin: 6px 0 4px; }
+  .campo { height: 44px; border: 1px solid var(--contorno); border-radius: 2px; padding: 0 14px; display: flex; align-items: center; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .campo.cep1 { width: 150px; } .campo.num { width: 90px; color: var(--suave); }
+  .campo.calc { padding: 0 18px; font-weight: 500; font-size: 14px; }
+  .uber { font-size: 13px; color: var(--suave); }
+  .total { display: flex; align-items: baseline; justify-content: space-between; margin-top: 12px; padding-top: 14px; border-top: 1px solid rgb(43 27 22 / .2); }
+  .total span { font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; }
+  .total b { font-weight: 300; font-size: 34px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .botao { margin-top: 16px; height: 52px; background: var(--expresso); color: var(--creme); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 15px; letter-spacing: .02em; }
+
+  .abaixo { display: grid; grid-template-columns: 1fr 1.25fr; gap: 88px; margin-top: 100px; }
+  h2 { font-weight: 300; font-size: 36px; letter-spacing: -.02em; line-height: 1.2; }
+  h2 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 1.6em; line-height: 1; letter-spacing: 0; color: var(--cobre-texto); }
+  .regra { font-size: 12px; font-weight: 600; letter-spacing: .26em; text-transform: uppercase; margin-top: 18px; }
+  .regra svg { width: 11px; height: 11px; fill: var(--cobre); margin-right: 10px; }
+  .selos { margin-top: 18px; display: grid; gap: 4px; font-size: 15px; }
+  .selos li { display: flex; align-items: center; gap: 12px; padding: 5px 0; }
+  .selos .ico { width: 18px; height: 18px; border: 1.4px solid var(--expresso); border-radius: 50%; }
+  .modo { margin-top: 24px; font-size: 15px; color: var(--suave); }
+  .modo b { display: block; color: var(--expresso); font-weight: 500; margin-bottom: 6px; }
+  .resumo { display: flex; align-items: center; gap: 28px; margin-top: 18px; }
+  .media { font-weight: 300; font-size: 56px; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+  .barras { flex: 1; display: grid; gap: 6px; font-size: 12px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .barras div { display: grid; grid-template-columns: 14px 1fr 24px; gap: 10px; align-items: center; }
+  .barras s { height: 1px; background: var(--fio); position: relative; }
+  .barras s::after { content: ""; position: absolute; left: 0; top: -1px; height: 3px; background: var(--cobre); width: var(--p); }
+  .coment { margin-top: 26px; display: grid; gap: 20px; }
+  .coment p { font-size: 15px; line-height: 1.6; margin-top: 8px; max-width: 60ch; }
+  .quem { font-size: 13px; color: var(--suave); display: flex; align-items: center; gap: 4px; }
+  .quem b { color: var(--expresso); font-weight: 500; margin-right: 10px; }
+  .escrever { display: inline-flex; margin-top: 30px; height: 44px; padding: 0 20px; align-items: center; border: 1px solid var(--expresso); border-radius: 2px; font-size: 14px; font-weight: 500; }
+  .aviso { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center; font-size: 12px; color: var(--suave); }
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute"><symbol id="e" viewBox="0 0 20 20"><path d="M10 1.8l2.5 5.3 5.7.7-4.2 3.9 1.1 5.7L10 14.6l-5.1 2.8 1.1-5.7-4.2-3.9 5.7-.7z"/></symbol><symbol id="c" viewBox="0 0 20 18"><path d="M10 17S1 11.4 1 5.6A4.6 4.6 0 0 1 10 3.7a4.6 4.6 0 0 1 9 1.9C19 11.4 10 17 10 17z"/></symbol></svg>
+  <header><div class="wrap">
+    <span class="menu"><i></i>Catálogo</span>
+    <img src="http://localhost:3000/marca/logo-amo.png" alt="AMO">
+    <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+    <span class="sacola">Sacola <b>0</b></span>
+  </div></header>
+
+  <div class="wrap">
+    <p class="trilha">Início &nbsp;›&nbsp; Catálogo &nbsp;›&nbsp; Doces &nbsp;›&nbsp; <b>Prestígio</b></p>
+    <div class="corpo">
+      <div class="foto"><img src="http://localhost:3000/produtos/prestigio.webp" alt=""></div>
+      <div>
+        <p class="tipo">Bolo no pote</p>
+        <h1>Prestígio <em>um abraço em forma de sobremesa</em></h1>
+        <p class="nota"><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg> 4,8 <span>23 comentários</span></p>
+        <p class="desc">Massa de chocolate úmida, cozida a vapor, com creme de coco e coco ralado por cima. Zero açúcar, adoçado com eritritol e stevia, no pote de vidro que fica com você.</p>
+        <div class="comanda">
+          <div class="linha">Prestígio <span class="pont"></span><span class="v">R$ 18,90</span></div>
+          <div class="linha">Quantidade <span class="pont"></span><span class="qtd"><i>−</i><b>2</b><i>+</i></span></div>
+          <div class="linha">Entrega pelo Uber <span class="pont"></span><span class="v">R$ 12,40</span></div>
+          <div class="cep"><span class="campo cep1">04567-000</span><span class="campo num">Nº 120</span><span class="campo calc">Recalcular</span></div>
+          <p class="uber">Sai da nossa cozinha agora e chega em até 45 min.</p>
+          <div class="total"><span>Total</span><b>R$ 50,20</b></div>
+          <div class="botao">Adicionar à sacola</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="abaixo">
+      <div>
+        <h2>O que diz <em>o rótulo</em></h2>
+        <p class="regra"><svg><use href="#c"/></svg>Zero açúcar</p>
+        <ul class="selos">
+          <li><i class="ico"></i>Adoçado com eritritol e stevia</li>
+          <li><i class="ico"></i>Cozido a vapor</li>
+          <li><i class="ico"></i>Fonte de fibras</li>
+          <li><i class="ico"></i>Pote de vidro reutilizável</li>
+          <li><i class="ico"></i>Produzido artesanalmente</li>
+        </ul>
+        <p class="modo"><b>Como aproveitar seu AMO</b>1. Abra com amor &nbsp; 2. Pegue sua colher &nbsp; 3. A saboreie sem culpa &nbsp; 4. Cuide do pote de vidro</p>
+      </div>
+      <div>
+        <h2>Quem provou <em>conta</em></h2>
+        <div class="resumo">
+          <p class="media">4,8</p>
+          <div class="barras">
+            <div>5<s style="--p:82%"></s>19</div><div>4<s style="--p:13%"></s>3</div><div>3<s style="--p:4%"></s>1</div><div>2<s style="--p:0%"></s>0</div><div>1<s style="--p:0%"></s>0</div>
+          </div>
+        </div>
+        <div class="coment">
+          <div><p class="quem"><b>Carla M.</b><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg>&nbsp; há 3 dias</p><p>Não acreditei que era sem açúcar. O coco é de verdade e o bolo é molhadinho até o fundo do pote.</p></div>
+          <div><p class="quem"><b>Renata S.</b><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela vazia"><use href="#e"/></svg>&nbsp; há 1 semana</p><p>Sou diabética e foi o primeiro doce em meses que comi sem culpa. Chegou rápido e bem embalado.</p></div>
+        </div>
+        <span class="escrever">Escrever um comentário</span>
+      </div>
+    </div>
+  </div>
+  <p class="aviso">Esboço. Preço, notas, comentários, descrição e frete são de exemplo.</p>
+</body>
+</html>

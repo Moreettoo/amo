@@ -8,8 +8,7 @@ import { montarGaveta, type DadosGaveta } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
 
 const gaveta = montarGaveta(await carregarCatalogo())
-const montarNav = (dados: DadosGaveta = gaveta, linhaAtual: string | null = null) =>
-  render(<Nav gaveta={dados} linhaAtual={linhaAtual} />)
+const montarNav = (dados: DadosGaveta = gaveta) => render(<Nav gaveta={dados} />)
 
 describe('Nav', () => {
   it('é um landmark de navegação', () => {
@@ -46,12 +45,23 @@ describe('Nav', () => {
     }
   })
 
-  it('não tem carrinho, busca nem login, não existem ainda', () => {
+  it('não tem busca nem login, não existem ainda', () => {
     montarNav()
     const rotulos = [...screen.getAllByRole('link'), ...screen.getAllByRole('button')].map((e) =>
       (e.getAttribute('aria-label') ?? e.textContent ?? '').toLowerCase(),
     )
-    for (const r of rotulos) expect(r).not.toMatch(/carrinho|sacola|buscar|entrar|login|conta/)
+    for (const r of rotulos) expect(r).not.toMatch(/carrinho|buscar|entrar|login|conta/)
+  })
+
+  it('a sacola mostra quantos potes tem e abre a gaveta da direita', async () => {
+    localStorage.setItem('amo:sacola', JSON.stringify({ prestigio: 2, pacoca: 1 }))
+    montarNav()
+    const botao = screen.getByRole('button', { name: 'Sacola, 3 potes' })
+    await userEvent.click(botao)
+    const gaveta = screen.getByRole('dialog', { name: 'Sacola' })
+    expect(gaveta).toHaveClass('gaveta--direita')
+    expect(within(gaveta).getByRole('link', { name: 'Ver sacola e fechar o pedido' })).toHaveAttribute('href', '/sacola')
+    localStorage.clear()
   })
 
   it('o logo tem o nome da marca e leva ao topo da home', () => {
@@ -94,12 +104,14 @@ describe('Nav', () => {
     expect(document.getElementById('menu-mobile')).toBeNull()
   })
 
-  it('na página de uma linha, a gaveta marca a linha atual', async () => {
+  it('a gaveta leva a cada linha por âncora do catálogo, sem marcar linha atual', async () => {
     const user = userEvent.setup()
-    montarNav(montarGaveta(CATALOGO_MISTO), 'salgados')
+    montarNav(montarGaveta(CATALOGO_MISTO))
     await user.click(screen.getByRole('button', { name: 'Catálogo' }))
     const dialogo = screen.getByRole('dialog', { name: 'Catálogo' })
-    expect(within(dialogo).getByRole('link', { name: /Salgados/ })).toHaveAttribute('aria-current', 'page')
+    const salgados = within(dialogo).getByRole('link', { name: /Salgados/ })
+    expect(salgados).toHaveAttribute('href', '/catalogo#linha-salgados')
+    expect(salgados).not.toHaveAttribute('aria-current')
   })
 
   it('sem JS o botão Catálogo some', () => {
@@ -139,8 +151,8 @@ describe('Footer', () => {
     ])
     const lista = screen.getByRole('list', { name: 'Linhas' })
     expect(within(lista).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual([
-      '/catalogo/bolos-no-pote',
-      '/catalogo/salgados',
+      '/catalogo#linha-bolos-no-pote',
+      '/catalogo#linha-salgados',
     ])
   })
 

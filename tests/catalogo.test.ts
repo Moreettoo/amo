@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import imageSize from 'image-size'
 import { carregarCatalogo, validarCatalogo, type Catalogo } from '@/lib/catalogo'
+import { CATEGORIAS } from '@/data/categorias'
 import { LINHAS } from '@/data/linhas'
 import { PRODUTOS } from '@/data/produtos'
 import { SELOS } from '@/data/selos'
@@ -11,15 +12,17 @@ import { VONTADES } from '@/data/vontades'
 /** Copia funda do cadastro real, para cada teste estragar a sua. */
 function real(): Catalogo {
   return JSON.parse(
-    JSON.stringify({ linhas: LINHAS, produtos: PRODUTOS, selos: SELOS, vontades: VONTADES }),
+    JSON.stringify({ categorias: CATEGORIAS, linhas: LINHAS, produtos: PRODUTOS, selos: SELOS, vontades: VONTADES }),
   )
 }
 
 const publico = (src: string) => resolve(import.meta.dirname, '../public', src.slice(1))
 
 describe('carregarCatalogo', () => {
-  it('entrega o cadastro de hoje: 1 linha, 7 produtos, 7 selos, 5 vontades', async () => {
+  it('entrega o cadastro de hoje: 1 categoria, 1 linha, 7 produtos, 7 selos, 5 vontades', async () => {
     const c = await carregarCatalogo()
+    expect(c.categorias.map((x) => x.slug)).toEqual(['doces'])
+    expect(c.linhas.every((l) => l.categoria === 'doces')).toBe(true)
     expect(c.linhas.map((l) => l.slug)).toEqual(['bolos-no-pote'])
     expect(c.produtos).toHaveLength(7)
     expect(c.selos).toHaveLength(7)
@@ -34,6 +37,15 @@ describe('validarCatalogo', () => {
 
   it.each<[string, (c: Catalogo) => void, RegExp]>([
     ['slug de produto repetido', (c) => { c.produtos[1].slug = c.produtos[0].slug }, /slug de produto repetido/],
+    ['slug de categoria repetido', (c) => { c.categorias.push({ ...c.categorias[0] }) }, /slug de categoria repetido: doces/],
+    ['linha com categoria inexistente', (c) => { c.linhas[0].categoria = 'nao-existe' }, /linha bolos-no-pote: categoria inexistente nao-existe/],
+    ['produto com o slug de uma categoria (duas âncoras iguais na página)', (c) => { c.produtos[0].slug = 'doces' }, /id de âncora repetido: doces/],
+    ['produto com o id de uma linha (duas âncoras iguais na página)', (c) => { c.produtos[0].slug = 'linha-bolos-no-pote' }, /id de âncora repetido: linha-bolos-no-pote/],
+    [
+      'linha com o nome da categoria ao lado de outras linhas (o sumário não teria como distinguir)',
+      (c) => { c.linhas.push({ ...c.linhas[0], slug: 'doces-da-casa', nome: 'Doces' }) },
+      /linha doces-da-casa: mesmo nome da categoria doces, que tem outras linhas/,
+    ],
     ['slug de linha repetido', (c) => { c.linhas.push({ ...c.linhas[0] }) }, /slug de linha repetido/],
     ['produto com linha inexistente', (c) => { c.produtos[0].linha = 'torta' }, /linha inexistente torta/],
     ['produto com selo inexistente', (c) => { c.produtos[0].selos.push('vegano') }, /selo inexistente vegano/],

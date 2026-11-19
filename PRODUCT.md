@@ -28,16 +28,35 @@ açúcar") e os selos dizem o que tem e o que não tem. Receita conhecida
 ## Operating Context
 
 - Home com vitrine, a seção "Hoje o dia pede" (escolha pela vontade), os
-  rótulos e a marca; catálogo em `/catalogo` e `/catalogo/[linha]`.
+  rótulos e a marca; catálogo em `/catalogo`, uma página só, em capítulos
+  por categoria com as linhas dentro. Categoria, linha e produto são âncoras
+  dela (`/catalogo#doces`, `/catalogo#linha-bolos-no-pote`,
+  `/catalogo#prestigio`); não há página por linha. Cada produto tem a sua
+  página, `/catalogo/<slug>` (cliente, 2026-11-18), e os cards da vitrine e
+  do catálogo levam a ela.
 - O catálogo é um cadastro (`src/data/`, pronto para o Supabase). A página se
   adapta a ele: linhas, formatos e selos novos entram sem mexer em componente.
-- Hoje há uma linha (Bolos no pote) com 7 sabores. Salgados e bolos inteiros
-  entram depois, sempre saudáveis.
+- Hoje há uma categoria (Doces) com uma linha (Bolos no pote) e 7 sabores.
+  As categorias previstas são doces, salgados e refeições (cliente,
+  2026-11-18). Salgados e refeições entram quando houver produto com foto,
+  sempre saudáveis; até lá não aparecem, e o sumário do catálogo só existe
+  com 2 ou mais categorias ou linhas.
 
 ## Capabilities and Constraints
 
 - Next.js 16, React 19, Tailwind 4, Motion e Lenis.
-- Sem carrinho, sem checkout, sem preço, sem página de produto por enquanto.
+- Página de produto (cliente, 2026-11-18): preço, sacola com quantidade,
+  entrega pelo CEP via Uber (cotação do Uber Direct no servidor; o endereço
+  da cozinha nunca vai para a página) e comentários com nota de 1 a 5, que
+  só aparecem depois de aprovados.
+- Sacola e fechamento (cliente, 2026-11-18): gaveta da sacola pela direita
+  e a página `/sacola` com as etapas potes, entrega, dados e pagamento (Pix
+  ou cartão). O pagamento ainda é de exemplo (`enviarPedidoDeExemplo`):
+  nada é cobrado e a página diz isso. Falta escolher o meio de pagamento e
+  mandar o pedido ao servidor, que recalcula preço e frete.
+- Preço, descrição e comentários vêm de `src/data/exemplos.ts`, DADOS DE
+  EXEMPLO, e a cotação de entrega é simulada (`cotarEntregaDeExemplo`).
+  Trocar pelos reais antes de publicar.
 - Produto sempre com o nome do produto ("Prestígio"), nunca nome poético.
 - Sem foto não há produto.
 - Ainda não há contato real. O rodapé não mostra contato até haver um; não inventar.

@@ -1,8 +1,9 @@
 'use client'
 
 import Image from 'next/image'
-import { useEffect, useRef, type CSSProperties, type MouseEvent, type SyntheticEvent } from 'react'
+import type { CSSProperties } from 'react'
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
+import { GavetaModal } from '@/components/ui/GavetaModal'
 import { classeDoFormato } from '@/components/ui/MolduraProduto'
 import {
   CAMINHO_CATALOGO,
@@ -19,18 +20,10 @@ export const LINKS_DA_HOME = [
   { href: '/#marca', rotulo: 'A marca' },
 ] as const
 
-/** A duracao de gaveta-sai e fundo-sai em movimento.css. */
-export const DURACAO_SAIDA = 250
+export { DURACAO_SAIDA } from '@/components/ui/GavetaModal'
 
 /** Os itens entram um depois do outro; o atraso vem de --i (movimento.css). */
 const ordem = (i: number) => ({ '--i': i }) as CSSProperties
-
-function animaSaida(): boolean {
-  return (
-    document.documentElement.classList.contains('js') &&
-    window.matchMedia('(prefers-reduced-motion: no-preference)').matches
-  )
-}
 
 function Seta() {
   return (
@@ -43,8 +36,6 @@ function Seta() {
 type Props = {
   id: string
   dados: DadosGaveta
-  /** a linha aberta no catalogo, marcada com aria-current */
-  linhaAtual: string | null
   aberta: boolean
   /** a gaveta fechou de vez; `devolverFoco` e falso quando um link da
    *  propria pagina levou o foco para o alvo */
@@ -52,123 +43,21 @@ type Props = {
 }
 
 /**
- * A gaveta do catalogo: um <dialog> modal vindo da esquerda, uma folha de
- * borda reta (a borda ondulada da v2 saiu com as ondas do site). O navegador
- * cuida da camada de cima, do fundo inerte e de prender o foco; aqui fica a
- * abertura, a saida animada e o que cada clique faz. A entrada e CSS puro
- * (movimento.css, sob [open]); a saida espera o CSS tocar antes do close().
+ * A gaveta do catalogo: vem da esquerda (a casca e a GavetaModal). Com uma
+ * linha so, ela e os sabores; com varias, uma capa por linha.
  */
-export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
-  const ref = useRef<HTMLDialogElement>(null)
-  const fecharRef = useRef<HTMLButtonElement>(null)
-  const timer = useRef<number | undefined>(undefined)
-  const devolver = useRef(true)
-
-  useEffect(() => {
-    const d = ref.current
-    if (!aberta || !d) return
-    window.clearTimeout(timer.current)
-    d.removeAttribute('data-fechando')
-    if (!d.open) d.showModal()
-    fecharRef.current?.focus()
-  }, [aberta])
-
-  useEffect(() => {
-    const t = timer
-    return () => window.clearTimeout(t.current)
-  }, [])
-
-  /** Fecha de vez. Quem avisa e o evento close, que tambem cobre o navegador
-   *  fechando sozinho (um segundo Esc seguido nao e cancelavel). */
-  function concluir(devolverFoco: boolean) {
-    const d = ref.current
-    window.clearTimeout(timer.current)
-    if (!d?.open) return
-    devolver.current = devolverFoco
-    d.removeAttribute('data-fechando')
-    d.close()
-  }
-
-  /** Pedido de fechar (o botao, o Esc, o clique fora). Com movimento, a saida
-   *  toca antes; pedido repetido no meio dela nao conta. */
-  function fechar() {
-    const d = ref.current
-    if (!d?.open || d.hasAttribute('data-fechando')) return
-    if (!animaSaida()) return concluir(true)
-    d.setAttribute('data-fechando', '')
-    timer.current = window.setTimeout(() => concluir(true), DURACAO_SAIDA)
-  }
-
-  function aoFecharNativo() {
-    window.clearTimeout(timer.current)
-    ref.current?.removeAttribute('data-fechando')
-    const devolverFoco = devolver.current
-    devolver.current = true
-    aoFechar(devolverFoco)
-  }
-
-  function aoCancelar(e: SyntheticEvent<HTMLDialogElement>) {
-    e.preventDefault()
-    fechar()
-  }
-
-  function aoClicar(e: MouseEvent<HTMLDialogElement>) {
-    // O painel cobre a caixa do <dialog> inteira: clique com alvo no proprio
-    // <dialog> so pode ter vindo do fundo.
-    if (e.target === e.currentTarget) return fechar()
-    const link = (e.target as Element).closest('a[href]')
-    if (!(link instanceof HTMLAnchorElement)) return
-    // Mesma pagina: fecha ja, sem animacao, para o RolagemSuave rolar ate o
-    // alvo e levar o foco. Outra pagina: a navegacao troca o documento.
-    // A ordem importa: este onClick (o React ouve na raiz) roda antes do
-    // ouvinte de bolha do RolagemSuave no document. Se ela virasse, o foco
-    // iria para um alvo ainda inerte atras do modal, e o close() depois o
-    // devolveria a quem abriu a gaveta.
-    if (new URL(link.href).pathname === window.location.pathname) concluir(false)
-  }
-
+export function Gaveta({ id, dados, aberta, aoFechar }: Props) {
   const [primeira] = dados.linhas
   const unica = dados.linhas.length === 1
   const pe = unica ? dados.sabores.length + 1 : dados.linhas.length + 1
-  const atual = (slug: string) => (slug === linhaAtual ? ('page' as const) : undefined)
 
-  // data-lenis-prevent no proprio <dialog>: o alvo da roda sobre o fundo
-  // (::backdrop) e ele. Sem allow-discrete (Safari ate 17.3) o autoToggle
-  // nao para o Lenis, e a roda ali rolaria a pagina de tras. O painel, que
-  // rola sozinho, herda.
   return (
-    <dialog
-      id={id}
-      ref={ref}
-      aria-labelledby={`${id}-titulo`}
-      className="gaveta"
-      data-lenis-prevent
-      onCancel={aoCancelar}
-      onClose={aoFecharNativo}
-      onClick={aoClicar}
-    >
-      <div className="gaveta__painel">
-        <div className="gaveta__topo">
-          <h2 id={`${id}-titulo`}>Catálogo</h2>
-          <button
-            ref={fecharRef}
-            type="button"
-            className="gaveta__fechar"
-            aria-label="Fechar o catálogo"
-            onClick={fechar}
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-        </div>
-
+    <GavetaModal id={id} titulo="Catálogo" rotuloFechar="Fechar o catálogo" aberta={aberta} aoFechar={aoFechar}>
         {unica ? (
           <>
             <p className="gaveta__frase">Escolha a linha ou vá direto a um sabor.</p>
             <a
               href={caminhoDaLinha(primeira.slug)}
-              aria-current={atual(primeira.slug)}
               className="gaveta__unica gaveta__item"
               style={ordem(0)}
             >
@@ -199,7 +88,7 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
             <ul aria-labelledby={`${id}-sabores`} className="gaveta__sabores">
               {dados.sabores.map((s, i) => (
                 <li key={s.slug} className="gaveta__item" style={ordem(i + 1)}>
-                  <a href={`${caminhoDaLinha(primeira.slug)}#${s.slug}`}>
+                  <a href={`${CAMINHO_CATALOGO}#${s.slug}`}>
                     <Image
                       src={s.imagem.src}
                       alt=""
@@ -223,7 +112,7 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
             <ul className="gaveta__linhas">
               {dados.linhas.map((l, i) => (
                 <li key={l.slug} className="gaveta__item" style={ordem(i)}>
-                  <a href={caminhoDaLinha(l.slug)} aria-current={atual(l.slug)} className="gaveta__linha">
+                  <a href={caminhoDaLinha(l.slug)} className="gaveta__linha">
                     <span className="gaveta__moldura">
                       <span className={`gaveta__capa gaveta__capa--${classeDoFormato(l.capa.formato)}`}>
                         <Image
@@ -276,7 +165,6 @@ export function Gaveta({ id, dados, linhaAtual, aberta, aoFechar }: Props) {
             Hoje o dia pede <Seta />
           </b>
         </a>
-      </div>
-    </dialog>
+    </GavetaModal>
   )
 }

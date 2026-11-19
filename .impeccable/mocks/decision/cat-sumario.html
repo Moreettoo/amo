@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>O sumário</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --linho:#F6EBDD; --suave:#5E4A40; --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1440px; height: 900px; overflow: hidden; font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); }
+  ul { list-style: none; }
+  .wrap { width: 1128px; margin: 0 auto; }
+  header { height: 64px; border-bottom: 1px solid var(--fio); }
+  header .wrap { height: 100%; display: flex; align-items: center; gap: 32px; font-size: 15px; }
+  header img { height: 36px; margin-right: auto; }
+  header .cta { background: var(--expresso); color: var(--creme); font-weight: 500; font-size: 14px; padding: 12px 20px; border-radius: 2px; }
+  .menu { display: flex; align-items: center; gap: 10px; }
+  .menu i { width: 16px; height: 9px; border-top: 1.4px solid; border-bottom: 1.4px solid; }
+
+  .topo { display: flex; justify-content: space-between; align-items: flex-end; padding-top: 34px; }
+  .trilha { font-size: 13px; color: var(--suave); margin-bottom: 14px; }
+  .trilha b { font-weight: 500; color: var(--expresso); }
+  h1 { font-weight: 300; font-size: 54px; line-height: 1.05; letter-spacing: -.03em; }
+  h1 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 96px; line-height: .9; letter-spacing: 0; color: var(--cobre-texto); margin-left: 44px; }
+  .lead { width: 380px; font-size: 17px; line-height: 1.65; color: var(--suave); padding-bottom: 14px; }
+
+  .filtros { display: flex; align-items: center; gap: 8px; margin-top: 30px; font-size: 15px; }
+  .filtros .rot { font-size: 14px; color: var(--cobre-texto); margin-right: 10px; }
+  .pil { height: 44px; padding: 0 18px; border: 1px solid var(--contorno); border-radius: 2px; display: flex; align-items: center; gap: 8px; }
+  .pil small { font-size: 12px; color: var(--suave); }
+  .mostra { margin-left: auto; font-size: 14px; color: var(--suave); }
+
+  .corpo { display: grid; grid-template-columns: 208px 1fr; gap: 64px; margin-top: 46px; }
+  .indice { position: relative; padding-left: 26px; border-left: 1px solid var(--fio); height: 400px; }
+  .indice .rot { font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--cobre-texto); margin-bottom: 18px; }
+  .indice li { font-size: 17px; display: flex; justify-content: space-between; align-items: baseline; padding: 9px 0; }
+  .indice li small { font-size: 12px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .indice .atual { font-weight: 500; }
+  .indice .sub { font-size: 14.5px; color: var(--suave); padding: 4px 0 10px 14px; }
+  .indice .aqui { position: absolute; left: -7px; top: 44px; color: var(--cobre); font-size: 13px; background: var(--creme); padding: 4px 0; line-height: 1; }
+  .hoje { margin-top: 40px; font-size: 14px; color: var(--suave); line-height: 1.6; }
+  .hoje b { display: block; font-weight: 500; color: var(--expresso); font-size: 15px; }
+
+  .cap-topo { display: flex; align-items: baseline; gap: 22px; }
+  h2 { font-weight: 300; font-size: 40px; letter-spacing: -.02em; line-height: 1.1; }
+  .linha { font-size: 16px; }
+  .regra { font-size: 12px; font-weight: 600; letter-spacing: .26em; text-transform: uppercase; }
+  .regra::before { content: "♥"; color: var(--cobre); margin-right: 10px; letter-spacing: 0; }
+  .conta { margin-left: auto; font-size: 14px; color: var(--suave); }
+  .grade { display: grid; grid-template-columns: repeat(4, 1fr); gap: 56px 28px; margin-top: 30px; }
+  .card img { width: 100%; aspect-ratio: 4/5; object-fit: cover; border-radius: 4px; display: block; background: var(--linho); }
+  .card h3 { font-weight: 400; font-size: 20px; letter-spacing: -.01em; margin-top: 16px; line-height: 1.2; }
+  .card .tipo { font-size: 13px; font-weight: 500; color: var(--cobre-texto); margin-top: 3px; }
+  .card .selos { font-size: 11px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--suave); margin-top: 10px; }
+  .card .frase { font-size: 14px; color: var(--suave); line-height: 1.55; margin-top: 6px; }
+</style>
+</head>
+<body>
+  <header><div class="wrap">
+    <span class="menu"><i></i>Catálogo</span>
+    <img src="http://localhost:3000/marca/logo-amo.png" alt="AMO">
+    <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+    <span class="cta">Ver cardápio</span>
+  </div></header>
+
+  <div class="wrap">
+    <div class="topo">
+      <div>
+        <p class="trilha">Início &nbsp;›&nbsp; <b>Catálogo</b></p>
+        <h1>O catálogo <em>inteiro</em></h1>
+      </div>
+      <p class="lead">Doces, salgados e refeições. Cada linha com a sua regra no rótulo.</p>
+    </div>
+
+    <div class="filtros">
+      <span class="rot">Na vontade de</span>
+      <span class="pil">Chocolate <small>2</small></span>
+      <span class="pil">Fruta <small>3</small></span>
+      <span class="pil">Coco <small>2</small></span>
+      <span class="pil">Um clássico <small>3</small></span>
+      <span class="mostra">Mostrando tudo</span>
+    </div>
+
+    <div class="corpo">
+      <div class="indice">
+        <span class="aqui">♥</span>
+        <p class="rot">Sumário</p>
+        <ul>
+          <li class="atual">Doces <small>7</small></li>
+          <li class="sub">Bolos no pote</li>
+          <li>Salgados</li>
+          <li>Refeições</li>
+        </ul>
+        <p class="hoje">Não sabe o que escolher? <b>Hoje o dia pede →</b></p>
+      </div>
+
+      <div>
+        <div class="cap-topo">
+          <h2>Doces</h2>
+          <span class="linha">Bolos no pote</span>
+          <span class="regra">Zero açúcar</span>
+          <span class="conta">7 receitas</span>
+        </div>
+        <div class="grade">
+          <div class="card"><img src="http://localhost:3000/produtos/prestigio.webp" alt=""><h3>Prestígio</h3><p class="tipo">Bolo no pote</p><p class="selos">Zero açúcar &nbsp; Fonte de fibras</p><p class="frase">Um abraço em forma de sobremesa</p></div>
+          <div class="card"><img src="http://localhost:3000/produtos/pacoca.webp" alt=""><h3>Paçoca</h3><p class="tipo">Bolo no pote</p><p class="selos">Zero açúcar &nbsp; Fonte de fibras</p><p class="frase">O sabor que desperta boas lembranças</p></div>
+          <div class="card"><img src="http://localhost:3000/produtos/mousse-de-maracuja.webp" alt=""><h3>Mousse de maracujá</h3><p class="tipo">Bolo no pote</p><p class="selos">Zero açúcar &nbsp; Fonte de fibras</p><p class="frase">Para dias mais leves</p></div>
+          <div class="card"><img src="http://localhost:3000/produtos/ninho-com-frutas-vermelhas.webp" alt=""><h3>Ninho com frutas vermelhas</h3><p class="tipo">Bolo no pote</p><p class="selos">Zero açúcar &nbsp; Fonte de fibras</p><p class="frase">Quando o doce encontra o azedinho perfeito</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

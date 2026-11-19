@@ -38,6 +38,132 @@
         ],
         "createdAt": "2026-11-18T15:01:08.672Z",
         "reason": "user confirmed: na rodada de perguntas de 2026-11-18 o cliente marcou 'Paleta marrom, cobre e creme' como o que deve continuar igual; a pagina de teste de script usa as cores do site"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/barra-fina.html"
+        ],
+        "createdAt": "2026-11-18T16:57:36.505Z",
+        "reason": "mock de comparacao: mostra de proposito as fontes que o cliente avaliou e nao escolheu"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/papelaria-fina.html"
+        ],
+        "createdAt": "2026-11-18T16:57:36.800Z",
+        "reason": "mock de comparacao: mostra de proposito as fontes que o cliente avaliou e nao escolheu"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/pagina-dupla.html"
+        ],
+        "createdAt": "2026-11-18T16:57:37.060Z",
+        "reason": "mock de comparacao: mostra de proposito as fontes que o cliente avaliou e nao escolheu"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/teste-script.html"
+        ],
+        "createdAt": "2026-11-18T16:57:37.505Z",
+        "reason": "mock de comparacao: mostra de proposito as fontes que o cliente avaliou e nao escolheu"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/cat-sumario.html"
+        ],
+        "createdAt": "2026-11-18T17:12:07.977Z",
+        "reason": "decisao do cliente registrada em PRODUCT.md (2026-11-18): a paleta marrom, cobre e creme fica; o esboco usa as cores do site"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/cat-ficha.html"
+        ],
+        "createdAt": "2026-11-18T17:12:08.046Z",
+        "reason": "decisao do cliente registrada em PRODUCT.md (2026-11-18): a paleta marrom, cobre e creme fica; o esboco usa as cores do site"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/cat-carta.html"
+        ],
+        "createdAt": "2026-11-18T17:12:08.113Z",
+        "reason": "decisao do cliente registrada em PRODUCT.md (2026-11-18): a paleta marrom, cobre e creme fica; o esboco usa as cores do site"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/cat-ficha.html"
+        ],
+        "createdAt": "2026-11-18T17:12:08.175Z",
+        "reason": "falso positivo medido no esboco: o texto da faixa fica a 156 px da borda (coluna de 1128 em 1440) e o pe da ficha a 22 px do fundo"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/pdp-balcao.html"
+        ],
+        "createdAt": "2026-11-18T19:01:01.911Z",
+        "reason": "decisao do cliente registrada em PRODUCT.md (2026-11-18): a paleta marrom, cobre e creme fica; o esboco usa as cores do site"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/pdp-etiqueta.html"
+        ],
+        "createdAt": "2026-11-18T19:01:01.970Z",
+        "reason": "decisao do cliente registrada em PRODUCT.md (2026-11-18): a paleta marrom, cobre e creme fica; o esboco usa as cores do site"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/pdp-rotulo.html"
+        ],
+        "createdAt": "2026-11-18T19:01:02.029Z",
+        "reason": "decisao do cliente registrada em PRODUCT.md (2026-11-18): a paleta marrom, cobre e creme fica; o esboco usa as cores do site"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/sacola-comanda.html"
+        ],
+        "createdAt": "2026-11-18T19:54:23.250Z",
+        "reason": "client decision recorded in PRODUCT.md Brand Commitments (2026-11-18): brown, copper and cream palette stays"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/sacola-fio.html"
+        ],
+        "createdAt": "2026-11-18T19:54:23.314Z",
+        "reason": "client decision recorded in PRODUCT.md Brand Commitments (2026-11-18): brown, copper and cream palette stays"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/sacola-pergunta.html"
+        ],
+        "createdAt": "2026-11-18T19:54:23.377Z",
+        "reason": "client decision recorded in PRODUCT.md Brand Commitments (2026-11-18): brown, copper and cream palette stays"
       }
     ]
   }

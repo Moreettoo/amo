@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>A comanda</title>
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --papel:#FFFBF5; --linho:#F6EBDD; --suave:#5E4A40; --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1440px; height: 900px; overflow: hidden; font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); }
+  .wrap { width: 1128px; margin: 0 auto; }
+  header { height: 64px; border-bottom: 1px solid var(--fio); }
+  header .wrap { height: 100%; display: flex; align-items: center; gap: 30px; font-size: 15px; }
+  header img { height: 30px; margin-right: auto; }
+  .menu { display: flex; align-items: center; gap: 10px; }
+  .menu i { width: 16px; height: 9px; border-top: 1.4px solid; border-bottom: 1.4px solid; }
+  .bag { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1px solid var(--expresso); border-radius: 2px; font-size: 14px; font-weight: 500; }
+  .bag b { min-width: 20px; height: 20px; border-radius: 2px; background: var(--expresso); color: var(--creme); font-size: 12px; display: grid; place-items: center; }
+  .trilha { font-size: 14px; color: var(--suave); padding: 26px 0 0; }
+  .trilha b { color: var(--expresso); font-weight: 500; }
+  h1 { font-weight: 300; font-size: 48px; letter-spacing: -.03em; line-height: 1.1; margin-top: 10px; }
+  h1 em { font-family: Allura, cursive; font-style: normal; font-size: 1.6em; letter-spacing: 0; color: var(--cobre-texto); margin-left: 8px; }
+  .corpo { display: grid; grid-template-columns: 560px 1fr; gap: 72px; margin-top: 26px; }
+  .comanda { position: relative; background: var(--papel); border-radius: 2px; padding: 30px 34px 30px; box-shadow: 0 24px 50px -34px rgb(43 27 22 / .4); }
+  .comanda::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgb(201 120 74 / .55); border-radius: 2px; }
+  .cab { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--cobre-texto); padding-bottom: 12px; }
+  .cab span:last-child { letter-spacing: .08em; font-weight: 500; color: var(--suave); text-transform: none; font-size: 13px; }
+  .item { display: grid; grid-template-columns: 52px 1fr; gap: 14px; align-items: center; padding: 12px 0; }
+  .item img { width: 52px; height: 64px; object-fit: cover; border-radius: 3px; background: var(--linho); }
+  .l1 { display: flex; align-items: baseline; gap: 10px; font-size: 16px; }
+  .pont { flex: 1; border-bottom: 1.4px dotted rgb(43 27 22 / .35); transform: translateY(-4px); }
+  .v { font-variant-numeric: tabular-nums; }
+  .l2 { display: flex; align-items: center; gap: 14px; margin-top: 6px; font-size: 13px; color: var(--suave); }
+  .qtd { display: inline-flex; align-items: center; border: 1px solid var(--contorno); border-radius: 2px; height: 32px; color: var(--expresso); }
+  .qtd i { width: 30px; text-align: center; font-style: normal; font-size: 16px; font-weight: 300; }
+  .qtd b { width: 22px; text-align: center; font-weight: 500; font-variant-numeric: tabular-nums; font-size: 14px; }
+  .tirar { text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--fio); }
+  .soma { margin-top: 10px; padding-top: 12px; border-top: 1px solid rgb(43 27 22 / .2); display: grid; gap: 6px; font-size: 15px; }
+  .soma .l1 small { font-size: 13px; color: var(--suave); }
+  .total { display: flex; align-items: baseline; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgb(43 27 22 / .2); }
+  .total span { font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; }
+  .total b { font-weight: 300; font-size: 40px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .assina { font-family: Allura, cursive; font-size: 30px; color: var(--cobre-texto); margin-top: 6px; }
+  .fecha h2 { font-weight: 400; font-size: 22px; letter-spacing: -.01em; }
+  .bloco { padding: 18px 0 20px; }
+  .bloco + .bloco { border-top: 1px solid var(--fio); }
+  .rot { font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--cobre-texto); display: flex; align-items: center; gap: 10px; }
+  .rot svg { width: 11px; height: 11px; fill: var(--cobre); }
+  .linha { display: flex; gap: 10px; margin-top: 12px; }
+  .campo { height: 46px; border: 1px solid var(--contorno); border-radius: 2px; padding: 0 14px; display: flex; align-items: center; font-size: 15px; color: var(--suave); flex: 1; }
+  .campo.cheio { color: var(--expresso); font-variant-numeric: tabular-nums; }
+  .uber { margin-top: 10px; font-size: 14px; display: flex; justify-content: space-between; }
+  .uber small { color: var(--suave); font-size: 13px; }
+  .fechado { display: flex; justify-content: space-between; align-items: center; font-size: 15px; color: var(--suave); }
+  .botao { margin-top: 14px; height: 52px; background: var(--expresso); color: var(--creme); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 15px; letter-spacing: .02em; }
+  .aviso { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 12px; color: var(--suave); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <span class="menu"><i></i>Catálogo</span>
+  <img src="http://localhost:3000/marca/logo-amo.png" alt="AMO">
+  <span>A linha</span><span>Hoje o dia pede</span><span>O rótulo</span>
+  <span class="bag">Sacola <b>4</b></span>
+</div></header>
+<main class="wrap">
+  <p class="trilha">Início &nbsp;›&nbsp; <b>Sacola</b></p>
+  <h1>Seu pedido <em>com carinho</em></h1>
+  <div class="corpo">
+    <section class="comanda">
+      <p class="cab"><span>Comanda</span><span>4 potes</span></p>
+      <div class="item"><img src="http://localhost:3000/produtos/prestigio.webp" alt="">
+        <div><p class="l1">Prestígio <span class="pont"></span><span class="v">R$ 37,80</span></p>
+        <p class="l2"><span class="qtd"><i>−</i><b>2</b><i>+</i></span>R$ 18,90 o pote <span class="tirar">Tirar</span></p></div></div>
+      <div class="item"><img src="http://localhost:3000/produtos/ninho-com-frutas-vermelhas.webp" alt="">
+        <div><p class="l1">Ninho com frutas vermelhas <span class="pont"></span><span class="v">R$ 21,90</span></p>
+        <p class="l2"><span class="qtd"><i>−</i><b>1</b><i>+</i></span>R$ 21,90 o pote <span class="tirar">Tirar</span></p></div></div>
+      <div class="item"><img src="http://localhost:3000/produtos/pacoca.webp" alt="">
+        <div><p class="l1">Paçoca <span class="pont"></span><span class="v">R$ 18,90</span></p>
+        <p class="l2"><span class="qtd"><i>−</i><b>1</b><i>+</i></span>R$ 18,90 o pote <span class="tirar">Tirar</span></p></div></div>
+      <div class="soma">
+        <p class="l1">Subtotal <span class="pont"></span><span class="v">R$ 78,60</span></p>
+        <p class="l1">Entrega pelo Uber <small>até 45 min</small><span class="pont"></span><span class="v">R$ 12,90</span></p>
+      </div>
+      <div class="total"><span>Total</span><b>R$ 91,50</b></div>
+      <p class="assina">AMO por você.</p>
+    </section>
+    <section class="fecha">
+      <div class="bloco">
+        <p class="rot"><svg viewBox="0 0 12 12"><path d="M6 11 1.5 6.6A2.6 2.6 0 0 1 6 3a2.6 2.6 0 0 1 4.5 3.6Z"/></svg>1 · Entrega</p>
+        <div class="linha"><span class="campo cheio">01310-100</span><span class="campo cheio" style="flex:.5">1578</span><span class="campo" style="flex:1.4">Complemento</span></div>
+        <p class="uber"><span>Av. Paulista, Bela Vista · Uber, hoje <small>&nbsp;até 45 min</small></span><b style="font-weight:500">R$ 12,90</b></p>
+      </div>
+      <div class="bloco">
+        <p class="rot">2 · Seus dados</p>
+        <div class="linha"><span class="campo">Nome</span><span class="campo">Celular (WhatsApp)</span></div>
+        <div class="linha"><span class="campo">E-mail</span><span class="campo">CPF (para a nota)</span></div>
+      </div>
+      <div class="bloco">
+        <p class="fechado"><span class="rot" style="color:var(--suave)">3 · Pagamento</span><span>Pix ou cartão</span></p>
+      </div>
+      <div class="botao">Continuar para o pagamento · R$ 91,50</div>
+    </section>
+  </div>
+</main>
+<p class="aviso">Esboço. Preços, frete e endereço são de exemplo.</p>
+</body>
+</html>

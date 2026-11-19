@@ -14,15 +14,14 @@ type Props = {
 }
 
 /**
- * A pagina do catalogo montada: as duas rotas so carregam o cadastro e
- * chamam esta tela. Ela termina como a home: um bloco expresso com a
- * assinatura da marca. Numa linha, esse bloco comeca no rotulo dela (o fim
- * do CatalogoPagina) e os dois se juntam num fecho so.
+ * A pagina do catalogo montada: a rota so carrega o cadastro e chama esta
+ * tela. Creme do topo ao corpo, ela termina como a home: um bloco expresso
+ * com a assinatura da marca.
  */
 export function TelaCatalogo({ vista, gaveta, linhas }: Props) {
   return (
     <>
-      <Nav gaveta={gaveta} linhaAtual={vista.linha?.slug ?? null} />
+      <Nav gaveta={gaveta} />
       <main id="conteudo" className="scroll-mt-24">
         <TopoCatalogo vista={vista} />
         <CatalogoPagina vista={vista} />

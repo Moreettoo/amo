@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>O rótulo na mão</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --papel:#FFFBF5; --linho:#F6EBDD; --suave:#5E4A40; --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1440px; height: 1600px; overflow: hidden; position: relative; font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); }
+  ul { list-style: none; }
+  .wrap { width: 1128px; margin: 0 auto; }
+  header { height: 64px; border-bottom: 1px solid var(--fio); }
+  header .wrap { height: 100%; display: flex; align-items: center; gap: 32px; font-size: 15px; }
+  header img { height: 36px; margin-right: auto; }
+  .menu { display: flex; align-items: center; gap: 10px; }
+  .menu i { width: 16px; height: 9px; border-top: 1.4px solid; border-bottom: 1.4px solid; }
+  .sacola { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border: 1px solid var(--contorno); border-radius: 2px; font-size: 14px; }
+  svg.estrela { width: 15px; height: 15px; fill: var(--cobre); }
+  svg.estrela.vazia { fill: none; stroke: var(--cobre); stroke-width: 1.3; }
+
+  .trilha { font-size: 14px; color: var(--suave); padding: 28px 0 30px; }
+  .trilha b { color: var(--expresso); font-weight: 500; }
+  .corpo { display: grid; grid-template-columns: 600px 1fr; gap: 80px; }
+  .foto { position: relative; }
+  .foto::before { content: ""; position: absolute; left: 12px; top: 12px; width: 600px; height: 750px; border: 1px solid var(--cobre); border-radius: 4px; }
+  .foto img { position: relative; width: 600px; height: 750px; object-fit: cover; border-radius: 4px; display: block; background: var(--linho); }
+
+  .tipo { font-size: 13px; font-weight: 500; color: var(--cobre-texto); }
+  h1 { font-weight: 300; font-size: 48px; letter-spacing: -.03em; line-height: 1.1; margin-top: 2px; }
+  .nota { display: flex; align-items: center; gap: 4px; margin-top: 10px; font-size: 14px; color: var(--suave); }
+  .nota span { margin-left: 8px; text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--fio); }
+  .preco { margin-top: 22px; display: flex; align-items: baseline; gap: 10px; }
+  .preco b { font-weight: 300; font-size: 36px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .preco small { font-size: 14px; color: var(--suave); }
+  .selos { display: flex; gap: 18px; margin-top: 12px; font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--cobre-texto); }
+  .compra { display: flex; gap: 10px; margin-top: 22px; }
+  .qtd { display: inline-flex; align-items: center; border: 1px solid var(--contorno); border-radius: 2px; height: 52px; }
+  .qtd i { width: 42px; text-align: center; font-style: normal; font-size: 18px; font-weight: 300; }
+  .qtd b { width: 24px; text-align: center; font-weight: 500; }
+  .botao { flex: 1; height: 52px; background: var(--expresso); color: var(--creme); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 15px; letter-spacing: .02em; }
+
+  .entrega { margin-top: 24px; }
+  .entrega p.t { font-size: 14px; font-weight: 500; }
+  .cep { display: flex; gap: 8px; margin-top: 10px; }
+  .campo { height: 44px; border: 1px solid var(--contorno); border-radius: 2px; padding: 0 14px; display: flex; align-items: center; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .campo.cep1 { width: 160px; } .campo.num { width: 100px; }
+  .campo.calc { font-weight: 500; font-size: 14px; padding: 0 18px; }
+  .opcao { display: flex; justify-content: space-between; align-items: baseline; margin-top: 12px; font-size: 15px; }
+  .opcao small { display: block; font-size: 13px; color: var(--suave); }
+  .opcao b { font-weight: 500; font-variant-numeric: tabular-nums; }
+
+  .secoes { margin-top: 26px; border-top: 1px solid var(--fio); }
+  .secao { border-bottom: 1px solid var(--fio); padding: 15px 0; }
+  .secao .cab { display: flex; justify-content: space-between; align-items: center; font-size: 16px; }
+  .secao .cab i { width: 10px; height: 10px; border-right: 1.4px solid; border-bottom: 1.4px solid; transform: rotate(45deg) translateY(-3px); }
+  .secao.aberta .cab i { transform: rotate(-135deg) translateY(-1px); }
+  .secao p { font-size: 15px; line-height: 1.65; color: var(--suave); margin-top: 10px; max-width: 52ch; }
+
+  .coments { margin-top: 130px; display: grid; grid-template-columns: 300px 1fr; gap: 100px; }
+  h2 { font-weight: 300; font-size: 40px; letter-spacing: -.02em; line-height: 1.2; }
+  h2 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 1.6em; line-height: 1; letter-spacing: 0; color: var(--cobre-texto); }
+  .media { font-weight: 300; font-size: 56px; letter-spacing: -.03em; margin-top: 24px; line-height: 1; }
+  .media small { font-size: 14px; color: var(--suave); letter-spacing: 0; margin-left: 8px; }
+  .barras { display: grid; gap: 4px; margin-top: 18px; font-size: 13px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .barras div { display: grid; grid-template-columns: 76px 1fr 24px; white-space: nowrap; gap: 10px; align-items: center; height: 30px; }
+  .barras s { height: 1px; background: var(--fio); position: relative; }
+  .barras s::after { content: ""; position: absolute; left: 0; top: -1px; height: 3px; background: var(--cobre); width: var(--p); }
+  .escrever { display: flex; margin-top: 26px; height: 50px; align-items: center; justify-content: center; border: 1px solid var(--expresso); border-radius: 2px; font-size: 15px; font-weight: 500; }
+  .ordem { display: flex; justify-content: space-between; font-size: 14px; color: var(--suave); padding-bottom: 14px; }
+  .ordem b { color: var(--expresso); font-weight: 500; }
+  .lista { display: grid; gap: 34px; margin-top: 14px; }
+  .lista p { font-size: 15px; line-height: 1.65; margin-top: 8px; max-width: 64ch; }
+  .quem { font-size: 13px; color: var(--suave); display: flex; align-items: center; gap: 4px; }
+  .quem b { color: var(--expresso); font-weight: 500; margin-right: 10px; }
+  .aviso { position: absolute; left: 0; right: 0; bottom: 26px; text-align: center; font-size: 12px; color: var(--suave); }
+</style>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute"><symbol id="e" viewBox="0 0 20 20"><path d="M10 1.8l2.5 5.3 5.7.7-4.2 3.9 1.1 5.7L10 14.6l-5.1 2.8 1.1-5.7-4.2-3.9 5.7-.7z"/></symbol></svg>
+  <header><div class="wrap">
+    <span class="menu"><i></i>Catálogo</span>
+    <img src="http://localhost:3000/marca/logo-amo.png" alt="AMO">
+    <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+    <span class="sacola">Sacola 0</span>
+  </div></header>
+
+  <div class="wrap">
+    <p class="trilha">Início &nbsp;›&nbsp; Catálogo &nbsp;›&nbsp; Doces &nbsp;›&nbsp; <b>Prestígio</b></p>
+    <div class="corpo">
+      <div class="foto"><img src="http://localhost:3000/produtos/prestigio.webp" alt=""></div>
+      <div>
+        <p class="tipo">Bolo no pote</p>
+        <h1>Prestígio</h1>
+        <p class="nota"><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg> 4,8 <span>Ler os 23 comentários</span></p>
+        <div class="preco"><b>R$ 18,90</b><small>o pote</small></div>
+        <p class="selos"><span>Zero açúcar</span><span>Fonte de fibras</span></p>
+        <div class="compra"><span class="qtd"><i>−</i><b>1</b><i>+</i></span><span class="botao">Adicionar à sacola</span></div>
+        <div class="entrega">
+          <p class="t">Calcule a entrega</p>
+          <div class="cep"><span class="campo cep1">04567-000</span><span class="campo num">Nº 120</span><span class="campo calc">Calcular</span></div>
+          <div class="opcao"><span>Uber, entrega hoje<small>Chega em até 45 min depois do pedido</small></span><b>R$ 12,40</b></div>
+        </div>
+        <div class="secoes">
+          <div class="secao aberta"><div class="cab">Descrição <i></i></div><p>Massa de chocolate úmida, cozida a vapor, com creme de coco e coco ralado por cima. Zero açúcar, adoçado com eritritol e stevia.</p></div>
+          <div class="secao"><div class="cab">O que diz o rótulo <i></i></div></div>
+          <div class="secao"><div class="cab">Como aproveitar seu AMO <i></i></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="coments">
+      <div>
+        <h2>Quem provou <em>conta</em></h2>
+        <p class="media">4,8<small>de 5 · 23 comentários</small></p>
+        <div class="barras">
+          <div>5 estrelas<s style="--p:82%"></s>19</div><div>4 estrelas<s style="--p:13%"></s>3</div><div>3 estrelas<s style="--p:4%"></s>1</div><div>2 estrelas<s style="--p:0%"></s>0</div><div>1 estrela<s style="--p:0%"></s>0</div>
+        </div>
+        <span class="escrever">Escrever um comentário</span>
+      </div>
+      <div>
+        <div class="ordem"><span>Mostrando 3 de 23</span><span>Ordenar por <b>Mais recentes</b></span></div>
+        <div class="lista">
+          <div><p class="quem"><b>Carla M.</b><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg>&nbsp; há 3 dias</p><p>Não acreditei que era sem açúcar. O coco é de verdade e o bolo é molhadinho até o fundo do pote.</p></div>
+          <div><p class="quem"><b>Renata S.</b><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela vazia"><use href="#e"/></svg>&nbsp; há 1 semana</p><p>Sou diabética e foi o primeiro doce em meses que comi tranquila. Chegou rápido e bem embalado.</p></div>
+          <div><p class="quem"><b>Juliana P.</b><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg><svg class="estrela"><use href="#e"/></svg>&nbsp; há 2 semanas</p><p>Guardei o pote para levar o próximo no trabalho. O tamanho é certo para depois do almoço.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="aviso">Esboço. Preço, notas, comentários, descrição e frete são de exemplo.</p>
+</body>
+</html>

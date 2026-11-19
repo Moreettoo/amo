@@ -4,10 +4,13 @@ Home v2 da AMO, direção "Retrô doce", e o catálogo. Páginas institucionais
 dirigidas por um cadastro (linhas, produtos, selos, vontades), sem carrinho,
 sem preço e sem checkout; essas partes vêm em rodadas seguintes sobre
 Supabase. A home tem uma vitrine e a gaveta do catálogo na nav; o catálogo
-mora em `/catalogo` ("Tudo") e `/catalogo/<linha>`, uma página estática por
-linha com produto. As especificações estão em
-`docs/superpowers/specs/2026-10-05-amo-home-v2-retro-design.md` e
-`docs/superpowers/specs/2026-10-06-amo-catalogo-design.md`; os planos, em
+mora em `/catalogo`, uma página estática só, em capítulos por categoria com
+as linhas dentro (categoria, linha e produto são âncoras dela). As
+especificações estão em
+`docs/superpowers/specs/2026-10-05-amo-home-v2-retro-design.md`,
+`docs/superpowers/specs/2026-10-06-amo-catalogo-design.md` e
+`docs/superpowers/specs/2026-11-18-amo-catalogo-sumario-design.md` (esta
+substitui a página do catálogo da anterior); os planos, em
 `docs/superpowers/plans/`.
 
 ## Stack

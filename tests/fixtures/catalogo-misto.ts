@@ -1,4 +1,5 @@
 import type { Catalogo, Produto } from '@/lib/catalogo'
+import { CATEGORIAS } from '@/data/categorias'
 import { LINHAS } from '@/data/linhas'
 import { PRODUTOS } from '@/data/produtos'
 import { SELOS } from '@/data/selos'
@@ -6,7 +7,7 @@ import { VONTADES } from '@/data/vontades'
 
 /**
  * O cadastro de hoje mais os exemplos do prototipo (bolos inteiros e
- * salgados). Serve para provar que a pagina se adapta sem mudar componente.
+ * salgados), em duas categorias: doces e salgados. Serve para provar que a pagina se adapta sem mudar componente.
  * A foto e emprestada: o que importa aqui e a forma dos dados.
  */
 const FOTO = { src: '/produtos/prestigio.webp', alt: 'Foto de teste', largura: 666, altura: 1000 }
@@ -14,10 +15,12 @@ const FOTO = { src: '/produtos/prestigio.webp', alt: 'Foto de teste', largura: 6
 const exemplo = (p: Omit<Produto, 'imagem'>): Produto => ({ ...p, imagem: FOTO })
 
 export const CATALOGO_MISTO: Catalogo = {
+  categorias: [...CATEGORIAS, { slug: 'salgados', nome: 'Salgados', ordem: 2 }],
   linhas: [
     ...LINHAS,
     {
       slug: 'bolos-inteiros',
+      categoria: 'doces',
       nome: 'Bolos inteiros',
       tipo: 'Bolo inteiro',
       regra: 'Zero açúcar',
@@ -28,6 +31,7 @@ export const CATALOGO_MISTO: Catalogo = {
     },
     {
       slug: 'salgados',
+      categoria: 'salgados',
       nome: 'Salgados',
       tipo: 'Salgado',
       regra: 'Massa integral',

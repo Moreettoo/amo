@@ -2,9 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { carregarCatalogo, validarCatalogo, type Catalogo } from '@/lib/catalogo'
 import {
   CAMINHO_CATALOGO,
+  caminhoDaCategoria,
+  descricaoDoCatalogo,
   caminhoDaLinha,
+  categoriasComProduto,
   contarReceitas,
-  descricaoDaLinha,
   filtrar,
   FILTRO_VAZIO,
   linhasComProduto,
@@ -181,6 +183,7 @@ describe('as contas do Hoje o dia pede', () => {
 /** Uma linha cadastrada antes de ter produto (a foto ainda nao chegou). */
 const SEM_PRODUTO: Linha = {
   slug: 'tortas',
+  categoria: 'doces',
   nome: 'Tortas',
   tipo: 'Torta',
   regra: 'Massa integral',
@@ -190,9 +193,10 @@ const SEM_PRODUTO: Linha = {
 }
 
 describe('caminhos e textos', () => {
-  it('o catálogo e a página de cada linha', () => {
+  it('os endereços: categoria, linha e produto são âncoras de /catalogo', () => {
     expect(CAMINHO_CATALOGO).toBe('/catalogo')
-    expect(caminhoDaLinha('bolos-no-pote')).toBe('/catalogo/bolos-no-pote')
+    expect(caminhoDaCategoria('doces')).toBe('/catalogo#doces')
+    expect(caminhoDaLinha('bolos-no-pote')).toBe('/catalogo#linha-bolos-no-pote')
   })
 
   it('contagem e chamada no singular e no plural', () => {
@@ -200,23 +204,6 @@ describe('caminhos e textos', () => {
     expect(contarReceitas(7)).toBe('7 receitas')
     expect(textoVerReceitas(1)).toBe('Ver a receita')
     expect(textoVerReceitas(11)).toBe('Ver as 11 receitas')
-  })
-
-  it('a descrição da linha, com e sem frase', async () => {
-    const [pote] = (await carregarCatalogo()).linhas
-    expect(descricaoDaLinha(pote)).toBe('Bolos no pote, zero açúcar. Um abraço em forma de sobremesa.')
-    expect(descricaoDaLinha({ ...pote, frase: undefined })).toBe('Bolos no pote, zero açúcar.')
-  })
-
-  it('frase do cadastro que já tem pontuação no fim não ganha outro ponto', async () => {
-    const [pote] = (await carregarCatalogo()).linhas
-    const comFrase = (frase: string) => descricaoDaLinha({ ...pote, frase })
-    expect(comFrase('Um abraço.')).toBe('Bolos no pote, zero açúcar. Um abraço.')
-    expect(comFrase('Um abraço!')).toBe('Bolos no pote, zero açúcar. Um abraço!')
-    expect(comFrase('Um abraço?')).toBe('Bolos no pote, zero açúcar. Um abraço?')
-    // virgula, espaco e reticencias no fim viram um ponto so
-    expect(comFrase('Um abraço, ')).toBe('Bolos no pote, zero açúcar. Um abraço.')
-    expect(comFrase('Um abraço...')).toBe('Bolos no pote, zero açúcar. Um abraço.')
   })
 })
 
@@ -305,25 +292,81 @@ describe('montarGaveta', () => {
   })
 })
 
+describe('descricaoDoCatalogo', () => {
+  it('as categorias com produto e a frase do lead', async () => {
+    expect(descricaoDoCatalogo(await carregarCatalogo())).toBe('Doces. Cada linha com a sua regra no rótulo.')
+    expect(descricaoDoCatalogo(CATALOGO_MISTO)).toBe('Doces e salgados. Cada linha com a sua regra no rótulo.')
+  })
+})
+
+describe('categoriasComProduto', () => {
+  it('só as categorias com produto, por ordem', () => {
+    const c = copia(CATALOGO_MISTO)
+    c.categorias.push({ slug: 'refeicoes', nome: 'Refeições', ordem: 0 })
+    expect(slugs(categoriasComProduto(c))).toEqual(['doces', 'salgados'])
+  })
+})
+
 describe('montarCatalogo', () => {
-  it('uma linha: título, lead com ponto final, contagem, capa e um grupo', async () => {
-    const v = montarCatalogo(await carregarCatalogo(), 'bolos-no-pote')
-    expect(v.linha?.slug).toBe('bolos-no-pote')
-    expect([v.titulo, v.lead, v.contagem]).toEqual(['Bolos no pote', 'Um abraço em forma de sobremesa.', 7])
-    expect(v.capas.map((c) => c.produto)).toEqual(['prestigio'])
-    expect(v.grupos.map((g) => [g.slug, g.href, g.produtos.length])).toEqual([
-      ['bolos-no-pote', '/catalogo/bolos-no-pote', 7],
+  it('hoje: um capítulo (Doces) com a linha do pote, sem sumário', async () => {
+    const v = montarCatalogo(await carregarCatalogo())
+    expect(v.titulo).toBe('O catálogo inteiro')
+    expect(v.lead).toBe('Cada linha com a sua regra no rótulo.')
+    expect(v.contagem).toBe(7)
+    expect(slugs(v.capitulos)).toEqual(['doces'])
+    expect(v.capitulos[0].nome).toBe('Doces')
+    expect(v.capitulos[0].linhas[0]).toMatchObject({
+      slug: 'bolos-no-pote',
+      id: 'linha-bolos-no-pote',
+      nome: 'Bolos no pote',
+      regra: 'Zero açúcar',
+      mostraNome: true,
+    })
+    expect(slugs(v.capitulos[0].linhas[0].produtos)).toEqual([
+      'prestigio',
+      'pacoca',
+      'mousse-de-maracuja',
+      'ninho-com-frutas-vermelhas',
+      'beijinho',
+      'chocolate',
+      'frutas-amarelas',
     ])
+    expect(v.temSumario).toBe(false)
   })
 
-  it('com uma linha só, o catálogo sem linha é a página dela, sem coluna de linhas', async () => {
-    const v = montarCatalogo(await carregarCatalogo(), null)
-    expect(v.linha?.slug).toBe('bolos-no-pote')
-    expect(v.itensLinha).toEqual([])
+  it('fixture: dois capítulos, três linhas, e a linha com o nome da categoria não repete o nome', () => {
+    const v = montarCatalogo(CATALOGO_MISTO)
+    expect(v.lead).toBe('Doces e salgados. Cada linha com a sua regra no rótulo.')
+    expect(v.contagem).toBe(11)
+    expect(v.capitulos.map((c) => [c.slug, slugs(c.linhas)])).toEqual([
+      ['doces', ['bolos-no-pote', 'bolos-inteiros']],
+      ['salgados', ['salgados']],
+    ])
+    expect(v.capitulos[0].linhas.map((l) => l.mostraNome)).toEqual([true, true])
+    expect(v.capitulos[1].linhas[0]).toMatchObject({ id: 'linha-salgados', regra: 'Massa integral', mostraNome: false })
+    expect(v.temSumario).toBe(true)
   })
 
-  it('só as vontades e os selos que filtram alguma coisa na vista', async () => {
-    const v = montarCatalogo(await carregarCatalogo(), 'bolos-no-pote')
+  it('uma categoria com duas linhas já pede sumário', () => {
+    const c = copia(CATALOGO_MISTO)
+    c.produtos = c.produtos.filter((p) => p.linha !== 'salgados')
+    const v = montarCatalogo(c)
+    expect(slugs(v.capitulos)).toEqual(['doces'])
+    expect(v.lead).toBe('Cada linha com a sua regra no rótulo.')
+    expect(v.temSumario).toBe(true)
+  })
+
+  it('categoria e linha sem produto não viram capítulo', () => {
+    const c = copia(CATALOGO_MISTO)
+    c.categorias.push({ slug: 'refeicoes', nome: 'Refeições', ordem: 3 })
+    c.linhas.push(SEM_PRODUTO)
+    const v = montarCatalogo(c)
+    expect(slugs(v.capitulos)).toEqual(['doces', 'salgados'])
+    expect(slugs(v.capitulos.flatMap((x) => x.linhas))).toEqual(['bolos-no-pote', 'bolos-inteiros', 'salgados'])
+  })
+
+  it('hoje: só as vontades e os selos que filtram alguma coisa', async () => {
+    const v = montarCatalogo(await carregarCatalogo())
     expect(v.vontades.map((x) => [x.slug, x.palavra, x.contagem])).toEqual([
       ['chocolate', 'Chocolate', 2],
       ['fruta', 'Fruta', 3],
@@ -333,51 +376,9 @@ describe('montarCatalogo', () => {
     expect(v.selos).toEqual([])
   })
 
-  it('"Tudo" com três linhas: grupos, capas, a coluna com o item atual, vontades e selos', () => {
-    const v = montarCatalogo(CATALOGO_MISTO, null)
-    expect(v.linha).toBeNull()
-    expect([v.titulo, v.lead, v.contagem]).toEqual(['O catálogo inteiro', 'Cada linha com a sua regra no rótulo.', 11])
-    expect(v.capas.map((c) => c.formato)).toEqual(['pote', 'inteiro', 'unidade'])
-    expect(v.grupos.map((g) => [g.slug, g.produtos.length])).toEqual([
-      ['bolos-no-pote', 7],
-      ['bolos-inteiros', 2],
-      ['salgados', 2],
-    ])
-    expect(v.itensLinha).toEqual([
-      { href: '/catalogo', nome: 'Tudo', contagem: 11, formato: null, atual: true },
-      { href: '/catalogo/bolos-no-pote', nome: 'Bolos no pote', contagem: 7, formato: 'pote', atual: false },
-      { href: '/catalogo/bolos-inteiros', nome: 'Bolos inteiros', contagem: 2, formato: 'inteiro', atual: false },
-      { href: '/catalogo/salgados', nome: 'Salgados', contagem: 2, formato: 'unidade', atual: false },
-    ])
+  it('fixture: vontades e selos do catálogo inteiro', () => {
+    const v = montarCatalogo(CATALOGO_MISTO)
     expect(v.vontades.map((x) => x.slug)).toEqual(['chocolate', 'fruta', 'coco', 'classico', 'salgado'])
     expect(v.selos.map((s) => s.id)).toEqual(['zero-acucar', 'fibras', 'integral', 'sem-conservante'])
-  })
-
-  it('nos salgados, a vontade que todos têm não vira filtro; o selo que só um tem, vira', () => {
-    const v = montarCatalogo(CATALOGO_MISTO, 'salgados')
-    expect(v.vontades).toEqual([])
-    expect(v.selos.map((s) => s.id)).toEqual(['sem-conservante'])
-    expect(v.itensLinha.filter((i) => i.atual).map((i) => i.href)).toEqual(['/catalogo/salgados'])
-  })
-
-  it('o lead não dobra a pontuação que a frase do cadastro já tem', () => {
-    const c = copia(CATALOGO_MISTO)
-    c.linhas[1].frase = 'Assado na hora.'
-    expect(montarCatalogo(c, 'bolos-inteiros').lead).toBe('Assado na hora.')
-    c.linhas[1].frase = 'Assado na hora!'
-    expect(montarCatalogo(c, 'bolos-inteiros').lead).toBe('Assado na hora!')
-  })
-
-  it('linha sem frase não tem lead', () => {
-    const c = copia(CATALOGO_MISTO)
-    delete c.linhas[1].frase
-    expect(montarCatalogo(c, 'bolos-inteiros').lead).toBeNull()
-  })
-
-  it('slug sem página é erro de programação (a rota já filtrou)', () => {
-    const c = copia(CATALOGO_MISTO)
-    c.linhas.push(SEM_PRODUTO)
-    expect(() => montarCatalogo(c, 'tortas')).toThrow(/tortas/)
-    expect(() => montarCatalogo(c, 'nao-existe')).toThrow(/nao-existe/)
   })
 })

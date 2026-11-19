@@ -1,3 +1,4 @@
+import { CATEGORIAS } from '@/data/categorias'
 import { LINHAS } from '@/data/linhas'
 import { PRODUTOS } from '@/data/produtos'
 import { SELOS } from '@/data/selos'
@@ -14,10 +15,15 @@ export type Selo = { id: string; nome: string }
 
 export type Vontade = { slug: string; palavra: string; ordem: number }
 
+/** O capitulo do catalogo: "Doces". Fica acima da linha. */
+export type Categoria = { slug: string; nome: string; ordem: number }
+
 export type CorDoRotulo = 'papel' | 'linho' | 'kraft'
 
 export type Linha = {
   slug: string
+  /** slug de Categoria */
+  categoria: string
   /** plural, para filtro e rotulo: "Bolos no pote" */
   nome: string
   /** singular, acima do nome no card: "Bolo no pote" */
@@ -56,6 +62,7 @@ export type Produto = {
 }
 
 export type Catalogo = {
+  categorias: Categoria[]
   linhas: Linha[]
   produtos: Produto[]
   selos: Selo[]
@@ -73,16 +80,33 @@ export function validarCatalogo(c: Catalogo): string[] {
       vistas.add(k)
     }
   }
+  semRepetir('slug de categoria', c.categorias.map((x) => x.slug))
   semRepetir('slug de linha', c.linhas.map((l) => l.slug))
   semRepetir('slug de produto', c.produtos.map((p) => p.slug))
   semRepetir('id de selo', c.selos.map((s) => s.id))
   semRepetir('slug de vontade', c.vontades.map((v) => v.slug))
+  // categoria, linha e produto sao alvos de ancora na mesma pagina do
+  // catalogo: a categoria e o produto pelo slug, a linha por "linha-<slug>"
+  semRepetir('id de âncora', [
+    ...new Set(c.categorias.map((x) => x.slug)),
+    ...new Set(c.linhas.map((l) => `linha-${l.slug}`)),
+    ...new Set(c.produtos.map((p) => p.slug)),
+  ])
 
+  const categorias = new Set(c.categorias.map((x) => x.slug))
   const linhas = new Set(c.linhas.map((l) => l.slug))
   const selos = new Set(c.selos.map((s) => s.id))
   const vontades = new Set(c.vontades.map((v) => v.slug))
 
   for (const l of c.linhas) {
+    if (!categorias.has(l.categoria)) problemas.push(`linha ${l.slug}: categoria inexistente ${l.categoria}`)
+    // A linha com o nome da categoria nao repete o nome na pagina nem entra
+    // no sumario. Sozinha, tudo bem: a categoria ja a nomeia. Ao lado de
+    // outras, ficaria sem nome e sem lugar no sumario.
+    const categoria = c.categorias.find((x) => x.slug === l.categoria)
+    if (categoria?.nome === l.nome && c.linhas.some((o) => o !== l && o.categoria === l.categoria)) {
+      problemas.push(`linha ${l.slug}: mesmo nome da categoria ${l.categoria}, que tem outras linhas`)
+    }
     for (const s of l.selos) {
       if (!selos.has(s)) problemas.push(`linha ${l.slug}: selo inexistente ${s}`)
     }
@@ -123,6 +147,7 @@ export function validarCatalogo(c: Catalogo): string[] {
  */
 export async function carregarCatalogo(): Promise<Catalogo> {
   const catalogo: Catalogo = {
+    categorias: [...CATEGORIAS],
     linhas: [...LINHAS],
     produtos: [...PRODUTOS],
     selos: [...SELOS],

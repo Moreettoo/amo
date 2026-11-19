@@ -104,21 +104,27 @@ describe('a página completa', () => {
     expect((container.textContent ?? '').split('e stevia').length - 1).toBe(1)
   })
 
-  it('exatamente uma imagem da home tem preload: a do destaque no hero; no código, só o hero e o topo do catálogo ligam', () => {
+  it('exatamente uma imagem da home tem preload: a do destaque no hero; no código, só o hero e o corpo do catálogo ligam', () => {
     const { container } = montar()
     const semLoading = [...container.querySelectorAll('img')].filter((img) => !img.hasAttribute('loading'))
     expect(semLoading).toHaveLength(1)
     expect(semLoading[0]).toHaveAttribute('alt', PRODUTOS.find((p) => p.destaque)!.imagem.alt)
 
     // `preload` em posicao de atributo JSX: sozinho no fim da linha ou
-    // seguido de `=`. So o Hero e o topo do catalogo ligam; o FotoParallax
-    // so repassa.
+    // seguido de `=`. So o Hero e a pagina do produto (a foto dele) ligam
+    // direto; o FotoParallax e o CardProduto so repassam.
     const comPreload = arquivosFonte().filter((arquivo) =>
       /(^|[\s{])preload(?=\s*$|=)/m.test(readFileSync(arquivo, 'utf8')),
     )
     expect(comPreload.map((a) => a.replace(/\\/g, '/')).sort()).toEqual([
+      expect.stringMatching(/\/components\/layout\/TelaProduto\.tsx$/),
       expect.stringMatching(/\/components\/sections\/Hero\.tsx$/),
-      expect.stringMatching(/\/components\/sections\/TopoCatalogo\.tsx$/),
+    ])
+    // no catalogo, quem escolhe a foto pre-carregada e o corpo da pagina:
+    // a primeira da primeira grade. A vitrine da home nao pede nenhuma.
+    const pedemACard = arquivosFonte().filter((arquivo) => /\sprecarregar=/.test(readFileSync(arquivo, 'utf8')))
+    expect(pedemACard.map((a) => a.replace(/\\/g, '/'))).toEqual([
+      expect.stringMatching(/\/components\/sections\/CatalogoPagina\.tsx$/),
     ])
   })
 

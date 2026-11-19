@@ -4,6 +4,7 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { CardProduto } from '@/components/ui/CardProduto'
 import type { Produto } from '@/lib/catalogo'
 import { EASE_AMO } from '@/lib/motion'
+import { caminhoDoProduto } from '@/lib/visao'
 
 type Props = {
   produtos: readonly Produto[]
@@ -14,6 +15,10 @@ type Props = {
   /** o card que entra ja no lugar, sem crescer: o alvo de uma ancora que o
    *  filtro escondia, medido pela rolagem no mesmo clique em que volta */
   semEntrada?: string | null
+  /** o nivel do titulo de cada card (CardProduto) */
+  nivel?: 3 | 4
+  /** o slug do card cuja foto e a pre-carregada da pagina */
+  precarregar?: string
 }
 
 /**
@@ -22,7 +27,15 @@ type Props = {
  * antes passava do ponto e voltava, e o site novo nao tem quique. Sob
  * movimento reduzido o MotionConfig desliga o deslocamento.
  */
-export function GradeProdutos({ produtos, tipos, nomesDosSelos, comAncora = false, semEntrada = null }: Props) {
+export function GradeProdutos({
+  produtos,
+  tipos,
+  nomesDosSelos,
+  comAncora = false,
+  semEntrada = null,
+  nivel,
+  precarregar,
+}: Props) {
   return (
     <MotionConfig reducedMotion="user">
       <ul role="list" className="grade">
@@ -41,7 +54,14 @@ export function GradeProdutos({ produtos, tipos, nomesDosSelos, comAncora = fals
                 default: { duration: 0.42, delay: 0.09, ease: EASE_AMO },
               }}
             >
-              <CardProduto produto={p} tipo={tipos[p.linha] ?? ''} nomesDosSelos={nomesDosSelos} />
+              <CardProduto
+                produto={p}
+                tipo={tipos[p.linha] ?? ''}
+                nomesDosSelos={nomesDosSelos}
+                href={caminhoDoProduto(p.slug)}
+                nivel={nivel}
+                precarregada={p.slug === precarregar}
+              />
             </motion.li>
           ))}
         </AnimatePresence>

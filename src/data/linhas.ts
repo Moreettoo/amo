@@ -7,6 +7,7 @@ import type { Linha } from '@/lib/catalogo'
 export const LINHAS: readonly Linha[] = [
   {
     slug: 'bolos-no-pote',
+    categoria: 'doces',
     nome: 'Bolos no pote',
     tipo: 'Bolo no pote',
     regra: 'Zero açúcar',

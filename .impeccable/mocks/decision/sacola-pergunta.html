@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Uma pergunta por vez</title>
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --papel:#FFFBF5; --linho:#F6EBDD; --suave:#5E4A40; --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1440px; height: 900px; overflow: hidden; font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); }
+  .wrap { width: 1128px; margin: 0 auto; }
+  header { height: 64px; border-bottom: 1px solid var(--fio); position: relative; }
+  header .wrap { height: 100%; display: flex; align-items: center; justify-content: space-between; font-size: 14px; color: var(--suave); }
+  header img { height: 30px; }
+  .progresso { position: absolute; left: 0; bottom: -1px; height: 1.5px; width: 50%; background: var(--cobre); }
+  .passos { display: flex; gap: 28px; font-size: 13px; color: var(--suave); }
+  .passos b { color: var(--expresso); font-weight: 500; }
+  .corpo { display: grid; grid-template-columns: 1fr 300px; gap: 96px; margin-top: 92px; }
+  .q small { font-size: 14px; color: var(--suave); }
+  h1 { font-weight: 300; font-size: 56px; letter-spacing: -.03em; line-height: 1.1; margin-top: 10px; }
+  h1 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 1.55em; letter-spacing: 0; line-height: 1.05; color: var(--cobre-texto); }
+  .campos { display: flex; gap: 14px; margin-top: 38px; max-width: 620px; }
+  .campo { flex: 1; }
+  .campo span { display: block; font-size: 13px; color: var(--suave); margin-bottom: 8px; }
+  .campo div { height: 60px; border: 1px solid var(--contorno); border-radius: 2px; padding: 0 18px; display: flex; align-items: center; font-size: 20px; font-weight: 300; font-variant-numeric: tabular-nums; background: var(--papel); }
+  .campo.n { flex: .45; }
+  .cotacao { margin-top: 22px; max-width: 620px; display: flex; justify-content: space-between; align-items: baseline; padding: 16px 0; border-top: 1px solid var(--fio); }
+  .cotacao p { font-size: 16px; }
+  .cotacao p small { display: block; font-size: 14px; color: var(--suave); margin-top: 2px; }
+  .cotacao b { font-weight: 300; font-size: 28px; font-variant-numeric: tabular-nums; }
+  .acoes { display: flex; align-items: center; gap: 28px; margin-top: 26px; }
+  .botao { height: 54px; padding: 0 40px; background: var(--expresso); color: var(--creme); border-radius: 2px; display: flex; align-items: center; font-weight: 500; font-size: 15px; letter-spacing: .02em; }
+  .acoes a { font-size: 15px; color: var(--suave); }
+  .pedido { align-self: start; background: var(--papel); border-radius: 2px; padding: 22px 24px; position: relative; }
+  .pedido::before { content: ""; position: absolute; inset: 7px; border: 1px solid rgb(201 120 74 / .55); border-radius: 2px; }
+  .pedido .rot { font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--cobre-texto); display: flex; justify-content: space-between; }
+  .pedido .rot a { letter-spacing: 0; text-transform: none; font-weight: 400; font-size: 13px; color: var(--suave); }
+  .potes { display: flex; gap: 8px; margin: 14px 0 12px; }
+  .potes img { width: 52px; height: 64px; object-fit: cover; border-radius: 3px; background: var(--linho); }
+  .lin { display: flex; justify-content: space-between; font-size: 14px; padding: 5px 0; font-variant-numeric: tabular-nums; }
+  .lin span:first-child { color: var(--suave); }
+  .t { border-top: 1px solid rgb(43 27 22 / .2); margin-top: 8px; padding-top: 12px; display: flex; justify-content: space-between; align-items: baseline; }
+  .t span { font-size: 14px; font-weight: 500; }
+  .t b { font-weight: 300; font-size: 30px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .aviso { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 12px; color: var(--suave); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <img src="http://localhost:3000/marca/logo-amo.png" alt="AMO">
+  <p class="passos"><span>1 Sacola</span><b>2 Entrega</b><span>3 Seus dados</span><span>4 Pagamento</span></p>
+  <span>Voltar à sacola</span>
+</div><i class="progresso"></i></header>
+<main class="wrap">
+  <div class="corpo">
+    <section class="q">
+      <small>Pergunta 2 de 4</small>
+      <h1>Para onde vai <em>o seu amo?</em></h1>
+      <div class="campos">
+        <label class="campo"><span>CEP</span><div>01310-100</div></label>
+        <label class="campo n"><span>Número</span><div>1578</div></label>
+        <label class="campo"><span>Complemento</span><div style="color:var(--suave)">ap. 52</div></label>
+      </div>
+      <div class="cotacao"><p>Av. Paulista, Bela Vista, São Paulo<small>Uber, entrega hoje · chega em até 45 min</small></p><b>R$ 12,90</b></div>
+      <div class="acoes"><span class="botao">Continuar para os seus dados</span><a>Voltar</a></div>
+    </section>
+    <aside class="pedido">
+      <p class="rot">Seu pedido <a>Editar</a></p>
+      <div class="potes">
+        <img src="http://localhost:3000/produtos/prestigio.webp" alt="">
+        <img src="http://localhost:3000/produtos/ninho-com-frutas-vermelhas.webp" alt="">
+        <img src="http://localhost:3000/produtos/pacoca.webp" alt="">
+      </div>
+      <p class="lin"><span>4 potes</span><span>R$ 78,60</span></p>
+      <p class="lin"><span>Entrega</span><span>R$ 12,90</span></p>
+      <div class="t"><span>Total</span><b>R$ 91,50</b></div>
+    </aside>
+  </div>
+</main>
+<p class="aviso">Esboço. Preços, frete e endereço são de exemplo.</p>
+</body>
+</html>

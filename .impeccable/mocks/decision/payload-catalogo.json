@@ -1,0 +1,46 @@
+{
+  "title": "AMO: a estrutura do catálogo",
+  "question": "Três jeitos de organizar o catálogo com Doces, Salgados e Refeições. O visual é o mesmo do site (creme, cobre, script e Poppins); o que muda é como a pessoa navega e o que acontece quando ela toca num produto. Escolha um, peça outra rodada ou escreva um ajuste. Salgados e refeições aparecem com nomes de exemplo até a lista chegar.",
+  "options": [
+    {
+      "id": "cat-sumario",
+      "kind": "assigned",
+      "label": "O sumário",
+      "kicker": "THE ROLL",
+      "lineage": "Sumário de livro de receitas, com o marcador de página",
+      "thesis": "O catálogo inteiro numa página só, em três capítulos, com um índice fino preso ao lado que acompanha a rolagem.",
+      "palette": ["#FAF2E9", "#2B1B16", "#C9784A", "#9A5530", "#F6EBDD"],
+      "materials": ["índice fino que acompanha", "capítulos em duas vozes", "coração que marca onde você está"],
+      "viewport": "Topo curto em creme com o título e as vontades; à esquerda o índice Doces, Salgados e Refeições com as linhas dentro, o coração cobre no capítulo atual; à direita o capítulo Doces abrindo com a grade de potes.",
+      "risk": "Com muitos produtos a página fica comprida; o índice precisa estar sempre à mão, inclusive no celular.",
+      "html": ".impeccable/mocks/decision/cat-sumario.html"
+    },
+    {
+      "id": "cat-ficha",
+      "kind": "dealt",
+      "label": "A ficha",
+      "lineage": "Ficha de receita tirada da caixa",
+      "thesis": "Tocar num produto abre a ficha dele ao lado: foto grande, selos, a regra da linha e como aproveitar. O rótulo deixa de ser uma seção e passa a morar em cada produto.",
+      "palette": ["#FAF2E9", "#FFFBF5", "#2B1B16", "#C9784A", "#9A5530"],
+      "materials": ["cartão papel com fio cobre", "grade que abre espaço", "categorias em uma linha fina"],
+      "viewport": "Categorias numa linha fina no topo, com Doces marcado; a grade de potes à esquerda, o Prestígio escolhido; à direita a ficha em papel com a foto, os selos com ícone, o modo de aproveitar e as setas para o sabor anterior e o próximo.",
+      "risk": "Hoje cada produto tem pouca informação além do rótulo da linha; a ficha fica mais rica quando a lista trouxer descrição ou ingredientes.",
+      "html": ".impeccable/mocks/decision/cat-ficha.html"
+    },
+    {
+      "id": "cat-carta",
+      "kind": "dealt",
+      "label": "A carta",
+      "lineage": "Carta de restaurante, lida linha a linha",
+      "thesis": "Os produtos viram uma carta escrita, e uma foto grande ao lado troca conforme a pessoa passa pelos nomes.",
+      "palette": ["#FAF2E9", "#2B1B16", "#C9784A", "#9A5530", "#5E4A40"],
+      "materials": ["lista tipográfica leve", "uma foto grande com fio", "nome que acende em cobre"],
+      "viewport": "À esquerda a carta: Doces, Salgados e Refeições como abas de texto e os sete potes em lista, o Mousse de maracujá em destaque; à direita a foto alta desse sabor presa na tela, com a frase em script embaixo.",
+      "risk": "Mostra uma foto por vez: quem decide pelo olho vê menos potes de uma vez; no celular a foto precisa abrir dentro da lista.",
+      "html": ".impeccable/mocks/decision/cat-carta.html"
+    }
+  ],
+  "reroll": true,
+  "buildPath": { "value": "code" },
+  "steer": true
+}

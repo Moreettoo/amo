@@ -1,0 +1,49 @@
+{
+  "title": "AMO: a página de um produto",
+  "question": "Três jeitos de montar a página do Prestígio: foto, nome, descrição, preço, compra, entrega pelo Uber calculada pelo CEP e os comentários com nota. O visual é o do site (creme, cobre, script e Poppins); o que muda é como a compra se arruma na tela. Cada esboço mostra a primeira tela e o que vem logo abaixo. Preço, notas, comentários, descrição e frete são de exemplo. Escolha um, peça outra rodada ou escreva um ajuste.",
+  "options": [
+    {
+      "id": "pdp-balcao",
+      "kind": "assigned",
+      "label": "A comanda",
+      "kicker": "THE ROLL",
+      "lineage": "A comanda do balcão da confeitaria, o pedido anotado linha a linha",
+      "thesis": "A foto grande à esquerda e, ao lado, o pedido se monta como uma comanda: sabor, quantidade, entrega pelo CEP e o total já com o Uber.",
+      "palette": ["#FAF2E9", "#FFFBF5", "#2B1B16", "#C9784A", "#9A5530"],
+      "materials": ["comanda de papel com linhas pontilhadas", "total que já soma o frete", "foto presa pelo fio cobre"],
+      "viewport": "Foto alta do pote com o fio cobre atrás; à direita o nome, a nota, a descrição curta e a comanda em papel: Prestígio, quantidade, entrega pelo CEP com valor e prazo do Uber, o total e o botão da sacola. Abaixo, o rótulo de um lado e os comentários do outro.",
+      "risk": "A comanda depende da cotação do Uber em tempo real; enquanto ela não volta, o total diz 'frete a calcular'.",
+      "html": ".impeccable/mocks/decision/pdp-balcao.html",
+      "htmlFrame": "1440x1600"
+    },
+    {
+      "id": "pdp-etiqueta",
+      "kind": "dealt",
+      "label": "A etiqueta pendurada",
+      "lineage": "A etiqueta de papel amarrada no pote",
+      "thesis": "A foto ocupa a metade esquerda até a borda e o cartão do rótulo fica pendurado sobre a emenda: nele moram a regra, o preço, a sacola e a entrega.",
+      "palette": ["#FAF2E9", "#FFFBF5", "#F6EBDD", "#2B1B16", "#C9784A"],
+      "materials": ["foto de borda a borda", "cartão do rótulo com moldura cobre", "comentários como cartinhas de papel"],
+      "viewport": "A foto do Prestígio sangra até a borda esquerda; à direita o nome em duas vozes, a nota e a descrição; o cartão de papel atravessa a emenda com o preço, a quantidade, o botão e o CEP; ao lado dele os selos. Abaixo, os comentários em cartinhas.",
+      "risk": "O cartão por cima da foto é a peça mais ousada; no celular ele desce para baixo da foto e perde a sobreposição.",
+      "html": ".impeccable/mocks/decision/pdp-etiqueta.html",
+      "htmlFrame": "1440x1600"
+    },
+    {
+      "id": "pdp-rotulo",
+      "kind": "dealt",
+      "label": "O rótulo na mão",
+      "lineage": "Pegar o pote na prateleira e virar para ler o rótulo",
+      "thesis": "A página de produto que a cliente já sabe usar, feita com o cuidado da casa: foto à esquerda, compra à direita e, embaixo, a descrição, o rótulo e os comentários.",
+      "palette": ["#FAF2E9", "#2B1B16", "#C9784A", "#9A5530", "#5E4A40"],
+      "materials": ["coluna de compra direta", "seções que abrem e fecham", "resumo de notas que filtra"],
+      "viewport": "Foto com fio cobre à esquerda; à direita o nome, a nota com link para os comentários, o preço, os selos, a quantidade e o botão, a entrega pelo CEP e as seções Descrição, O rótulo e Como aproveitar. Abaixo, os comentários com o resumo das notas.",
+      "risk": "É o desenho mais conhecido; a diferença fica toda no acabamento.",
+      "html": ".impeccable/mocks/decision/pdp-rotulo.html",
+      "htmlFrame": "1440x1600"
+    }
+  ],
+  "reroll": true,
+  "buildPath": { "value": "code" },
+  "steer": true
+}

@@ -1,9 +1,12 @@
-import type { Catalogo, Formato, ImagemProduto, Linha, Produto } from '@/lib/catalogo'
+import { montarLoja, type ItemDaLoja } from '@/lib/sacola'
+import type { Catalogo, Categoria, Formato, ImagemProduto, Linha, Produto } from '@/lib/catalogo'
+import { listarNomes } from '@/lib/vontade'
 
 /**
  * A visao: o que a pagina mostra, decidido uma vez, no servidor, a partir do
- * cadastro. Funcao pura e sem import de valor (so de tipo), para o cliente
- * poder usar `filtrar` e `FILTRO_VAZIO` sem puxar o cadastro junto.
+ * cadastro. Funcao pura e sem import de valor do cadastro (dele, so tipo),
+ * para o cliente poder usar `filtrar` e `FILTRO_VAZIO` sem puxar o cadastro
+ * junto.
  */
 
 export type Filtro = { linha: string | null; selo: string | null; vontade: string | null }
@@ -132,9 +135,17 @@ export function filtrar(produtos: readonly Produto[], f: Filtro): Produto[] {
   )
 }
 
-/** O endereco do catalogo e o de cada linha. */
+/**
+ * Os enderecos. O catalogo e uma pagina so, e categoria, linha e produto sao
+ * ancoras dela: a categoria e o produto pelo slug, a linha por "linha-<slug>"
+ * (uma linha pode ter o mesmo slug da categoria dela, como "salgados").
+ */
 export const CAMINHO_CATALOGO = '/catalogo'
-export const caminhoDaLinha = (slug: string) => `${CAMINHO_CATALOGO}/${slug}`
+export const idDaLinha = (slug: string) => `linha-${slug}`
+export const caminhoDaCategoria = (slug: string) => `${CAMINHO_CATALOGO}#${slug}`
+export const caminhoDaLinha = (slug: string) => `${CAMINHO_CATALOGO}#${idDaLinha(slug)}`
+/** A pagina de um produto: /catalogo/prestigio. */
+export const caminhoDoProduto = (slug: string) => `${CAMINHO_CATALOGO}/${slug}`
 
 /** "1 receita", "7 receitas". */
 export const contarReceitas = (n: number) => `${n} ${n === 1 ? 'receita' : 'receitas'}`
@@ -142,22 +153,11 @@ export const contarReceitas = (n: number) => `${n} ${n === 1 ? 'receita' : 'rece
 /** A chamada para o catalogo: "Ver a receita", "Ver as 11 receitas". */
 export const textoVerReceitas = (n: number) => (n === 1 ? 'Ver a receita' : `Ver as ${n} receitas`)
 
-/** A frase do cadastro fechada por um ponto so: ! e ? do fim ficam; ponto,
- *  virgula, reticencias e espaco do fim viram um ponto. */
-function comPontoFinal(frase: string): string {
-  const limpa = frase.replace(/[\s.,;:…]+$/, '')
-  return /[!?]$/.test(limpa) ? limpa : `${limpa}.`
-}
+const TITULO_DO_CATALOGO = 'O catálogo inteiro'
+const LEAD_DO_CATALOGO = 'Cada linha com a sua regra no rótulo.'
 
-/** A descricao da pagina da linha: nome, regra e, quando ha, a frase. */
-export const descricaoDaLinha = (l: Linha) =>
-  `${l.nome}, ${l.regra.toLowerCase()}.${l.frase ? ` ${comPontoFinal(l.frase)}` : ''}`
-
-export const TITULO_TUDO = 'O catálogo inteiro'
-export const LEAD_TUDO = 'Cada linha com a sua regra no rótulo.'
-
-/** As linhas com pelo menos um produto, por ordem. So elas ganham pagina,
- *  lugar na gaveta e atalho: linha sem produto ainda nao tem foto. */
+/** As linhas com pelo menos um produto, por ordem. So elas ganham lugar no
+ *  catalogo, na gaveta e nos atalhos: linha sem produto ainda nao tem foto. */
 export function linhasComProduto(c: Catalogo): Linha[] {
   return [...c.linhas].sort(porOrdem).filter((l) => c.produtos.some((p) => p.linha === l.slug))
 }
@@ -180,6 +180,8 @@ export type DadosGaveta = {
   total: number
   /** so com uma linha: os produtos dela, por ordem; senao vazio */
   sabores: SaborNaGaveta[]
+  /** os produtos a venda, com preco: a gaveta da sacola, ao lado, se desenha com eles */
+  loja: ItemDaLoja[]
 }
 
 export function montarGaveta(c: Catalogo): DadosGaveta {
@@ -200,6 +202,7 @@ export function montarGaveta(c: Catalogo): DadosGaveta {
             .filter((p) => p.linha === linhas[0].slug)
             .map((p) => ({ slug: p.slug, nome: p.nome, imagem: p.imagem }))
         : [],
+    loja: montarLoja(c),
   }
 }
 
@@ -220,79 +223,93 @@ export function montarVitrine(c: Catalogo): Produto[] {
   return escolhidos.slice(0, TAMANHO_DA_VITRINE)
 }
 
-export type ItemDeLinha = {
-  /** '/catalogo' em "Tudo" */
-  href: string
-  nome: string
-  contagem: number
-  /** o contorno do icone: o formato da capa da linha; null em "Tudo" */
-  formato: Formato | null
-  atual: boolean
+/** As categorias com pelo menos um produto, por ordem: a mesma regra das
+ *  linhas. Categoria cadastrada antes de ter produto nao aparece. */
+export function categoriasComProduto(c: Catalogo): Categoria[] {
+  const comProduto = new Set(linhasComProduto(c).map((l) => l.categoria))
+  return [...c.categorias].sort(porOrdem).filter((x) => comProduto.has(x.slug))
 }
+
 export type OpcaoVontade = { slug: string; palavra: string; contagem: number }
-export type GrupoDoCatalogo = { slug: string; nome: string; href: string; produtos: Produto[] }
+
+export type LinhaDoCapitulo = {
+  slug: string
+  /** o id da secao da linha na pagina (idDaLinha) */
+  id: string
+  nome: string
+  regra: string
+  /** falso quando o nome repete o da categoria ("Salgados" em Salgados): o
+   *  titulo da linha fica so para leitor de tela e ela sai do sumario */
+  mostraNome: boolean
+  /** por ordem */
+  produtos: Produto[]
+}
+/** Um capitulo do catalogo: a categoria com as linhas dela. O slug e o id da
+ *  secao na pagina. */
+export type Capitulo = { slug: string; nome: string; linhas: LinhaDoCapitulo[] }
 
 export type VistaCatalogo = {
-  /** null em "Tudo" */
-  linha: Linha | null
   titulo: string
-  /** a frase da linha com ponto final; null quando a linha nao tem frase */
-  lead: string | null
+  lead: string
   contagem: number
-  /** uma numa linha; ate 3 em "Tudo", uma por linha */
-  capas: Capa[]
-  /** a coluna de linhas; vazia com menos de 2 */
-  itensLinha: ItemDeLinha[]
-  /** um por linha da vista, com os produtos por ordem */
-  grupos: GrupoDoCatalogo[]
-  /** so as vontades que alguns produtos da vista tem e outros nao */
+  /** um por categoria com produto, por ordem */
+  capitulos: Capitulo[]
+  /** ha o que escolher: 2 ou mais categorias, ou 2 ou mais linhas */
+  temSumario: boolean
+  /** so as vontades que alguns produtos tem e outros nao */
   vontades: OpcaoVontade[]
-  /** so os selos que alguns produtos da vista tem e outros nao */
+  /** so os selos que alguns produtos tem e outros nao */
   selos: OpcaoSelo[]
   tipos: Record<string, string>
   nomesDosSelos: Record<string, string>
 }
 
-/**
- * A vista do catalogo. `slug` nulo e "Tudo", ou a linha unica quando so ha
- * uma. Slug sem pagina e erro de programacao: a rota ja filtrou.
- */
-export function montarCatalogo(c: Catalogo, slug: string | null): VistaCatalogo {
+/** "Doces, salgados e refeições. Cada linha com a sua regra no rótulo.": o
+ *  primeiro nome como esta no cadastro, os outros em minuscula. */
+function categoriasEALead(categorias: readonly Categoria[]): string {
+  const nomes = categorias.map((x, i) => (i === 0 ? x.nome : x.nome.toLowerCase()))
+  return `${listarNomes(nomes)}. ${LEAD_DO_CATALOGO}`
+}
+
+/** No topo, as categorias so sao ditas quando ha mais de uma: com uma so, o
+ *  capitulo logo abaixo ja diz. */
+function leadDoCatalogo(categorias: readonly Categoria[]): string {
+  return categorias.length < 2 ? LEAD_DO_CATALOGO : categoriasEALead(categorias)
+}
+
+/** A descricao da pagina (o <meta>): sempre diz as categorias. */
+export function descricaoDoCatalogo(c: Catalogo): string {
+  return categoriasEALead(categoriasComProduto(c))
+}
+
+/** A vista do catalogo: a pagina inteira, em capitulos. */
+export function montarCatalogo(c: Catalogo): VistaCatalogo {
   const produtos = [...c.produtos].sort(porOrdem)
   const linhas = linhasComProduto(c)
-  const linha = slug === null ? (linhas.length === 1 ? linhas[0] : null) : linhas.find((l) => l.slug === slug)
-  if (linha === undefined) throw new Error(`Linha sem página no catálogo: ${slug}`)
-
-  const daVista = linha ? produtos.filter((p) => p.linha === linha.slug) : produtos
-  const contar = (pred: (p: Produto) => boolean) => daVista.filter(pred).length
+  const categorias = categoriasComProduto(c)
+  const contar = (pred: (p: Produto) => boolean) => produtos.filter(pred).length
   // filtro que todos ou nenhum tem nao muda nada na tela
-  const filtraAlgo = (n: number) => n > 0 && n < daVista.length
+  const filtraAlgo = (n: number) => n > 0 && n < produtos.length
 
   return {
-    linha,
-    titulo: linha ? linha.nome : TITULO_TUDO,
-    lead: linha ? (linha.frase ? comPontoFinal(linha.frase) : null) : LEAD_TUDO,
-    contagem: daVista.length,
-    capas: (linha ? [linha] : linhas.slice(0, 3)).map((l) => capaDaLinha(produtos, l.slug)),
-    itensLinha:
-      linhas.length < 2
-        ? []
-        : [
-            { href: CAMINHO_CATALOGO, nome: 'Tudo', contagem: produtos.length, formato: null, atual: linha === null },
-            ...linhas.map((l) => ({
-              href: caminhoDaLinha(l.slug),
-              nome: l.nome,
-              contagem: produtos.filter((p) => p.linha === l.slug).length,
-              formato: capaDaLinha(produtos, l.slug).formato,
-              atual: linha?.slug === l.slug,
-            })),
-          ],
-    grupos: (linha ? [linha] : linhas).map((l) => ({
-      slug: l.slug,
-      nome: l.nome,
-      href: caminhoDaLinha(l.slug),
-      produtos: daVista.filter((p) => p.linha === l.slug),
+    titulo: TITULO_DO_CATALOGO,
+    lead: leadDoCatalogo(categorias),
+    contagem: produtos.length,
+    capitulos: categorias.map((cat) => ({
+      slug: cat.slug,
+      nome: cat.nome,
+      linhas: linhas
+        .filter((l) => l.categoria === cat.slug)
+        .map((l) => ({
+          slug: l.slug,
+          id: idDaLinha(l.slug),
+          nome: l.nome,
+          regra: l.regra,
+          mostraNome: l.nome !== cat.nome,
+          produtos: produtos.filter((p) => p.linha === l.slug),
+        })),
     })),
+    temSumario: categorias.length >= 2 || linhas.length >= 2,
     vontades: [...c.vontades]
       .sort(porOrdem)
       .map((v) => ({ slug: v.slug, palavra: v.palavra, contagem: contar((p) => p.vontades.includes(v.slug)) }))

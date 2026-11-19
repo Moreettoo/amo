@@ -9,6 +9,8 @@
 @import "./estilos/marca.css";
 @import "./estilos/gaveta.css";
 @import "./estilos/catalogo.css";
+@import "./estilos/produto-pagina.css";
+@import "./estilos/sacola.css";
 @import "./estilos/movimento.css";
 
 /* `static`: os tokens viram variavel CSS mesmo sem utilitario que os use,
@@ -85,6 +87,8 @@
     scrollbar-gutter: stable;
     background-color: var(--color-expresso);
   }
+  /* a da sacola abre pela direita: a calha fica colada na folha creme */
+  html:has(.gaveta--direita[open]) { background-color: var(--color-creme); }
 
   body {
     /* o grao do cartao, na pagina inteira: por secao ele deixava um degrau

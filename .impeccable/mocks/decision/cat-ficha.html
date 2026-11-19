@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>A ficha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --papel:#FFFBF5; --linho:#F6EBDD; --suave:#5E4A40; --claro-suave:#EADDD0; --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1440px; height: 900px; overflow: hidden; font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); }
+  ul, ol { list-style: none; }
+  .wrap { width: 1128px; margin: 0 auto; }
+  header { height: 64px; border-bottom: 1px solid var(--fio); }
+  header .wrap { height: 100%; display: flex; align-items: center; gap: 32px; font-size: 15px; }
+  header img { height: 36px; margin-right: auto; }
+  header .cta { background: var(--expresso); color: var(--creme); font-weight: 500; font-size: 14px; padding: 12px 20px; border-radius: 2px; }
+  .menu { display: flex; align-items: center; gap: 10px; }
+  .menu i { width: 16px; height: 9px; border-top: 1.4px solid; border-bottom: 1.4px solid; }
+
+  .topo { background: var(--expresso); color: var(--creme); height: 196px; }
+  .topo .wrap { height: 100%; display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 26px; }
+  .trilha { font-size: 13px; color: var(--claro-suave); margin-bottom: 12px; }
+  h1 { font-weight: 300; font-size: 44px; line-height: 1.05; letter-spacing: -.03em; }
+  h1 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 78px; line-height: .86; letter-spacing: 0; color: var(--cobre); margin-left: 36px; }
+  .abas { display: flex; gap: 8px; font-size: 15px; }
+  .aba { height: 44px; padding: 0 20px; border: 1px solid rgb(250 242 233 / .42); border-radius: 2px; display: flex; align-items: center; gap: 8px; }
+  .aba small { font-size: 12px; opacity: .75; }
+  .aba.atual { background: var(--creme); color: var(--expresso); border-color: var(--creme); }
+
+  .filtros { display: flex; align-items: center; gap: 8px; margin-top: 26px; font-size: 15px; }
+  .filtros .rot { font-size: 14px; color: var(--cobre-texto); margin-right: 10px; }
+  .pil { height: 44px; padding: 0 18px; border: 1px solid var(--contorno); border-radius: 2px; display: flex; align-items: center; gap: 8px; }
+  .pil small { font-size: 12px; color: var(--suave); }
+
+  .corpo { display: grid; grid-template-columns: 1fr 520px; gap: 48px; margin-top: 32px; }
+  .grade { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px 24px; }
+  .card { position: relative; }
+  .card img { position: relative; width: 100%; aspect-ratio: 4/5; object-fit: cover; border-radius: 4px; display: block; background: var(--linho); }
+  .card h2 { font-weight: 400; font-size: 18px; letter-spacing: -.01em; margin-top: 14px; line-height: 1.2; }
+  .card .tipo { font-size: 13px; font-weight: 500; color: var(--cobre-texto); margin-top: 3px; }
+  .card.aberto::before { content: ""; position: absolute; left: 7px; top: 7px; width: 100%; aspect-ratio: 4/5; border: 1px solid var(--cobre); border-radius: 4px; }
+  .card.aberto h2 { color: var(--cobre-texto); }
+  .card.aberto h2::before { content: "♥"; color: var(--cobre); font-size: 12px; margin-right: 8px; }
+
+  .ficha { position: relative; background: var(--papel); border-radius: 2px; padding: 30px 34px 0; height: 516px; box-shadow: 0 30px 60px -34px rgb(43 27 22 / .45); }
+  .ficha::before { content: ""; position: absolute; inset: 8px; border: 1px solid rgb(201 120 74 / .6); border-radius: 2px; pointer-events: none; }
+  .fechar { position: absolute; right: 22px; top: 22px; width: 40px; height: 40px; border: 1px solid var(--contorno); border-radius: 2px; display: grid; place-items: center; font-size: 20px; font-weight: 300; }
+  .cab { display: grid; grid-template-columns: 152px 1fr; gap: 26px; align-items: end; }
+  .cab img { width: 152px; height: 190px; object-fit: cover; border-radius: 4px; display: block; }
+  .cab .tipo { font-size: 13px; font-weight: 500; color: var(--cobre-texto); }
+  .cab h2 { font-weight: 300; font-size: 36px; letter-spacing: -.02em; line-height: 1.1; margin-top: 2px; }
+  .regra { font-size: 12px; font-weight: 600; letter-spacing: .26em; text-transform: uppercase; margin-top: 14px; }
+  .regra::before { content: "♥"; color: var(--cobre); margin-right: 10px; letter-spacing: 0; }
+  .cab .frase { font-family: Allura, cursive; font-size: 33px; line-height: 1.05; color: var(--cobre-texto); margin-top: 16px; }
+  .miolo { display: grid; grid-template-columns: 1.35fr 1fr; gap: 24px; margin-top: 20px; padding-top: 16px; border-top: 1px solid rgb(43 27 22 / .2); font-size: 13px; }
+  .miolo li { display: flex; align-items: center; gap: 12px; padding: 4px 0; white-space: nowrap; }
+  .miolo .ico { width: 16px; height: 16px; border: 1.4px solid var(--expresso); border-radius: 50%; flex: none; }
+  .miolo b { display: block; font-weight: 500; font-size: 14.5px; margin-bottom: 6px; }
+  .miolo ol li { color: var(--suave); padding: 5px 0; gap: 8px; }
+  .pe { position: absolute; left: 34px; right: 34px; bottom: 22px; padding-top: 12px; border-top: 1px solid rgb(43 27 22 / .2); display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .pe small { font-size: 12px; color: var(--suave); font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+  <header><div class="wrap">
+    <span class="menu"><i></i>Catálogo</span>
+    <img src="http://localhost:3000/marca/logo-amo.png" alt="AMO">
+    <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+    <span class="cta">Ver cardápio</span>
+  </div></header>
+
+  <div class="topo"><div class="wrap">
+    <div>
+      <p class="trilha">Início &nbsp;›&nbsp; Catálogo</p>
+      <h1>O catálogo <em>inteiro</em></h1>
+    </div>
+    <div class="abas">
+      <span class="aba atual">Doces <small>7</small></span>
+      <span class="aba">Salgados</span>
+      <span class="aba">Refeições</span>
+    </div>
+  </div></div>
+
+  <div class="wrap">
+    <div class="filtros">
+      <span class="rot">Na vontade de</span>
+      <span class="pil">Chocolate <small>2</small></span>
+      <span class="pil">Fruta <small>3</small></span>
+      <span class="pil">Coco <small>2</small></span>
+      <span class="pil">Um clássico <small>3</small></span>
+    </div>
+
+    <div class="corpo">
+      <div class="grade">
+        <div class="card aberto"><img src="http://localhost:3000/produtos/prestigio.webp" alt=""><h2>Prestígio</h2><p class="tipo">Bolo no pote</p></div>
+        <div class="card"><img src="http://localhost:3000/produtos/pacoca.webp" alt=""><h2>Paçoca</h2><p class="tipo">Bolo no pote</p></div>
+        <div class="card"><img src="http://localhost:3000/produtos/mousse-de-maracuja.webp" alt=""><h2>Mousse de maracujá</h2><p class="tipo">Bolo no pote</p></div>
+        <div class="card"><img src="http://localhost:3000/produtos/ninho-com-frutas-vermelhas.webp" alt=""><h2>Ninho com frutas vermelhas</h2><p class="tipo">Bolo no pote</p></div>
+        <div class="card"><img src="http://localhost:3000/produtos/beijinho.webp" alt=""><h2>Beijinho</h2><p class="tipo">Bolo no pote</p></div>
+        <div class="card"><img src="http://localhost:3000/produtos/chocolate.webp" alt=""><h2>Chocolate</h2><p class="tipo">Bolo no pote</p></div>
+      </div>
+
+      <div class="ficha">
+        <span class="fechar">×</span>
+        <div class="cab">
+          <img src="http://localhost:3000/produtos/prestigio.webp" alt="">
+          <div>
+            <p class="tipo">Bolo no pote</p>
+            <h2>Prestígio</h2>
+            <p class="regra">Zero açúcar</p>
+            <p class="frase">Um abraço em forma de sobremesa</p>
+          </div>
+        </div>
+        <div class="miolo">
+          <ul>
+            <li><i class="ico"></i>Adoçado com eritritol e stevia</li>
+            <li><i class="ico"></i>Cozido a vapor</li>
+            <li><i class="ico"></i>Fonte de fibras</li>
+            <li><i class="ico"></i>Pote de vidro reutilizável</li>
+            <li><i class="ico"></i>Ingredientes selecionados</li>
+            <li><i class="ico"></i>Produzido artesanalmente</li>
+          </ul>
+          <div>
+            <b>Como aproveitar seu AMO</b>
+            <ol>
+              <li>1. Abra com amor</li>
+              <li>2. Pegue sua colher</li>
+              <li>3. A saboreie sem culpa</li>
+              <li>4. Cuide do pote de vidro</li>
+            </ol>
+          </div>
+        </div>
+        <div class="pe"><span>← Frutas amarelas</span><small>1 de 7</small><span>Paçoca →</span></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

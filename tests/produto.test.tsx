@@ -81,6 +81,18 @@ describe('CardProduto', () => {
     expect(selos.closest('.moldura')).toBeNull()
   })
 
+  it('no catálogo o nome desce para h4 (categoria, linha, produto), e o card segue rotulado por ele', () => {
+    render(<CardProduto produto={prestigio} tipo="Bolo no pote" nomesDosSelos={nomes} nivel={4} />)
+    expect(screen.getByRole('heading', { level: 4, name: 'Prestígio' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { level: 3 })).toBeNull()
+    expect(screen.getByRole('article', { name: 'Prestígio' })).toBeInTheDocument()
+  })
+
+  it('a foto pré-carregada sai sem lazy: é a primeira da página', () => {
+    render(<CardProduto produto={prestigio} tipo="Bolo no pote" nomesDosSelos={nomes} precarregada />)
+    expect(screen.getByAltText(prestigio.imagem.alt)).not.toHaveAttribute('loading')
+  })
+
   it('sem frase, sem parágrafo de frase', () => {
     const semFrase: Produto = { ...prestigio, frase: undefined }
     const { container } = render(<CardProduto produto={semFrase} tipo="Bolo no pote" nomesDosSelos={nomes} />)
@@ -134,6 +146,21 @@ describe('GradeProdutos', () => {
     const item = container.querySelector('li')!
     expect(item).toHaveAttribute('id', 'prestigio')
     expect(item).toHaveClass('scroll-mt-24')
+  })
+
+  it('repassa o nível do título e pré-carrega só a foto pedida', () => {
+    render(
+      <GradeProdutos
+        produtos={PRODUTOS.slice(0, 3)}
+        tipos={tipos}
+        nomesDosSelos={nomes}
+        nivel={4}
+        precarregar="prestigio"
+      />,
+    )
+    expect(screen.getAllByRole('heading', { level: 4 })).toHaveLength(3)
+    const semLazy = screen.getAllByRole('img').filter((img) => !img.hasAttribute('loading'))
+    expect(semLazy.map((img) => img.getAttribute('alt'))).toEqual([prestigio.imagem.alt])
   })
 
   it('sem âncora, sem id', () => {

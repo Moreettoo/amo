@@ -35,7 +35,7 @@ function liberarMovimento() {
 }
 
 /** A gaveta com quem a abre, do jeito que a Nav faz. */
-function Bancada(props: { dados: DadosGaveta; linhaAtual: string | null; aoFechar: (d: boolean) => void }) {
+function Bancada(props: { dados: DadosGaveta; aoFechar: (d: boolean) => void }) {
   const [aberta, setAberta] = useState(false)
   const botao = useRef<HTMLButtonElement>(null)
   return (
@@ -46,7 +46,6 @@ function Bancada(props: { dados: DadosGaveta; linhaAtual: string | null; aoFecha
       <Gaveta
         id="gaveta"
         dados={props.dados}
-        linhaAtual={props.linhaAtual}
         aberta={aberta}
         aoFechar={(devolver) => {
           props.aoFechar(devolver)
@@ -62,17 +61,17 @@ const dialogo = () => document.getElementById('gaveta') as HTMLDialogElement
 const botaoAbrir = () => screen.getByRole('button', { name: 'abrir' })
 const botaoFechar = () => screen.getByRole('button', { name: 'Fechar o catálogo' })
 
-async function abrir(dados: DadosGaveta = misto, linhaAtual: string | null = null) {
+async function abrir(dados: DadosGaveta = misto) {
   const user = userEvent.setup()
   const aoFechar = vi.fn()
-  const montagem = render(<Bancada dados={dados} linhaAtual={linhaAtual} aoFechar={aoFechar} />)
+  const montagem = render(<Bancada dados={dados} aoFechar={aoFechar} />)
   await user.click(botaoAbrir())
   return { user, aoFechar, ...montagem }
 }
 
 describe('Gaveta: abrir e fechar', () => {
   it('nasce fechada e abre como diálogo modal, com o foco no fechar', async () => {
-    render(<Bancada dados={misto} linhaAtual={null} aoFechar={() => {}} />)
+    render(<Bancada dados={misto} aoFechar={() => {}} />)
     expect(dialogo().open).toBe(false)
     expect(screen.queryByRole('dialog')).toBeNull()
     await userEvent.setup().click(botaoAbrir())
@@ -175,19 +174,20 @@ describe('Gaveta: a saída animada', () => {
 
 describe('Gaveta: o conteúdo', () => {
   it('com três linhas: uma por linha, com capa, regra e contagem, e o catálogo inteiro', async () => {
-    await abrir(misto, 'bolos-inteiros')
+    await abrir(misto)
     const d = dialogo()
     const linhas = d.querySelector('.gaveta__linhas') as HTMLElement
     const links = within(linhas).getAllByRole('link')
     expect(links.map((a) => a.getAttribute('href'))).toEqual([
-      '/catalogo/bolos-no-pote',
-      '/catalogo/bolos-inteiros',
-      '/catalogo/salgados',
+      '/catalogo#linha-bolos-no-pote',
+      '/catalogo#linha-bolos-inteiros',
+      '/catalogo#linha-salgados',
     ])
     expect(links[0]).toHaveTextContent('Zero açúcar')
     expect(links[0]).toHaveTextContent('7 receitas')
     expect(links[2]).toHaveTextContent('Massa integral')
-    expect(links.map((a) => a.getAttribute('aria-current'))).toEqual([null, 'page', null])
+    // o catalogo e uma pagina so: nao ha mais "linha atual" para marcar
+    expect(links.map((a) => a.getAttribute('aria-current'))).toEqual([null, null, null])
     expect(links[1].querySelector('.gaveta__capa--inteiro img')).toHaveAttribute('alt', '')
     const tudo = within(d).getByRole('link', { name: /Ver o catálogo inteiro/ })
     expect(tudo).toHaveAttribute('href', '/catalogo')
@@ -199,11 +199,11 @@ describe('Gaveta: o conteúdo', () => {
   it('com uma linha só: o cartão da linha e os 7 sabores, cada um levando ao seu card', async () => {
     await abrir(real)
     const d = dialogo()
-    expect(within(d).getByRole('link', { name: /Ver as 7 receitas/ })).toHaveAttribute('href', '/catalogo/bolos-no-pote')
+    expect(within(d).getByRole('link', { name: /Ver as 7 receitas/ })).toHaveAttribute('href', '/catalogo#linha-bolos-no-pote')
     const sabores = within(d).getByRole('list', { name: 'Os sabores' })
     const links = within(sabores).getAllByRole('link')
     expect(links.map((a) => a.getAttribute('href'))).toEqual(
-      real.sabores.map((s) => `/catalogo/bolos-no-pote#${s.slug}`),
+      real.sabores.map((s) => `/catalogo#${s.slug}`),
     )
     expect(links.map((a) => a.textContent)).toEqual(real.sabores.map((s) => s.nome))
     expect(within(d).queryByRole('link', { name: /Ver o catálogo inteiro/ })).toBeNull()
@@ -235,13 +235,13 @@ describe('Gaveta: o conteúdo', () => {
   it('o Lenis ignora a roda na gaveta inteira, inclusive no fundo, cujo alvo é o próprio <dialog>', () => {
     // sem allow-discrete (Safari ate 17.3) o autoToggle nao para o Lenis, e a
     // roda sobre o fundo rolaria a pagina de tras
-    render(<Bancada dados={misto} linhaAtual={null} aoFechar={() => {}} />)
+    render(<Bancada dados={misto} aoFechar={() => {}} />)
     expect(dialogo()).toHaveAttribute('data-lenis-prevent')
   })
 
   it('a borda é reta: sem a onda da v2, o painel é o único filho do diálogo', () => {
     // o clique fora conta com isso: alvo no proprio <dialog> so pode ser o fundo
-    render(<Bancada dados={misto} linhaAtual={null} aoFechar={() => {}} />)
+    render(<Bancada dados={misto} aoFechar={() => {}} />)
     expect(dialogo().querySelector('.gaveta__onda')).toBeNull()
     expect([...dialogo().children].map((el) => el.className)).toEqual(['gaveta__painel'])
   })

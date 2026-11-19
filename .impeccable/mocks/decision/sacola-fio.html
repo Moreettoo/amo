@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>O fio das etapas</title>
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --papel:#FFFBF5; --linho:#F6EBDD; --suave:#5E4A40; --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1440px; height: 900px; overflow: hidden; font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); }
+  .wrap { width: 1128px; margin: 0 auto; }
+  header { height: 64px; border-bottom: 1px solid var(--fio); }
+  header .wrap { height: 100%; display: flex; align-items: center; gap: 30px; font-size: 15px; }
+  header img { height: 30px; margin-right: auto; }
+  .menu { display: flex; align-items: center; gap: 10px; }
+  .menu i { width: 16px; height: 9px; border-top: 1.4px solid; border-bottom: 1.4px solid; }
+  .bag { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1px solid var(--expresso); border-radius: 2px; font-size: 14px; font-weight: 500; }
+  .bag b { min-width: 20px; height: 20px; border-radius: 2px; background: var(--expresso); color: var(--creme); font-size: 12px; display: grid; place-items: center; }
+  h1 { font-weight: 300; font-size: 48px; letter-spacing: -.03em; line-height: 1.1; margin-top: 40px; }
+  h1 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 1.5em; letter-spacing: 0; line-height: 1.05; color: var(--cobre-texto); }
+  .corpo { display: grid; grid-template-columns: 1fr 340px; gap: 80px; margin-top: 30px; }
+  .etapas { position: relative; padding-left: 40px; }
+  .etapas::before { content: ""; position: absolute; left: 6px; top: 8px; bottom: 0; width: 1px; background: var(--fio); }
+  .coracao { position: absolute; left: 0; top: 4px; width: 13px; height: 13px; fill: var(--cobre); }
+  .etapa { padding-bottom: 22px; }
+  .etapa + .etapa { padding-top: 4px; }
+  .nome { display: flex; align-items: baseline; justify-content: space-between; }
+  .nome h2 { font-weight: 400; font-size: 22px; letter-spacing: -.01em; }
+  .nome h2 small { font-size: 13px; color: var(--suave); font-weight: 400; margin-left: 10px; font-variant-numeric: tabular-nums; }
+  .nome a { font-size: 14px; color: var(--suave); }
+  .fechada .nome h2 { color: var(--suave); font-size: 18px; }
+  .fechada p { font-size: 14px; color: var(--suave); margin-top: 2px; }
+  .item { display: grid; grid-template-columns: 64px 1fr auto auto; gap: 20px; align-items: center; padding: 14px 0; }
+  .item + .item { border-top: 1px solid var(--fio); }
+  .item img { width: 64px; height: 80px; object-fit: cover; border-radius: 3px; background: var(--linho); }
+  .item .n { font-size: 16px; }
+  .item .n small { display: block; font-size: 13px; color: var(--suave); margin-top: 2px; }
+  .qtd { display: inline-flex; align-items: center; border: 1px solid var(--contorno); border-radius: 2px; height: 40px; }
+  .qtd i { width: 38px; text-align: center; font-style: normal; font-size: 17px; font-weight: 300; }
+  .qtd b { width: 24px; text-align: center; font-weight: 500; font-variant-numeric: tabular-nums; }
+  .preco { width: 86px; text-align: right; font-variant-numeric: tabular-nums; font-size: 16px; }
+  .resumo { align-self: start; padding-top: 4px; }
+  .resumo .rot { font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--cobre-texto); }
+  .lin { display: flex; justify-content: space-between; font-size: 15px; padding: 9px 0; font-variant-numeric: tabular-nums; }
+  .lin small { color: var(--suave); font-size: 14px; }
+  .resumo .t { border-top: 1px solid var(--fio); margin-top: 8px; padding-top: 16px; display: flex; justify-content: space-between; align-items: baseline; }
+  .resumo .t span { font-size: 15px; font-weight: 500; }
+  .resumo .t b { font-weight: 300; font-size: 36px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .botao { margin-top: 20px; height: 52px; background: var(--expresso); color: var(--creme); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 15px; letter-spacing: .02em; }
+  .volta { margin-top: 16px; font-size: 14px; text-align: center; }
+  .nota { margin-top: 18px; font-size: 13px; color: var(--suave); line-height: 1.6; }
+  .aviso { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 12px; color: var(--suave); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <span class="menu"><i></i>Catálogo</span>
+  <img src="http://localhost:3000/marca/logo-amo.png" alt="AMO">
+  <span>A linha</span><span>Hoje o dia pede</span><span>O rótulo</span>
+  <span class="bag">Sacola <b>4</b></span>
+</div></header>
+<main class="wrap">
+  <h1>Sua sacola <em>quase pronta</em></h1>
+  <div class="corpo">
+    <div class="etapas">
+      <svg class="coracao" viewBox="0 0 12 12"><path d="M6 11 1.5 6.6A2.6 2.6 0 0 1 6 3a2.6 2.6 0 0 1 4.5 3.6Z"/></svg>
+      <section class="etapa">
+        <div class="nome"><h2>1. Os potes <small>4 potes</small></h2><a>Escolher mais</a></div>
+        <div class="item"><img src="http://localhost:3000/produtos/prestigio.webp" alt=""><p class="n">Prestígio<small>Bolo no pote · Zero açúcar</small></p><span class="qtd"><i>−</i><b>2</b><i>+</i></span><span class="preco">R$ 37,80</span></div>
+        <div class="item"><img src="http://localhost:3000/produtos/ninho-com-frutas-vermelhas.webp" alt=""><p class="n">Ninho com frutas vermelhas<small>Bolo no pote · Zero açúcar</small></p><span class="qtd"><i>−</i><b>1</b><i>+</i></span><span class="preco">R$ 21,90</span></div>
+        <div class="item"><img src="http://localhost:3000/produtos/pacoca.webp" alt=""><p class="n">Paçoca<small>Bolo no pote · Zero açúcar</small></p><span class="qtd"><i>−</i><b>1</b><i>+</i></span><span class="preco">R$ 18,90</span></div>
+      </section>
+      <section class="etapa fechada"><div class="nome"><h2>2. Entrega</h2></div><p>CEP e número; o Uber leva no mesmo dia.</p></section>
+      <section class="etapa fechada"><div class="nome"><h2>3. Seus dados</h2></div><p>Nome, celular e e-mail para acompanhar o pedido.</p></section>
+      <section class="etapa fechada"><div class="nome"><h2>4. Pagamento</h2></div><p>Pix ou cartão.</p></section>
+    </div>
+    <aside class="resumo">
+      <p class="rot">Resumo</p>
+      <div style="margin-top:10px">
+        <p class="lin"><span>Subtotal</span><span>R$ 78,60</span></p>
+        <p class="lin"><span>Entrega</span><small>informe o CEP</small></p>
+      </div>
+      <div class="t"><span>Total</span><b>R$ 78,60</b></div>
+      <div class="botao">Continuar para a entrega</div>
+      <p class="volta">Voltar ao catálogo</p>
+      <p class="nota">Feito no dia, cozido a vapor, no pote de vidro que você reaproveita.</p>
+    </aside>
+  </div>
+</main>
+<p class="aviso">Esboço. Preços são de exemplo.</p>
+</body>
+</html>
