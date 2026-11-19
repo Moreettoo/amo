@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:banco": "vitest run --config vitest.banco.config.mts",
-    "varrer": "node scripts/varrer-segredos.mjs"
+    "varrer": "node scripts/varrer-segredos.mjs",
+    "postbuild": "node scripts/varrer-segredos.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.2",

@@ -8,14 +8,16 @@ import { linhasComProduto, montarGaveta } from '@/lib/visao'
 
 type Props = { params: Promise<{ produto: string }> }
 
-/** Uma pagina por produto do cadastro, gerada no build. */
+/**
+ * Uma pagina por produto do cadastro, gerada no build. Produto posto no painel
+ * depois do build ganha a pagina na primeira visita (as listas da home e do
+ * catalogo ja o mostram em ate 5 minutos); slug fora do cadastro cai no 404
+ * pelo notFound() abaixo.
+ */
 export async function generateStaticParams() {
   const { produtos } = await carregarCatalogo()
   return produtos.map((p) => ({ produto: p.slug }))
 }
-
-/** Slug fora do cadastro cai no 404. */
-export const dynamicParams = false
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pagina = montarPaginaProduto(await carregarCatalogo(), (await params).produto, [])

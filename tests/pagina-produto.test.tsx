@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
-import PaginaDoProduto, { generateMetadata, generateStaticParams } from '@/app/catalogo/[produto]/page'
+import PaginaDoProduto, * as rotaDoProduto from '@/app/catalogo/[produto]/page'
+import { generateMetadata, generateStaticParams } from '@/app/catalogo/[produto]/page'
 import PaginaCatalogo from '@/app/catalogo/page'
 import { TelaProduto } from '@/components/layout/TelaProduto'
 import type { Produto } from '@/lib/catalogo'
@@ -29,6 +30,10 @@ describe('a rota do produto', () => {
 
   it('slug fora do cadastro cai no 404', async () => {
     await expect(PaginaDoProduto({ params: Promise.resolve({ produto: 'nao-existe' }) })).rejects.toThrow()
+  })
+
+  it('produto posto no painel depois do build ganha a pagina sem novo deploy (slug sob demanda)', () => {
+    expect((rotaDoProduto as { dynamicParams?: boolean }).dynamicParams).not.toBe(false)
   })
 
   it('os cards do catálogo levam à página do produto', async () => {

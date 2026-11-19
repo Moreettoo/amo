@@ -97,6 +97,15 @@ Dois desvios do desenho, por limite do ambiente:
   uma cliente, a porta é testada por dentro do banco (`10_porta.sql`); pela
   internet, na etapa 2, quando o cadastro existir.
 
+## Produto novo pelo painel
+
+O site relê o catálogo a cada 5 minutos, e um produto novo aparece na home e
+no catálogo sem deploy; a página dele nasce na primeira visita. A foto, porém,
+mora em `public/produtos/` e só chega com um deploy. Então: primeiro publicar
+o site com a foto, depois inserir a linha em `produtos` (com `imagem_src`,
+largura e altura da foto). Ao contrário, o site mostra o produto com a foto
+quebrada até o deploy.
+
 ## Segredo da porta
 
 A API de dados só responde a quem manda o cabeçalho `x-amo-porta` com o
