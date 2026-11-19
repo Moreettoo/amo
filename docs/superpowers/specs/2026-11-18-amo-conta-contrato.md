@@ -108,6 +108,11 @@ foi entregue por mensagem; leia antes de continuar.
    - nenhum filtro montado com texto (`.or()`, `.filter()` com valor de
      fora); só métodos com a coluna escrita no código;
    - os seus testes de entrada usam a mesma lista hostil do teste 7 da §14.
+7. **Pacote e `.env.example` (etapa 2, 2026-11-19).** Esta sessão instalou
+   `@supabase/supabase-js` (a camada de dados do catálogo precisa dele já) e
+   criou o `.env.example` com todas as variáveis da §13. `@supabase/ssr`
+   continua com você. A camada de dados mora em `src/lib/dados/` (só
+   servidor); o catálogo usa um cliente sem sessão, com a porta.
 
 ## Em aberto
 

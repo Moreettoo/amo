@@ -62,6 +62,13 @@ E o teste da porta por HTTP de verdade, pela internet:
 node scripts/testar-porta.mjs
 ```
 
+E os testes do site contra o banco de desenvolvimento (precisam do
+`.env.local`; ficam fora do `npm test`):
+
+```bash
+npm run test:banco
+```
+
 Rodar `90_permissoes.sql` e o conselheiro de segurança (`get_advisors`)
 depois de toda migration. O inventário lista cada permissão que anon,
 authenticated e service_role têm; uma tabela, coluna ou função nova sem
