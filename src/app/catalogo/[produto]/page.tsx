@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { TelaProduto } from '@/components/layout/TelaProduto'
 import { carregarCatalogo } from '@/lib/dados/catalogo'
+import { lerComentariosAprovados } from '@/lib/dados/comentarios'
 import { montarPaginaProduto } from '@/lib/produto'
 import { linhasComProduto, montarGaveta } from '@/lib/visao'
 
@@ -17,7 +18,7 @@ export async function generateStaticParams() {
 export const dynamicParams = false
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const pagina = montarPaginaProduto(await carregarCatalogo(), (await params).produto)
+  const pagina = montarPaginaProduto(await carregarCatalogo(), (await params).produto, [])
   if (!pagina) return {}
   const { produto, linha } = pagina
   return {
@@ -28,7 +29,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function PaginaDoProduto({ params }: Props) {
   const catalogo = await carregarCatalogo()
-  const pagina = montarPaginaProduto(catalogo, (await params).produto)
+  // o slug que vai ao banco sai do cadastro, nunca direto da URL
+  const { produto: slug } = await params
+  const produto = catalogo.produtos.find((p) => p.slug === slug)
+  if (!produto) notFound()
+  const pagina = montarPaginaProduto(catalogo, produto.slug, await lerComentariosAprovados(produto.slug))
   if (!pagina) notFound()
   return <TelaProduto pagina={pagina} gaveta={montarGaveta(catalogo)} linhas={linhasComProduto(catalogo)} />
 }

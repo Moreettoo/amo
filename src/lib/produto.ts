@@ -1,10 +1,9 @@
-import { COMENTARIOS_DE_EXEMPLO } from '@/data/exemplos'
 import type { Catalogo, Categoria, Linha, Produto } from '@/lib/catalogo'
 
 /**
  * A pagina de um produto. O cadastro (carregarCatalogo) diz o que o produto
- * e, com o preco e a descricao; os comentarios ainda vem dos dados de exemplo
- * (src/data/exemplos.ts) e entram aqui, num lugar so.
+ * e, com o preco e a descricao; os comentarios aprovados vem do banco
+ * (lerComentariosAprovados) e entram aqui ja lidos.
  */
 
 export type Nota = 1 | 2 | 3 | 4 | 5
@@ -65,17 +64,14 @@ export const formatarData = (iso: string) => DATA.format(new Date(`${iso}T12:00:
 
 export const contarComentarios = (n: number) => `${n} ${n === 1 ? 'comentário' : 'comentários'}`
 
-/** Monta a pagina pelo slug; null quando o produto nao existe. */
-export function montarPaginaProduto(c: Catalogo, slug: string): PaginaProduto | null {
+/** Monta a pagina pelo slug; null quando o produto nao existe. Os comentarios vem do mais novo ao mais antigo. */
+export function montarPaginaProduto(c: Catalogo, slug: string, comentarios: readonly Comentario[]): PaginaProduto | null {
   const produto = c.produtos.find((p) => p.slug === slug)
   if (!produto) return null
   const linha = c.linhas.find((l) => l.slug === produto.linha)
   const categoria = linha && c.categorias.find((x) => x.slug === linha.categoria)
   if (!linha || !categoria) return null
   const nome = (id: string) => ({ id, nome: c.selos.find((s) => s.id === id)?.nome ?? id })
-  const comentarios = COMENTARIOS_DE_EXEMPLO.filter((x) => x.produto === slug).sort((a, b) =>
-    b.data.localeCompare(a.data),
-  )
   return {
     produto,
     linha,

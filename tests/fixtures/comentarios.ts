@@ -1,13 +1,7 @@
 import type { Comentario } from '@/lib/produto'
 
-/**
- * DADOS DE EXEMPLO. Os comentarios ainda nao existem de verdade (PRODUCT.md,
- * "Evidence on Hand"); servem para desenhar a pagina de produto ate o banco
- * ter comentarios aprovados.
- */
-
-/** Comentarios aprovados, de exemplo. Data em ISO (UTC). */
-export const COMENTARIOS_DE_EXEMPLO: readonly Comentario[] = [
+/** Os comentarios aprovados que os testes de unidade usam no lugar do banco. Data em AAAA-MM-DD. */
+export const COMENTARIOS: readonly Comentario[] = [
   { id: 'c1', produto: 'prestigio', nome: 'Carla M.', nota: 5, data: '2026-11-15', texto: 'Não acreditei que era sem açúcar. O coco é de verdade e o bolo é molhadinho até o fundo do pote.' },
   { id: 'c2', produto: 'prestigio', nome: 'Renata S.', nota: 4, data: '2026-11-11', texto: 'Sou diabética e foi o primeiro doce em meses que comi tranquila. Só queria que o pote fosse um pouco maior.' },
   { id: 'c3', produto: 'prestigio', nome: 'Juliana P.', nota: 5, data: '2026-11-04', texto: 'Guardei o pote para levar o próximo no trabalho. O tamanho é certo para depois do almoço.' },

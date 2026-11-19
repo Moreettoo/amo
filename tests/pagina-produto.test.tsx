@@ -114,7 +114,7 @@ describe('produto fora de venda ou sem descricao', () => {
     const c = await carregarCatalogo()
     estragar(c.produtos.find((p) => p.slug === 'pacoca')!)
     return render(
-      <TelaProduto pagina={montarPaginaProduto(c, 'pacoca')!} gaveta={montarGaveta(c)} linhas={linhasComProduto(c)} />,
+      <TelaProduto pagina={montarPaginaProduto(c, 'pacoca', [])!} gaveta={montarGaveta(c)} linhas={linhasComProduto(c)} />,
     )
   }
   it('sem preco: mostra o produto, sem preco e sem o botao da sacola', async () => {

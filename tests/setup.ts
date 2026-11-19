@@ -11,6 +11,16 @@ vi.mock('@/lib/dados/catalogo', async (original) => {
     carregarCatalogo: async () => structuredClone(CADASTRO),
   }
 })
+
+// O mesmo para os comentarios aprovados: os da fixture, do mais novo ao mais antigo.
+vi.mock('@/lib/dados/comentarios', async (original) => {
+  const { COMENTARIOS } = await import('./fixtures/comentarios')
+  return {
+    ...(await original<typeof import('@/lib/dados/comentarios')>()),
+    lerComentariosAprovados: async (produto: string) =>
+      COMENTARIOS.filter((c) => c.produto === produto).sort((a, b) => b.data.localeCompare(a.data)),
+  }
+})
 import { MotionGlobalConfig } from 'motion/react'
 
 expect.extend(matchers)
