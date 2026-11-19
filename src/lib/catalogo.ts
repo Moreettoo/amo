@@ -11,7 +11,7 @@ import { VONTADES } from '@/data/vontades'
  * carregarCatalogo(). Quando o Supabase entrar, troca so ela.
  */
 
-export type Selo = { id: string; nome: string }
+export type Selo = { id: string; nome: string; ordem: number }
 
 export type Vontade = { slug: string; palavra: string; ordem: number }
 

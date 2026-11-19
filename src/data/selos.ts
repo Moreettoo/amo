@@ -6,11 +6,11 @@ import type { Selo } from '@/lib/catalogo'
  * icone generico.
  */
 export const SELOS: readonly Selo[] = [
-  { id: 'zero-acucar', nome: 'Zero açúcar' },
-  { id: 'adocante', nome: 'Adoçado com eritritol e stevia' },
-  { id: 'vapor', nome: 'Cozido a vapor' },
-  { id: 'fibras', nome: 'Fonte de fibras' },
-  { id: 'vidro', nome: 'Pote de vidro reutilizável' },
-  { id: 'ingredientes', nome: 'Ingredientes selecionados' },
-  { id: 'artesanal', nome: 'Produzido artesanalmente' },
+  { id: 'zero-acucar', nome: 'Zero açúcar', ordem: 1 },
+  { id: 'adocante', nome: 'Adoçado com eritritol e stevia', ordem: 2 },
+  { id: 'vapor', nome: 'Cozido a vapor', ordem: 3 },
+  { id: 'fibras', nome: 'Fonte de fibras', ordem: 4 },
+  { id: 'vidro', nome: 'Pote de vidro reutilizável', ordem: 5 },
+  { id: 'ingredientes', nome: 'Ingredientes selecionados', ordem: 6 },
+  { id: 'artesanal', nome: 'Produzido artesanalmente', ordem: 7 },
 ]

@@ -58,7 +58,7 @@ select pg_temp.verificar('preco zero e recusado',
 
 select pg_temp.verificar('identificador fora do formato e recusado',
   pg_temp.como('postgres', null,
-    $$insert into public.selos (id, nome) values ('Zero Açúcar', 'x')$$) like '23514%');
+    $$insert into public.selos (id, nome, ordem) values ('Zero Açúcar', 'x', 99)$$) like '23514%');
 
 select pg_temp.verificar('nome com sinal de tag e recusado',
   pg_temp.como('postgres', null,
@@ -70,6 +70,9 @@ select pg_temp.verificar('segunda linha em loja e recusada',
 select pg_temp.verificar('horario que abre depois de fechar e recusado',
   pg_temp.como('postgres', null,
     $$update public.horarios set abre = '19:00' where dia_da_semana = 1$$) like '23514%');
+
+select pg_temp.verificar('os selos tem ordem, sem repetir',
+  (select count(*) = 7 and count(distinct ordem) = 7 from public.selos));
 
 select * from pg_temp.relatorio();
 rollback;

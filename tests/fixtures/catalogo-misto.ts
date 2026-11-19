@@ -43,8 +43,8 @@ export const CATALOGO_MISTO: Catalogo = {
   ],
   selos: [
     ...SELOS,
-    { id: 'integral', nome: 'Integral' },
-    { id: 'sem-conservante', nome: 'Sem conservante' },
+    { id: 'integral', nome: 'Integral', ordem: 8 },
+    { id: 'sem-conservante', nome: 'Sem conservante', ordem: 9 },
   ],
   vontades: [...VONTADES],
   produtos: [

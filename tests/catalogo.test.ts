@@ -65,6 +65,10 @@ describe('validarCatalogo', () => {
 })
 
 describe('os dados de hoje', () => {
+  it('os selos tem ordem, de 1 a 7, sem repetir', () => {
+    expect(SELOS.map((s) => s.ordem)).toEqual([1, 2, 3, 4, 5, 6, 7])
+  })
+
   it('Encontro é Ninho com frutas vermelhas', () => {
     expect(PRODUTOS.find((p) => p.slug === 'ninho-com-frutas-vermelhas')?.nome).toBe(
       'Ninho com frutas vermelhas',

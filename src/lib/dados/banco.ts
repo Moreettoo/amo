@@ -509,14 +509,17 @@ export type Database = {
         Row: {
           id: string
           nome: string
+          ordem: number
         }
         Insert: {
           id: string
           nome: string
+          ordem: number
         }
         Update: {
           id?: string
           nome?: string
+          ordem?: number
         }
         Relationships: []
       }

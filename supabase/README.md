@@ -28,6 +28,7 @@ banco baterem.
 | `conta_e_guarda` | exclusão de conta, auditoria, expiração, guarda e as tarefas agendadas |
 | `porta` | a porta da API de dados (spec §5, regra 6) |
 | `ajustes_desempenho` | índice e regra de leitura apontados pelo conselheiro |
+| `selos_ordem` | a ordem dos selos, para o filtro do catálogo sair na ordem do cadastro |
 
 Para aplicar uma migration nova: escrever o arquivo, aplicar com o MCP
 (`apply_migration`), conferir a versão com `list_migrations` e dar ao
@@ -44,7 +45,7 @@ transação que o próprio teste desfaz no fim; nada fica gravado. O resultado
 | Teste | Spec §14 | Verificações |
 | --- | --- | --- |
 | `01_base.sql` | 2 | 7 |
-| `02_catalogo.sql` | 1 | 19 |
+| `02_catalogo.sql` | 1 | 20 |
 | `03_perfis.sql` | 1 e 6 | 29 |
 | `04_enderecos.sql` | 1 | 20 |
 | `05_pedidos.sql` | 1 e 4 | 37 |
