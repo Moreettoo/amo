@@ -29,6 +29,7 @@ banco baterem.
 | `porta` | a porta da API de dados (spec §5, regra 6) |
 | `ajustes_desempenho` | índice e regra de leitura apontados pelo conselheiro |
 | `selos_ordem` | a ordem dos selos, para o filtro do catálogo sair na ordem do cadastro |
+| `domingo_fechado` | a loja não abre aos domingos (fica 9h às 18h, de segunda a sábado) |
 
 Para aplicar uma migration nova: escrever o arquivo, aplicar com o MCP
 (`apply_migration`), conferir a versão com `list_migrations` e dar ao
@@ -45,11 +46,11 @@ transação que o próprio teste desfaz no fim; nada fica gravado. O resultado
 | Teste | Spec §14 | Verificações |
 | --- | --- | --- |
 | `01_base.sql` | 2 | 7 |
-| `02_catalogo.sql` | 1 | 20 |
+| `02_catalogo.sql` | 1 | 21 |
 | `03_perfis.sql` | 1 e 6 | 29 |
 | `04_enderecos.sql` | 1 | 20 |
 | `05_pedidos.sql` | 1 e 4 | 37 |
-| `06_fechamento.sql` | 3 | 62 |
+| `06_fechamento.sql` | 3 | 63 |
 | `07_pagamento.sql` | 4 e 5 | 46 |
 | `08_comentarios.sql` | 1 | 23 |
 | `09_conta_guarda.sql` | 6 | 25 |

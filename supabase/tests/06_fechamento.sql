@@ -43,9 +43,12 @@ select pg_temp.preparar('update public.loja set vendas_pausadas = false where id
 select pg_temp.preparar('delete from public.horarios where dia_da_semana = 3');
 select pg_temp.verificar('dia sem horario e dia fechado', not privado.loja_aberta('2026-11-18 12:00:00-03'));
 
--- daqui em diante a loja fica aberta o dia todo, para o teste nao depender do relogio
-insert into public.horarios (dia_da_semana, abre, fecha) values (3, '00:00', '24:00');
-select pg_temp.preparar($$update public.horarios set abre = '00:00', fecha = '24:00' where true$$);
+-- daqui em diante a loja fica aberta o dia todo, nos 7 dias (domingo inclusive),
+-- para o teste nao depender do relogio
+select pg_temp.preparar($$insert into public.horarios (dia_da_semana, abre, fecha)
+  select dia, '00:00', '24:00' from generate_series(0, 6) as dia
+  on conflict (dia_da_semana) do update set abre = excluded.abre, fecha = excluded.fecha$$);
+select pg_temp.verificar('o preparo abre tambem o domingo (2026-11-22)', privado.loja_aberta('2026-11-22 03:00:00-03'));
 
 -- o pedido
 insert into _v values ('cot1', pg_temp.cotacao(pg_temp.id('a')));

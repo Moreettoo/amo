@@ -24,8 +24,9 @@ Decisões dele nesta conversa:
 - O banco é o Supabase que já existe (`yuhrtuizxuvqvvjtcemz`).
 - O pagamento é pelo **Mercado Pago** (Pix e cartão).
 - **Comprar exige conta.** A conta nasce na etapa "Seus dados" do fechamento.
-- **Entrega na hora, dentro do horário.** A loja abre das 9h às 18h. Pedido
-  só entra nesse horário, e a equipe pode pausar as vendas.
+- **Entrega na hora, dentro do horário.** A loja abre das 9h às 18h, de segunda
+  a sábado; domingo não abre (2026-11-19). Pedido só entra nesse horário, e a
+  equipe pode pausar as vendas.
 
 Nenhum sistema é impossível de vazar. O que esta spec garante é mais estreito
 e dá para provar:
@@ -209,8 +210,9 @@ Também de leitura pública, para o site dizer se está aberto e quando abre:
 | `horarios` | `dia_da_semana` pk (0 a 6), `abre`, `fecha` (hora de São Paulo); dia sem linha é dia fechado |
 | `loja` | uma linha só: `vendas_pausadas boolean` |
 
-A carga inicial põe 9h às 18h nos sete dias. O cliente disse o horário, não
-os dias; se a loja fecha em algum, é apagar a linha do dia.
+A carga inicial põe 9h às 18h nos sete dias; a migration `domingo_fechado`
+tira o domingo (o dono, em 2026-11-19: "de domingo a loja não abre"). Fechar
+outro dia é apagar a linha dele, por migration.
 
 ### 7.2 `public`: da cliente
 

@@ -37,7 +37,9 @@ $$;
 insert into _v values ('a', pg_temp.nova_cliente('a@teste.invalid'));
 insert into _v values ('a_entregue', pg_temp.pedido_de_exemplo(pg_temp.id('a'), 'entregue'));
 insert into _v values ('a_aguardando', pg_temp.pedido_de_exemplo(pg_temp.id('a')));
-select pg_temp.preparar($$update public.horarios set abre = '00:00', fecha = '24:00' where true$$);
+select pg_temp.preparar($$insert into public.horarios (dia_da_semana, abre, fecha)
+  select dia, '00:00', '24:00' from generate_series(0, 6) as dia
+  on conflict (dia_da_semana) do update set abre = excluded.abre, fecha = excluded.fecha$$);
 insert into _v values ('cot', privado.registrar_cotacao(pg_temp.id('a'), '04567000', 'Rua Siqueira Bueno', '120', '',
   'Belenzinho', 'São Paulo', 'SP', 990, 35, 'exemplo', null));
 
