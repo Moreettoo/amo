@@ -113,6 +113,14 @@ foi entregue por mensagem; leia antes de continuar.
    criou o `.env.example` com todas as variáveis da §13. `@supabase/ssr`
    continua com você. A camada de dados mora em `src/lib/dados/` (só
    servidor); o catálogo usa um cliente sem sessão, com a porta.
+8. **Cabeçalhos (etapa 2, 2026-11-19).** `next.config.ts` já manda, em toda
+   rota, HSTS, `nosniff`, `Referrer-Policy`, `X-Frame-Options: DENY`,
+   `Permissions-Policy` e a CSP **sem nonce**. Quando o seu `proxy.ts` passar a
+   mandar a CSP com nonce em `/sacola`, `/conta`, `/entrar`, `/cadastro` e na
+   redefinição, troque o `source` da regra em `next.config.ts` por um que
+   exclua essas rotas, para a resposta não sair com duas políticas (o
+   navegador aplicaria as duas, e a mais fechada venceria). `npm run varrer`,
+   depois do build, falha se algum segredo for parar em `.next/static`.
 
 ## Em aberto
 

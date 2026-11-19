@@ -71,6 +71,13 @@ E os testes do site contra o banco de desenvolvimento (precisam do
 npm run test:banco
 ```
 
+E, depois de todo build e antes de publicar, a varredura do que vai ao
+navegador (falha se um segredo do servidor estiver em `.next/static`):
+
+```bash
+npm run build && npm run varrer
+```
+
 Rodar `90_permissoes.sql` e o conselheiro de segurança (`get_advisors`)
 depois de toda migration. O inventário lista cada permissão que anon,
 authenticated e service_role têm; uma tabela, coluna ou função nova sem
