@@ -4,7 +4,7 @@ import { Rotulos } from '@/components/sections/Rotulos'
 import { AMarca } from '@/components/sections/AMarca'
 import { FaixaCobre } from '@/components/sections/FaixaCobre'
 import { Final } from '@/components/sections/Final'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { montarVisao } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
 

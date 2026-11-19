@@ -7,7 +7,7 @@ import { Hero } from '@/components/sections/Hero'
 import { HojeODiaPede } from '@/components/sections/HojeODiaPede'
 import { Rotulos } from '@/components/sections/Rotulos'
 import { Vitrine } from '@/components/sections/Vitrine'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { montarGaveta, montarVisao } from '@/lib/visao'
 
 /**

@@ -4,7 +4,7 @@ import { Nav } from '@/components/layout/Nav'
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
 import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
 import { SeloCarimbo } from '@/components/ui/SeloCarimbo'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { CAMINHO_CATALOGO, linhasComProduto, montarGaveta } from '@/lib/visao'
 
 export const metadata: Metadata = { title: 'Página não encontrada · AMO' }

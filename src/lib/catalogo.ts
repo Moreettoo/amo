@@ -1,14 +1,7 @@
-import { CATEGORIAS } from '@/data/categorias'
-import { LINHAS } from '@/data/linhas'
-import { PRODUTOS } from '@/data/produtos'
-import { SELOS } from '@/data/selos'
-import { VONTADES } from '@/data/vontades'
-
 /**
- * O cadastro, no formato das tabelas que o Supabase vai receber.
- *
- * Nenhum componente importa src/data direto: tudo passa por
- * carregarCatalogo(). Quando o Supabase entrar, troca so ela.
+ * Os tipos do cadastro e a validacao. Quem le o cadastro do banco e
+ * src/lib/dados/catalogo.ts (so servidor); daqui as paginas e os componentes
+ * importam so tipo e funcao pura.
  */
 
 export type Selo = { id: string; nome: string; ordem: number }
@@ -141,24 +134,4 @@ export function validarCatalogo(c: Catalogo): string[] {
   }
 
   return problemas
-}
-
-/**
- * Le o cadastro e valida. Cadastro ruim lanca erro, e o erro derruba o build
- * em vez de chegar a pagina. Assincrona desde ja para o Supabase entrar sem
- * mudar quem chama.
- */
-export async function carregarCatalogo(): Promise<Catalogo> {
-  const catalogo: Catalogo = {
-    categorias: [...CATEGORIAS],
-    linhas: [...LINHAS],
-    produtos: [...PRODUTOS],
-    selos: [...SELOS],
-    vontades: [...VONTADES],
-  }
-  const problemas = validarCatalogo(catalogo)
-  if (problemas.length > 0) {
-    throw new Error(`Cadastro inválido:\n${problemas.join('\n')}`)
-  }
-  return catalogo
 }

@@ -1,9 +1,5 @@
 import type { Catalogo, Produto } from '@/lib/catalogo'
-import { CATEGORIAS } from '@/data/categorias'
-import { LINHAS } from '@/data/linhas'
-import { PRODUTOS } from '@/data/produtos'
-import { SELOS } from '@/data/selos'
-import { VONTADES } from '@/data/vontades'
+import { CATEGORIAS, LINHAS, PRODUTOS, SELOS, VONTADES } from './cadastro'
 
 /**
  * O cadastro de hoje mais os exemplos do prototipo (bolos inteiros e

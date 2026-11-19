@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { useRef, useState } from 'react'
 import { axe } from 'vitest-axe'
 import { DURACAO_SAIDA, Gaveta } from '@/components/layout/Gaveta'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { montarGaveta, type DadosGaveta } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
 

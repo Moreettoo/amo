@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { TelaSacola } from '@/components/layout/TelaSacola'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { linhasComProduto, montarGaveta } from '@/lib/visao'
 
 export const metadata: Metadata = {

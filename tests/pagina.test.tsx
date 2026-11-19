@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 import { render, screen, within } from '@testing-library/react'
 import { axe } from 'vitest-axe'
 import Home from '@/app/page'
-import { PRODUTOS } from '@/data/produtos'
+import { PRODUTOS } from './fixtures/cadastro'
 
 /**
  * Portao da pagina inteira (spec §11): so o que precisa da home montada.

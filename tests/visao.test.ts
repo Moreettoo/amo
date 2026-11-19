@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { carregarCatalogo, validarCatalogo, type Catalogo } from '@/lib/catalogo'
+import { validarCatalogo, type Catalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import {
   CAMINHO_CATALOGO,
   caminhoDaCategoria,

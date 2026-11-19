@@ -3,7 +3,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
 import { CatalogoPagina, vontadeDaBusca } from '@/components/sections/CatalogoPagina'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { montarCatalogo } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
 

@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { Hero } from '@/components/sections/Hero'
-import { carregarCatalogo, type Produto } from '@/lib/catalogo'
+import type { Produto } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { montarVisao } from '@/lib/visao'
 
 const visao = montarVisao(await carregarCatalogo())

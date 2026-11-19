@@ -1,4 +1,3 @@
-import { DETALHES_DE_EXEMPLO } from '@/data/exemplos'
 import type { Catalogo, ImagemProduto } from '@/lib/catalogo'
 
 /**
@@ -38,10 +37,9 @@ export function montarLoja(c: Catalogo): ItemDaLoja[] {
   return [...c.produtos]
     .sort((a, b) => a.ordem - b.ordem)
     .flatMap((p) => {
-      const detalhes = DETALHES_DE_EXEMPLO[p.slug]
       const linha = c.linhas.find((l) => l.slug === p.linha)
-      if (!detalhes || !linha) return []
-      return [{ slug: p.slug, nome: p.nome, tipo: linha.tipo, preco: detalhes.preco, imagem: p.imagem }]
+      if (p.preco === undefined || !linha) return []
+      return [{ slug: p.slug, nome: p.nome, tipo: linha.tipo, preco: p.preco, imagem: p.imagem }]
     })
 }
 

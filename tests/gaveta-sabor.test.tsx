@@ -26,7 +26,8 @@ vi.mock('lenis', () => ({
 import { RolagemSuave } from '@/components/RolagemSuave'
 import { Nav } from '@/components/layout/Nav'
 import { CatalogoPagina } from '@/components/sections/CatalogoPagina'
-import { carregarCatalogo, type Catalogo } from '@/lib/catalogo'
+import type { Catalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { montarCatalogo, montarGaveta } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
 

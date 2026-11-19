@@ -28,7 +28,7 @@ type Props = {
  * comentarios; a pagina fecha como o catalogo.
  */
 export function TelaProduto({ pagina, gaveta, linhas }: Props) {
-  const { produto, linha, categoria, detalhes, selosDoProduto, selosDaLinha, comentarios, resumo } = pagina
+  const { produto, linha, categoria, selosDoProduto, selosDaLinha, comentarios, resumo } = pagina
   return (
     <>
       <Nav gaveta={gaveta} />
@@ -79,9 +79,9 @@ export function TelaProduto({ pagina, gaveta, linhas }: Props) {
                 </p>
               ) : null}
 
-              {detalhes ? (
+              {produto.preco !== undefined ? (
                 <p className="produto__preco">
-                  <b>{formatarPreco(detalhes.preco)}</b> <span>o pote</span>
+                  <b>{formatarPreco(produto.preco)}</b> <span>o pote</span>
                 </p>
               ) : null}
               {selosDoProduto.length > 0 ? (
@@ -92,13 +92,13 @@ export function TelaProduto({ pagina, gaveta, linhas }: Props) {
                 </ul>
               ) : null}
 
-              {detalhes ? <ProdutoCompra slug={produto.slug} nome={produto.nome} preco={detalhes.preco} /> : null}
+              {produto.preco !== undefined ? <ProdutoCompra slug={produto.slug} nome={produto.nome} preco={produto.preco} /> : null}
 
               <div className="produto__secoes">
-                {detalhes ? (
+                {produto.descricao ? (
                   <details className="secao" open>
                     <summary>Descrição</summary>
-                    <p>{detalhes.descricao}</p>
+                    <p>{produto.descricao}</p>
                   </details>
                 ) : null}
                 <details className="secao">

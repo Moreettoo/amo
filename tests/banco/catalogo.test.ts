@@ -4,6 +4,7 @@ import imageSize from 'image-size'
 import { expect, it } from 'vitest'
 import { validarCatalogo } from '@/lib/catalogo'
 import { carregarCatalogo } from '@/lib/dados/catalogo'
+import { CADASTRO } from '../fixtures/cadastro'
 
 const c = await carregarCatalogo()
 const publico = (src: string) => resolve(import.meta.dirname, '../../public', src.slice(1))
@@ -28,4 +29,8 @@ it('toda foto do banco existe em public, com as medidas declaradas', () => {
     const medida = imageSize(readFileSync(publico(p.imagem.src)))
     expect([medida.width, medida.height], p.slug).toEqual([p.imagem.largura, p.imagem.altura])
   }
+})
+
+it('o banco de desenvolvimento traz exatamente o cadastro da fixture', () => {
+  expect(c).toEqual(CADASTRO)
 })

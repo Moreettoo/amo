@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { TelaProduto } from '@/components/layout/TelaProduto'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { montarPaginaProduto } from '@/lib/produto'
 import { linhasComProduto, montarGaveta } from '@/lib/visao'
 
@@ -19,10 +19,10 @@ export const dynamicParams = false
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pagina = montarPaginaProduto(await carregarCatalogo(), (await params).produto)
   if (!pagina) return {}
-  const { produto, linha, detalhes } = pagina
+  const { produto, linha } = pagina
   return {
     title: `${produto.nome} · ${linha.tipo} · AMO`,
-    description: detalhes?.descricao ?? `${produto.nome}, ${linha.tipo.toLowerCase()} ${linha.regra.toLowerCase()}.`,
+    description: produto.descricao ?? `${produto.nome}, ${linha.tipo.toLowerCase()} ${linha.regra.toLowerCase()}.`,
   }
 }
 

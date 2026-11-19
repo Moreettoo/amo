@@ -4,7 +4,7 @@ import { MolduraProduto, classeDoFormato } from '@/components/ui/MolduraProduto'
 import { CardProduto } from '@/components/ui/CardProduto'
 import { FotoParallax } from '@/components/ui/FotoParallax'
 import { GradeProdutos } from '@/components/ui/GradeProdutos'
-import { PRODUTOS } from '@/data/produtos'
+import { PRODUTOS } from './fixtures/cadastro'
 import type { Produto } from '@/lib/catalogo'
 
 const prestigio = PRODUTOS[0]

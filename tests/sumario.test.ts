@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { FRACAO_DA_LINHA, montarSumario, parAtual, secaoAtual } from '@/lib/sumario'
 import { montarCatalogo } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'

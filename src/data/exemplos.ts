@@ -1,48 +1,10 @@
-import type { Comentario, DetalhesDoProduto } from '@/lib/produto'
+import type { Comentario } from '@/lib/produto'
 
 /**
- * DADOS DE EXEMPLO. Preco, descricao e comentarios ainda nao existem de
- * verdade (PRODUCT.md, "Evidence on Hand"). Estes valores so servem para
- * desenhar a pagina de produto e devem ser trocados pelos reais (ou pelo
- * Supabase) antes de o site ir ao ar.
+ * DADOS DE EXEMPLO. Os comentarios ainda nao existem de verdade (PRODUCT.md,
+ * "Evidence on Hand"); servem para desenhar a pagina de produto ate o banco
+ * ter comentarios aprovados.
  */
-
-/** Preco em centavos e a descricao de cada sabor, pelo slug. */
-export const DETALHES_DE_EXEMPLO: Readonly<Record<string, DetalhesDoProduto>> = {
-  prestigio: {
-    preco: 1890,
-    descricao:
-      'Massa de chocolate úmida, cozida a vapor, com creme de coco e coco ralado por cima. Zero açúcar, adoçado com eritritol e stevia.',
-  },
-  pacoca: {
-    preco: 1890,
-    descricao:
-      'Massa fofinha com creme de paçoca e amendoim inteiro por cima, o gosto de festa junina sem o açúcar.',
-  },
-  'mousse-de-maracuja': {
-    preco: 1890,
-    descricao:
-      'Massa leve com mousse de maracujá aerado e as sementes da fruta na cobertura. Azedinho na medida.',
-  },
-  'ninho-com-frutas-vermelhas': {
-    preco: 2190,
-    descricao:
-      'Creme de leite Ninho entre camadas de massa branca, com calda de frutas vermelhas que corta o doce.',
-  },
-  beijinho: {
-    preco: 1890,
-    descricao: 'Massa branca com creme de coco cremoso e coco ralado por cima, como o docinho da festa.',
-  },
-  chocolate: {
-    preco: 1890,
-    descricao:
-      'Massa de cacau com creme de chocolate meio amargo e raspas por cima. Para quem não abre mão do chocolate.',
-  },
-  'frutas-amarelas': {
-    preco: 2090,
-    descricao: 'Massa leve com creme de manga, pêssego e calda de maracujá. Fresco, de fruta mesmo.',
-  },
-}
 
 /** Comentarios aprovados, de exemplo. Data em ISO (UTC). */
 export const COMENTARIOS_DE_EXEMPLO: readonly Comentario[] = [

@@ -1,6 +1,16 @@
 import '@testing-library/jest-dom/vitest'
 import * as matchers from 'vitest-axe/matchers'
-import { expect } from 'vitest'
+import { expect, vi } from 'vitest'
+
+// Teste de unidade nunca fala com o banco: o carregador devolve o cadastro
+// da fixture, em copia, para cada teste estragar a sua.
+vi.mock('@/lib/dados/catalogo', async (original) => {
+  const { CADASTRO } = await import('./fixtures/cadastro')
+  return {
+    ...(await original<typeof import('@/lib/dados/catalogo')>()),
+    carregarCatalogo: async () => structuredClone(CADASTRO),
+  }
+})
 import { MotionGlobalConfig } from 'motion/react'
 
 expect.extend(matchers)

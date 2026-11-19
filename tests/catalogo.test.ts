@@ -2,33 +2,13 @@ import { describe, it, expect } from 'vitest'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import imageSize from 'image-size'
-import { carregarCatalogo, validarCatalogo, type Catalogo } from '@/lib/catalogo'
-import { CATEGORIAS } from '@/data/categorias'
-import { LINHAS } from '@/data/linhas'
-import { PRODUTOS } from '@/data/produtos'
-import { SELOS } from '@/data/selos'
-import { VONTADES } from '@/data/vontades'
+import { validarCatalogo, type Catalogo } from '@/lib/catalogo'
+import { CADASTRO, LINHAS, PRODUTOS, SELOS } from './fixtures/cadastro'
 
 /** Copia funda do cadastro real, para cada teste estragar a sua. */
-function real(): Catalogo {
-  return JSON.parse(
-    JSON.stringify({ categorias: CATEGORIAS, linhas: LINHAS, produtos: PRODUTOS, selos: SELOS, vontades: VONTADES }),
-  )
-}
+const real = (): Catalogo => structuredClone(CADASTRO)
 
 const publico = (src: string) => resolve(import.meta.dirname, '../public', src.slice(1))
-
-describe('carregarCatalogo', () => {
-  it('entrega o cadastro de hoje: 1 categoria, 1 linha, 7 produtos, 7 selos, 5 vontades', async () => {
-    const c = await carregarCatalogo()
-    expect(c.categorias.map((x) => x.slug)).toEqual(['doces'])
-    expect(c.linhas.every((l) => l.categoria === 'doces')).toBe(true)
-    expect(c.linhas.map((l) => l.slug)).toEqual(['bolos-no-pote'])
-    expect(c.produtos).toHaveLength(7)
-    expect(c.selos).toHaveLength(7)
-    expect(c.vontades.map((v) => v.slug)).toEqual(['chocolate', 'fruta', 'coco', 'classico', 'salgado'])
-  })
-})
 
 describe('validarCatalogo', () => {
   it('aceita o cadastro real', () => {

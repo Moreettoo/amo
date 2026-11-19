@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { renderToString } from 'react-dom/server'
 import { HojeODiaPede, CONSULTA_PINO } from '@/components/sections/HojeODiaPede'
 import { PalavraTroca } from '@/components/ui/PalavraTroca'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { montarVisao, type GrupoVontade } from '@/lib/visao'
 import { posicaoDoIndice } from '@/lib/vontade'
 

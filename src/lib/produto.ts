@@ -1,18 +1,11 @@
-import { COMENTARIOS_DE_EXEMPLO, DETALHES_DE_EXEMPLO } from '@/data/exemplos'
+import { COMENTARIOS_DE_EXEMPLO } from '@/data/exemplos'
 import type { Catalogo, Categoria, Linha, Produto } from '@/lib/catalogo'
 
 /**
  * A pagina de um produto. O cadastro (carregarCatalogo) diz o que o produto
- * e; preco, descricao e comentarios ainda vem dos dados de exemplo
- * (src/data/exemplos.ts) e entram aqui, num lugar so, para o Supabase
- * trocar depois sem mexer na pagina.
+ * e, com o preco e a descricao; os comentarios ainda vem dos dados de exemplo
+ * (src/data/exemplos.ts) e entram aqui, num lugar so.
  */
-
-export type DetalhesDoProduto = {
-  /** em centavos */
-  preco: number
-  descricao: string
-}
 
 export type Nota = 1 | 2 | 3 | 4 | 5
 
@@ -39,7 +32,6 @@ export type PaginaProduto = {
   produto: Produto
   linha: Linha
   categoria: Categoria
-  detalhes: DetalhesDoProduto | null
   /** os selos do produto e os da linha, com nome */
   selosDoProduto: readonly { id: string; nome: string }[]
   selosDaLinha: readonly { id: string; nome: string }[]
@@ -88,7 +80,6 @@ export function montarPaginaProduto(c: Catalogo, slug: string): PaginaProduto | 
     produto,
     linha,
     categoria,
-    detalhes: DETALHES_DE_EXEMPLO[slug] ?? null,
     // a regra da linha ja e um selo do produto ("Zero acucar"); nao repete
     selosDoProduto: produto.selos.map(nome),
     selosDaLinha: linha.selos.map(nome),

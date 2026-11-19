@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { TelaCatalogo } from '@/components/layout/TelaCatalogo'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { descricaoDoCatalogo, linhasComProduto, montarCatalogo, montarGaveta } from '@/lib/visao'
 
 /** O titulo e fixo; a descricao diz as categorias que o cadastro tem. */

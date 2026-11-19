@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
 import PaginaSacola from '@/app/sacola/page'
 import PaginaDoProduto from '@/app/catalogo/[produto]/page'
-import { carregarCatalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { mascararCelular, validarDados } from '@/lib/pedido'
 import { formatarPreco } from '@/lib/produto'
 import {
@@ -26,6 +26,14 @@ const principal = () => screen.getByRole('main')
 beforeEach(() => localStorage.clear())
 
 describe('as regras da sacola', () => {
+  it('produto sem preco nao entra na loja, e a sacola guardada ignora o sabor', async () => {
+    const c = await carregarCatalogo()
+    delete c.produtos.find((p) => p.slug === 'pacoca')!.preco
+    const semPacoca = montarLoja(c)
+    expect(semPacoca).toHaveLength(6)
+    expect(linhasDaSacola({ pacoca: 2, prestigio: 1 }, semPacoca).map((l) => l.slug)).toEqual(['prestigio'])
+  })
+
   it('a loja traz os sete sabores com preço, na ordem do cadastro', () => {
     expect(loja.map((i) => i.slug)[0]).toBe('prestigio')
     expect(loja).toHaveLength(7)

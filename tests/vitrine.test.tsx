@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import { Vitrine } from '@/components/sections/Vitrine'
-import { carregarCatalogo, type Catalogo } from '@/lib/catalogo'
+import type { Catalogo } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { montarVisao } from '@/lib/visao'
 import { CATALOGO_MISTO } from './fixtures/catalogo-misto'
 

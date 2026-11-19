@@ -4,9 +4,13 @@ import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
 import PaginaDoProduto, { generateMetadata, generateStaticParams } from '@/app/catalogo/[produto]/page'
 import PaginaCatalogo from '@/app/catalogo/page'
-import { PRODUTOS } from '@/data/produtos'
+import { TelaProduto } from '@/components/layout/TelaProduto'
+import type { Produto } from '@/lib/catalogo'
+import { carregarCatalogo } from '@/lib/dados/catalogo'
+import { PRODUTOS } from './fixtures/cadastro'
 import { cotarEntregaDeExemplo, mascararCep, validarEndereco } from '@/lib/entrega'
-import { formatarPreco, resumirNotas } from '@/lib/produto'
+import { formatarPreco, montarPaginaProduto, resumirNotas } from '@/lib/produto'
+import { linhasComProduto, montarGaveta } from '@/lib/visao'
 
 const pagina = async (slug: string) => render(await PaginaDoProduto({ params: Promise.resolve({ produto: slug }) }))
 
@@ -102,6 +106,28 @@ describe('a página do Prestígio', () => {
     while ((no = caminhante.nextNode())) {
       if (/\bAMO\b/.test(no.textContent ?? '')) expect(no.parentElement?.getAttribute('translate')).toBe('no')
     }
+  })
+})
+
+describe('produto fora de venda ou sem descricao', () => {
+  const tela = async (estragar: (p: Produto) => void) => {
+    const c = await carregarCatalogo()
+    estragar(c.produtos.find((p) => p.slug === 'pacoca')!)
+    return render(
+      <TelaProduto pagina={montarPaginaProduto(c, 'pacoca')!} gaveta={montarGaveta(c)} linhas={linhasComProduto(c)} />,
+    )
+  }
+  it('sem preco: mostra o produto, sem preco e sem o botao da sacola', async () => {
+    const { container } = await tela((p) => delete p.preco)
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Paçoca')
+    expect(container.querySelector('.produto__preco')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Adicionar à sacola' })).toBeNull()
+    expect(screen.getByText('Descrição')).toBeInTheDocument()
+  })
+  it('sem descricao: a secao some, o preco e o botao ficam', async () => {
+    const { container } = await tela((p) => delete p.descricao)
+    expect(screen.queryByText('Descrição')).toBeNull()
+    expect(container.querySelector('.produto__preco')).not.toBeNull()
   })
 })
 
