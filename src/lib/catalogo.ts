@@ -59,6 +59,9 @@ export type Produto = {
   vontades: string[]
   destaque?: boolean
   ordem: number
+  descricao?: string
+  /** em centavos; so existe quando o produto esta a venda */
+  preco?: number
 }
 
 export type Catalogo = {
