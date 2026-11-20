@@ -765,6 +765,18 @@ git commit -m "feat: cabecalhos de seguranca em toda resposta e varredura de seg
 
 ### Task 7: Encontro com a autenticação
 
+> **Situação em 2026-11-20 (plano `2026-11-20-amo-autenticacao.md`, construído e testado).** Os itens 1 e 2 de "Antes de começar" da Parte B estão de pé; o 3 é do dono no painel (`supabase/README.md`, "O painel do Auth"); o 4 continua com a Task 8. As interfaces da tabela do Step 2, como ficaram:
+> - a cliente logada: `exigirUsuario(volta)` e `obterUsuario()`, de `@/lib/auth`, com `Usuario = { id; email; nome; celular }`. Sem sessão, leva a `/entrar?volta=<rota>`.
+> - o cliente com a sessão: `await criarClienteServidor()`, de `@/lib/auth/servidor`, com a porta.
+> - o cliente da chave secreta: `criarClienteAdmin()`, de `@/lib/auth/admin`, com a porta.
+> - a troca de e-mail: `/auth/callback?token_hash=...&type=email_change` (`src/app/auth/callback/route.ts`).
+> - a regra de senha: `conferirSenha` (senha nova) e `conferirSenhaAtual`, de `src/lib/conta/regras.ts`.
+> - a exclusão de conta: `/conta/excluir` (`src/app/conta/excluir/page.tsx`), atrás de `exigirUsuario`; depois de excluir, `/conta/excluida`.
+> - a origem do site nos e-mails: nenhuma ação usa `emailRedirectTo`; o modelo "Change email address" usa `{{ .SiteURL }}`, o Site URL do painel.
+> - a CSP com nonce: o `proxy.ts` cobre `/conta/:path*`.
+> - `sair` se importa de `@/lib/auth/acoes` (não de `@/lib/auth`).
+> - os textos de erro da conta: `MENSAGENS_DA_CONTA`, em `src/lib/conta/mensagens.ts`; a casca das telas: `TelaConta` e `lerDadosDaTela`, em `src/components/conta/TelaConta.tsx`.
+
 Sem código novo. É a conferência de que o que a Parte B consome existe com os nomes que ela usa.
 
 **Files:**
@@ -808,6 +820,8 @@ O cliente decide o visual por esboço. Nada de tela é construído antes da esco
 - [ ] **Step 2: Mostrar os três ao Enzo e esperar a escolha.** Registrar a escolha no arquivo de superfície.
 
 ### Task 9: As regras de entrada da conta
+
+> **Já entregue pela autenticação (2026-11-20, decisão 5 daquele plano):** `src/lib/conta/regras.ts` com `Conferido`, `conferirEmail`, `conferirPerfil`, `conferirSenha`, `conferirSenhaAtual` e `conferirCodigo`; `erroDoNome` e `erroDoCelular` em `src/lib/pedido.ts`; `HOSTIS` em `tests/fixtures/hostis.ts`; os testes em `tests/conta-regras.test.ts`. Esta task só completa o arquivo: `CampoDoEndereco`, `EnderecoNovo`, `conferirEndereco`, `conferirNumeroDoPedido` e `UFS`, com os testes deles.
 
 **Files:**
 - Create: `src/lib/conta/regras.ts`, `tests/fixtures/hostis.ts`
@@ -949,6 +963,8 @@ git commit -m "feat: as regras de entrada de Minha conta, com a lista hostil"
 ```
 
 ### Task 10: A camada de dados da conta
+
+> **Já entregue pela autenticação (2026-11-20):** `src/lib/dados/limites.ts` com `consumirLimite(chave, maximo, janelaSegundos)` e o teste de banco `tests/banco/limites.test.ts`. Esta task não recria esse arquivo; o resto (`erros.ts`, `perfil.ts`, `enderecos.ts`, `pedidos.ts`, `cep.ts`) segue como está.
 
 **Files:**
 - Modify: `src/lib/dados/erros.ts`, `src/lib/dados/banco.ts` (regenerado, agora com `privado`)

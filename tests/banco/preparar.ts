@@ -5,7 +5,9 @@ import { vi } from 'vitest'
 process.loadEnvFile('.env.local')
 
 // Fora do Next nao ha cookies() nem headers(): cada teste usa um pote em
-// memoria, um por "navegador" (trocarNavegador), e um IP fixo.
+// memoria, um por "navegador" (trocarNavegador), e um IP de ensaio sorteado a
+// cada execucao (repetir os testes nao esgota o limite de tentativas por IP).
+const IP_DE_ENSAIO = `203.0.113.${1 + Math.floor(Math.random() * 254)}`
 type Cookie = { name: string; value: string; options?: Record<string, unknown> }
 const potes = new Map<string, Map<string, Cookie>>()
 let atual = 'principal'
@@ -25,7 +27,7 @@ vi.mock('next/headers', () => ({
     set: (name: string, value: string, options?: Record<string, unknown>) => pote().set(name, { name, value, options }),
     delete: (name: string) => pote().delete(name),
   }),
-  headers: async () => new Headers({ 'x-forwarded-for': '203.0.113.7' }),
+  headers: async () => new Headers({ 'x-forwarded-for': IP_DE_ENSAIO }),
 }))
 
 vi.mock('next/navigation', () => ({

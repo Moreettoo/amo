@@ -132,6 +132,61 @@ alter role authenticator reset pgrst.db_pre_request;
 notify pgrst, 'reload config';
 ```
 
+## O painel do Auth (do dono)
+
+O que a autenticação precisa e não mora em migration (desenho da
+autenticação, §12). Vale para cada projeto, o de desenvolvimento e o de
+produção.
+
+1. **Já feito:** chave secreta, schema `privado` exposto, "Secure email
+   change" e "Require current password".
+2. **Código de 6 dígitos:** Authentication, Email, "Email OTP Length" em 6.
+   O projeto de desenvolvimento nasceu com 8; a tela e a regra do código
+   contam 6, e um código de 8 é recusado.
+3. **Código vale no máximo 1 hora** ("Email OTP Expiration" em 3600), com a
+   confirmação de e-mail ligada.
+4. **CAPTCHA:** Turnstile ligado, com o segredo da Cloudflare. O site recebe
+   só a chave pública (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`); em desenvolvimento,
+   a chave de teste `1x00000000000000000000AA` com o segredo de teste
+   `1x0000000000000000000000000000000AA`, que sempre passam.
+5. **Senha:** mínimo 8; proteção contra senha vazada (plano Pro).
+6. **URLs:** Site URL e a lista de redirecionamento só com
+   `<site>/auth/callback`.
+7. **SMTP próprio** antes de ir ao ar. O envio embutido só entrega a quem é
+   membro da organização e tem um limite baixo por hora. Com o limite
+   estourado, a tela responde como se tivesse enviado (desenho §8).
+8. **Os três modelos de e-mail**, com o texto abaixo.
+
+**Confirm signup.** Assunto: `Confirme o seu e-mail na AMO`
+
+```html
+<p>Olá!</p>
+<p>Para confirmar o seu e-mail e terminar de criar a conta na AMO, digite este código no site:</p>
+<p style="font-size:28px;letter-spacing:6px">{{ .Token }}</p>
+<p>O código vale por 1 hora. Se não foi você quem pediu, é só ignorar este e-mail.</p>
+<p>AMO Sabores Saudáveis</p>
+```
+
+**Reset password.** Assunto: `Seu código para criar uma senha nova`
+
+```html
+<p>Olá!</p>
+<p>Para criar uma senha nova na AMO, digite este código no site:</p>
+<p style="font-size:28px;letter-spacing:6px">{{ .Token }}</p>
+<p>O código vale por 1 hora. Se não foi você quem pediu, a sua senha continua a mesma: é só ignorar este e-mail.</p>
+<p>AMO Sabores Saudáveis</p>
+```
+
+**Change email address.** Assunto: `Confirme a troca de e-mail na AMO`
+
+```html
+<p>Olá!</p>
+<p>Recebemos o pedido para trocar o e-mail da sua conta na AMO de {{ .Email }} para {{ .NewEmail }}.</p>
+<p><a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email_change">Confirmar a troca de e-mail</a></p>
+<p>Se não foi você quem pediu, ignore este e-mail: nada muda.</p>
+<p>AMO Sabores Saudáveis</p>
+```
+
 ## O que o servidor do site chama
 
 O navegador não fala com o Supabase. O servidor fala, sempre com o cabeçalho

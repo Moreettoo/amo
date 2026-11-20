@@ -35,6 +35,23 @@ só a própria seção, e o que for comum se combina por mensagem antes.
 
 ## Autenticação (amo-2b)
 
+> **Atualização de 2026-11-20.** A sessão de autenticação não voltou; esta
+> parte foi assumida pela sessão do backend, com o desenho em
+> `2026-11-20-amo-autenticacao-design.md` (vale sobre esta seção). Construída
+> e testada; o que mudou para quem usa:
+> - `/redefinir-senha` deixou de existir: a senha nova vem com o código de
+>   6 dígitos, no passo 2 de `/esqueci-a-senha`.
+> - `sair` mora em `src/lib/auth/acoes.ts` (`'use server'`). Componente
+>   cliente importa de `@/lib/auth/acoes`; `src/lib/auth/index.ts` não a
+>   reexporta (fecharia um ciclo de import).
+> - `src/lib/auth/navegador.ts` não existe: o navegador não fala com o
+>   Supabase.
+> - `exigirUsuario` sem sessão leva a `/entrar?volta=<rota>`; a `volta` é
+>   conferida por `voltaSegura` (`src/lib/auth/volta.ts`), que devolve
+>   `/conta` para destino de fora.
+> - Os textos de erro da conta moram em `src/lib/conta/mensagens.ts`
+>   (`MENSAGENS_DA_CONTA`), que o formulário no navegador pode importar.
+
 - Rotas: `/entrar`, `/cadastro`, `/esqueci-a-senha`, `/redefinir-senha`.
 - `proxy.ts` renova a sessão.
 - `src/lib/auth/index.ts` (só servidor):

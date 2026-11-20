@@ -181,6 +181,7 @@ Supabase. Na dúvida (a consulta falhou), fecha.
 | --- | --- |
 | entrar | 10 a cada 15 min por IP, e 10 a cada 15 min por e-mail |
 | cadastrar | 5 por hora por IP |
+| confirmar o código do cadastro | 10 por hora por e-mail |
 | reenviar código | 5 por hora por e-mail |
 | pedir código de recuperação | 5 por hora por IP, e 5 por hora por e-mail |
 | redefinir com o código | 10 por hora por IP, e 10 por hora por e-mail |
@@ -189,6 +190,12 @@ Supabase. Na dúvida (a consulta falhou), fecha.
 O IP é o primeiro de `x-forwarded-for`. Em desenvolvimento isso é falsificável;
 na hospedagem (backend §18), confere-se que ela sobrescreve o cabeçalho. O
 limite por e-mail não depende do IP.
+
+O limite de envio de e-mail do próprio Supabase não aparece como "Muitas
+tentativas" no cadastro, na recuperação nem no reenvio: ele só dispara quando
+um e-mail sairia (na recuperação, só para conta que existe; no cadastro, só
+para conta nova), e mostrá-lo diria se a conta existe (§4.1). A tela responde
+como se tivesse enviado. O limite por IP do Supabase vale para todos e aparece.
 
 ## 9. Senha
 
@@ -202,7 +209,10 @@ Pede a senha de novo. O servidor confere a senha num cliente à parte, sem
 mexer na sessão atual, e então apaga o usuário com a chave secreta. O banco
 faz o resto (backend §9.3): recusa se houver pedido em aberto, apaga o retrato
 pessoal dos pedidos, perfil, endereços e comentários. Depois, a sessão desta
-tela é encerrada.
+tela é encerrada e a ação leva a `/conta/excluida`, que diz "Sua conta foi
+excluída." e leva à home. O aviso mora numa página própria porque apagar o
+cookie numa ação faz o Next renderizar de novo a página atual, e
+`/conta/excluir` sem sessão manda entrar.
 
 ## 11. Termos de uso e política de privacidade
 
@@ -225,7 +235,11 @@ email change" e "Require current password". Falta:
 4. **Senha**: mínimo 8; proteção contra senha vazada (plano Pro).
 5. **URLs**: Site URL e a lista de redirecionamento só com `<site>/auth/callback`.
 6. **SMTP próprio** antes de ir ao ar. O envio embutido só entrega a quem é
-   membro da organização no Supabase.
+   membro da organização no Supabase, e com um limite baixo de envios por
+   hora (o ensaio de 2026-11-20 esbarrou nele).
+7. **Código de 6 dígitos**: "Email OTP Length" em 6. O projeto de
+   desenvolvimento nasceu com 8 (achado em 2026-11-20); a tela e a regra do
+   código contam 6.
 
 ## 13. Como provar
 
