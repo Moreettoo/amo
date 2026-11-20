@@ -36,21 +36,32 @@ describe('Nav', () => {
     expect(cardapio[0]).toHaveClass('btn-retro', 'btn-retro--escuro')
   })
 
-  it('todo link leva a uma seção da home ou ao catálogo, inclusive os da gaveta', async () => {
+  it('todo link leva a uma seção da home, ao catálogo ou à conta, inclusive os da gaveta', async () => {
     const user = userEvent.setup()
     montarNav()
     await user.click(screen.getByRole('button', { name: 'Catálogo' }))
     for (const a of screen.getAllByRole('link')) {
-      expect(a.getAttribute('href')).toMatch(/^\/(#[a-z-]+|catalogo(\/[a-z-]+)?(#[a-z-]+)?)$/)
+      expect(a.getAttribute('href')).toMatch(/^\/(#[a-z-]+|catalogo(\/[a-z-]+)?(#[a-z-]+)?|conta)$/)
     }
   })
 
-  it('não tem busca nem login, não existem ainda', () => {
+  it('não tem busca nem carrinho; a conta é um link só, "Minha conta"', () => {
     montarNav()
     const rotulos = [...screen.getAllByRole('link'), ...screen.getAllByRole('button')].map((e) =>
       (e.getAttribute('aria-label') ?? e.textContent ?? '').toLowerCase(),
     )
-    for (const r of rotulos) expect(r).not.toMatch(/carrinho|buscar|entrar|login|conta/)
+    for (const r of rotulos) expect(r).not.toMatch(/carrinho|buscar|entrar|login/)
+    expect(rotulos.filter((r) => r.includes('conta'))).toEqual(['minha conta'])
+  })
+
+  it('"Minha conta" leva a /conta, na barra e na gaveta do celular', async () => {
+    const user = userEvent.setup()
+    montarNav()
+    const nav = screen.getByRole('navigation', { name: 'Principal' })
+    expect(within(nav).getByRole('link', { name: 'Minha conta' })).toHaveAttribute('href', '/conta')
+    await user.click(screen.getByRole('button', { name: 'Catálogo' }))
+    const gaveta = screen.getByRole('dialog')
+    expect(within(gaveta).getByRole('link', { name: 'Minha conta' })).toHaveAttribute('href', '/conta')
   })
 
   it('a sacola mostra quantos potes tem e abre a gaveta da direita', async () => {

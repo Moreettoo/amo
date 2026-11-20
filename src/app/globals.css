@@ -12,6 +12,7 @@
 @import "./estilos/produto-pagina.css";
 @import "./estilos/sacola.css";
 @import "./estilos/auth.css";
+@import "./estilos/conta.css";
 @import "./estilos/movimento.css";
 
 /* `static`: os tokens viram variavel CSS mesmo sem utilitario que os use,

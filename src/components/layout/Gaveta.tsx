@@ -7,6 +7,7 @@ import { GavetaModal } from '@/components/ui/GavetaModal'
 import { classeDoFormato } from '@/components/ui/MolduraProduto'
 import {
   CAMINHO_CATALOGO,
+  CAMINHO_DA_CONTA,
   caminhoDaLinha,
   contarReceitas,
   textoVerReceitas,
@@ -156,6 +157,16 @@ export function Gaveta({ id, dados, aberta, aoFechar }: Props) {
                 <a href={l.href}>{l.rotulo}</a>
               </li>
             ))}
+          </ul>
+        </div>
+
+        {/* no celular a nav nao tem os links: "Minha conta" mora aqui, como os da home */}
+        <div className="gaveta__casa gaveta__item" style={ordem(pe)}>
+          <p id={`${id}-conta`}>Sua conta</p>
+          <ul aria-labelledby={`${id}-conta`}>
+            <li>
+              <a href={CAMINHO_DA_CONTA}>Minha conta</a>
+            </li>
           </ul>
         </div>
 

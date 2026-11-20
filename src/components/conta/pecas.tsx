@@ -9,17 +9,18 @@ import { MENSAGENS_DA_CONTA } from '@/lib/conta/mensagens'
  * visivel em cima, contorno fino, erro embaixo ligado ao campo.
  */
 
-type CampoProps = InputHTMLAttributes<HTMLInputElement> & { rotulo: string; erro?: string; largura?: 'meio' | 'largo' }
+type CampoProps = InputHTMLAttributes<HTMLInputElement> & { rotulo: string; erro?: string; largura?: 'meio' | 'largo' | 'cep' | 'numero' }
 
 /**
  * O valor guardado no proprio campo. Com <form action>, o React 19 limpa todo
  * campo sem estado no fim de cada acao, ate quando ela volta com erro, e a
- * cliente teria de digitar tudo de novo. Quem passa `value` manda no valor.
+ * cliente teria de digitar tudo de novo. Quem passa `value` manda no valor;
+ * `defaultValue` vira o valor inicial (o perfil nasce preenchido).
  */
 function useValorProprio(input: InputHTMLAttributes<HTMLInputElement>) {
-  const [valor, setValor] = useState('')
+  const [valor, setValor] = useState(() => (input.defaultValue === undefined ? '' : String(input.defaultValue)))
   if (input.value !== undefined) return {}
-  return { value: valor, onChange: (e: ChangeEvent<HTMLInputElement>) => setValor(e.target.value) }
+  return { value: valor, defaultValue: undefined, onChange: (e: ChangeEvent<HTMLInputElement>) => setValor(e.target.value) }
 }
 
 export function Campo({ rotulo, erro, largura = 'largo', ...input }: CampoProps) {

@@ -9,7 +9,7 @@ import { IconeCamadas } from '@/components/ui/IconeCamadas'
 import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
 import { useSacola } from '@/components/ui/useSacola'
 import { contarPotes, EVENTO_ABRIR_SACOLA, textoPotes } from '@/lib/sacola'
-import { CAMINHO_CATALOGO, type DadosGaveta } from '@/lib/visao'
+import { CAMINHO_CATALOGO, CAMINHO_DA_CONTA, type DadosGaveta } from '@/lib/visao'
 
 /** 64 de altura + 32 de folga = os 96 do DESLOCAMENTO_NAV
  *  (RolagemSuave) e do `scroll-mt-24` das secoes. */
@@ -98,6 +98,13 @@ export function Nav({ gaveta }: Props) {
                   </LinkSublinhado>
                 </li>
               ))}
+              {/* um link so, sem ler a sessao: ler tornaria dinamicas a home e o
+                  catalogo; sem sessao, /conta leva a /entrar (plano da etapa 2, decisao 5) */}
+              <li>
+                <LinkSublinhado href={CAMINHO_DA_CONTA} traco={0}>
+                  Minha conta
+                </LinkSublinhado>
+              </li>
             </ul>
 
             <BotaoRetro href={CAMINHO_CATALOGO} escuro compacto className="ml-auto min-[821px]:ml-0">

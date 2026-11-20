@@ -229,7 +229,8 @@ describe('Gaveta: o conteúdo', () => {
     const ordem = [...dialogo().querySelectorAll<HTMLElement>('.gaveta__item')].map((el) =>
       el.style.getPropertyValue('--i'),
     )
-    expect(ordem).toEqual(['0', '1', '2', '3', '4', '4'])
+    // o pe (os links da home, Minha conta e o atalho) entra junto, com o ultimo numero
+    expect(ordem).toEqual(['0', '1', '2', '3', '4', '4', '4'])
   })
 
   it('o Lenis ignora a roda na gaveta inteira, inclusive no fundo, cujo alvo é o próprio <dialog>', () => {

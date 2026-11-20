@@ -141,6 +141,8 @@ export function filtrar(produtos: readonly Produto[], f: Filtro): Produto[] {
  * (uma linha pode ter o mesmo slug da categoria dela, como "salgados").
  */
 export const CAMINHO_CATALOGO = '/catalogo'
+/** Minha conta: sem sessao, leva a /entrar e volta para ca. */
+export const CAMINHO_DA_CONTA = '/conta'
 export const idDaLinha = (slug: string) => `linha-${slug}`
 export const caminhoDaCategoria = (slug: string) => `${CAMINHO_CATALOGO}#${slug}`
 export const caminhoDaLinha = (slug: string) => `${CAMINHO_CATALOGO}#${idDaLinha(slug)}`
