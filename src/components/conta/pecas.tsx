@@ -1,6 +1,6 @@
 'use client'
 
-import { useId, useState, type InputHTMLAttributes } from 'react'
+import { useId, useState, type ChangeEvent, type InputHTMLAttributes } from 'react'
 import type { RespostaDaConta } from '@/lib/auth/acoes'
 import { MENSAGENS_DA_CONTA } from '@/lib/conta/mensagens'
 
@@ -11,12 +11,24 @@ import { MENSAGENS_DA_CONTA } from '@/lib/conta/mensagens'
 
 type CampoProps = InputHTMLAttributes<HTMLInputElement> & { rotulo: string; erro?: string; largura?: 'meio' | 'largo' }
 
+/**
+ * O valor guardado no proprio campo. Com <form action>, o React 19 limpa todo
+ * campo sem estado no fim de cada acao, ate quando ela volta com erro, e a
+ * cliente teria de digitar tudo de novo. Quem passa `value` manda no valor.
+ */
+function useValorProprio(input: InputHTMLAttributes<HTMLInputElement>) {
+  const [valor, setValor] = useState('')
+  if (input.value !== undefined) return {}
+  return { value: valor, onChange: (e: ChangeEvent<HTMLInputElement>) => setValor(e.target.value) }
+}
+
 export function Campo({ rotulo, erro, largura = 'largo', ...input }: CampoProps) {
   const id = useId()
+  const proprio = useValorProprio(input)
   return (
     <div className={`campo campo--${largura}`}>
       <label htmlFor={id}>{rotulo}</label>
-      <input id={id} aria-invalid={erro ? true : undefined} aria-describedby={erro ? `${id}-erro` : undefined} {...input} />
+      <input id={id} aria-invalid={erro ? true : undefined} aria-describedby={erro ? `${id}-erro` : undefined} {...input} {...proprio} />
       {erro ? (
         <span id={`${id}-erro`} className="campo__erro">
           {erro}
@@ -29,12 +41,13 @@ export function Campo({ rotulo, erro, largura = 'largo', ...input }: CampoProps)
 export function CampoSenha({ rotulo, erro, dica, ...input }: CampoProps & { dica?: string }) {
   const id = useId()
   const [visivel, setVisivel] = useState(false)
+  const proprio = useValorProprio(input)
   const descricao = [erro && `${id}-erro`, dica && `${id}-dica`].filter(Boolean).join(' ') || undefined
   return (
     <div className="campo campo--largo">
       <label htmlFor={id}>{rotulo}</label>
       <span className="campo__senha">
-        <input id={id} type={visivel ? 'text' : 'password'} aria-invalid={erro ? true : undefined} aria-describedby={descricao} {...input} />
+        <input id={id} type={visivel ? 'text' : 'password'} aria-invalid={erro ? true : undefined} aria-describedby={descricao} {...input} {...proprio} />
         <button type="button" className="campo__mostrar" aria-pressed={visivel} onClick={() => setVisivel((v) => !v)}>
           mostrar
         </button>
@@ -55,9 +68,20 @@ export function CampoSenha({ rotulo, erro, dica, ...input }: CampoProps & { dica
 
 export function Marcar({ nome, children, erro }: { nome: string; children: React.ReactNode; erro?: string }) {
   const id = useId()
+  // pelo mesmo motivo de useValorProprio: o React copia defaultChecked para a
+  // caixa a cada mudanca, e e a ele que o reinicio do formulario volta
+  const [marcada, setMarcada] = useState(false)
   return (
     <div className="marcar">
-      <input id={id} type="checkbox" name={nome} aria-invalid={erro ? true : undefined} aria-describedby={erro ? `${id}-erro` : undefined} />
+      <input
+        id={id}
+        type="checkbox"
+        name={nome}
+        defaultChecked={marcada}
+        onChange={(e) => setMarcada(e.target.checked)}
+        aria-invalid={erro ? true : undefined}
+        aria-describedby={erro ? `${id}-erro` : undefined}
+      />
       <label htmlFor={id}>{children}</label>
       {erro ? (
         <span id={`${id}-erro`} className="campo__erro">

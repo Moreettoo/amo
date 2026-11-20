@@ -197,6 +197,19 @@ um e-mail sairia (na recuperação, só para conta que existe; no cadastro, só
 para conta nova), e mostrá-lo diria se a conta existe (§4.1). A tela responde
 como se tivesse enviado. O limite por IP do Supabase vale para todos e aparece.
 
+O tempo também não diz se a conta existe (§2). Entrar, cadastrar, reenviar o
+código e pedir o código de recuperação seguram a resposta do Supabase até um
+piso: 2,5 s nas três que mandam e-mail, 0,8 s no login
+(`src/lib/auth/tempo.ts`). Campo inválido e limite estourado respondem na
+hora, porque valem igual para todos. Uma falha de envio do próprio Supabase
+(5xx) continua "Não deu certo agora" (§4.1), mesmo só acontecendo no caminho
+que envia: é rara, e o registro de autenticação do Supabase a mostra.
+
+Senha nova recusada depois do código de recuperação (fraca, vazada ou igual
+à atual): o código já foi gasto, mas a sessão que ele abriu continua, e o
+novo envio troca a senha nela, sem pedir outro código. Vale para sessão do
+mesmo e-mail aberta por código (`amr` "otp") há menos de uma hora.
+
 ## 9. Senha
 
 Mínimo 8 caracteres, máximo 72 (o limite do bcrypt, que o Supabase usa). A

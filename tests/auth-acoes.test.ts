@@ -12,6 +12,7 @@ const fazer = (nome: string) => vi.fn(async (...argumentos: unknown[]): Promise<
 const auth = {
   signInWithPassword: fazer('signInWithPassword'), signUp: fazer('signUp'), verifyOtp: fazer('verifyOtp'),
   resend: fazer('resend'), resetPasswordForEmail: fazer('resetPasswordForEmail'), updateUser: fazer('updateUser'), signOut: fazer('signOut'),
+  getUser: fazer('getUser'), getClaims: fazer('getClaims'),
 }
 const rpc = vi.fn()
 vi.mock('@/lib/auth/servidor', () => ({ criarClienteServidor: async () => ({ auth, rpc }) }))
@@ -22,6 +23,9 @@ vi.mock('@/lib/dados/limites', () => ({ consumirLimite }))
 const senhaConfere = vi.fn()
 vi.mock('@/lib/auth/senha', () => ({ senhaConfere }))
 const apagarCookiesDaSessao = vi.fn()
+// o piso de tempo de verdade faria cada teste esperar segundos: aqui so se confere qual piso cada acao pede
+const comPiso = vi.fn((_piso: number, trabalho: () => Promise<unknown>) => trabalho())
+vi.mock('@/lib/auth/tempo', async (original) => ({ ...(await original<typeof import('@/lib/auth/tempo')>()), comPiso }))
 vi.mock('@/lib/auth/cookies', () => ({ apagarCookiesDaSessao, OPCOES_DO_COOKIE: {} }))
 const usuario = { id: 'usuario-1', email: 'maria@exemplo.com', nome: 'Maria', celular: '11987654321' }
 let logada = true
@@ -225,7 +229,7 @@ describe('pedirCodigoDeSenha', () => {
 describe('trocarSenhaComCodigo', () => {
   it('confere o codigo, troca a senha, encerra as outras sessoes e vai para /conta', async () => {
     expect(await chamar(acoes.trocarSenhaComCodigo, TROCAR)).toEqual({ lancou: 'REDIRECIONOU /conta' })
-    expect(ordem).toEqual(['verifyOtp', 'updateUser', 'signOut'])
+    expect(ordem).toEqual(['getUser', 'verifyOtp', 'updateUser', 'signOut'])
     expect(auth.verifyOtp).toHaveBeenCalledWith({ email: 'maria@exemplo.com', token: '123456', type: 'recovery' })
     expect(auth.signOut).toHaveBeenCalledWith({ scope: 'others' })
   })
@@ -233,6 +237,31 @@ describe('trocarSenhaComCodigo', () => {
     auth.updateUser.mockResolvedValue(erroDoAuth('same_password'))
     expect(await chamar(acoes.trocarSenhaComCodigo, TROCAR)).toMatchObject({ ok: false, erro: 'senha_igual' })
     expect(auth.signOut).not.toHaveBeenCalled()
+  })
+  // o codigo ja foi gasto pelo verifyOtp; a sessao que ele abriu (amr "otp") ainda vale
+  const sessaoDoCodigo = (email: string, metodos: [string, number][]) => {
+    const agora = Math.floor(Date.now() / 1000)
+    auth.getUser.mockResolvedValue({ data: { user: { email } }, error: null })
+    auth.getClaims.mockResolvedValue({ data: { claims: { amr: metodos.map(([method, ha]) => ({ method, timestamp: agora - ha })) } }, error: null })
+  }
+  it('senha recusada depois do codigo: o proximo envio usa a sessao que o codigo abriu', async () => {
+    auth.updateUser.mockResolvedValueOnce(erroDoAuth('weak_password'))
+    expect(await chamar(acoes.trocarSenhaComCodigo, TROCAR)).toMatchObject({ ok: false, erro: 'senha_fraca', passo: 'senha-nova' })
+    sessaoDoCodigo('maria@exemplo.com', [['otp', 60]])
+    auth.verifyOtp.mockClear()
+    expect(await chamar(acoes.trocarSenhaComCodigo, { ...TROCAR, senha: 'outra-senha-forte' })).toEqual({ lancou: 'REDIRECIONOU /conta' })
+    expect(auth.verifyOtp).not.toHaveBeenCalled()
+    expect(auth.updateUser).toHaveBeenLastCalledWith({ password: 'outra-senha-forte' })
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: 'others' })
+  })
+  it.each([
+    ['sessao aberta com senha', 'maria@exemplo.com', [['password', 60]]],
+    ['codigo de mais de uma hora', 'maria@exemplo.com', [['otp', 3700]]],
+    ['sessao de outra pessoa', 'outra@exemplo.com', [['otp', 60]]],
+  ] as [string, string, [string, number][]][])('%s nao dispensa o codigo', async (_, email, metodos) => {
+    sessaoDoCodigo(email, metodos)
+    await chamar(acoes.trocarSenhaComCodigo, TROCAR)
+    expect(auth.verifyOtp).toHaveBeenCalledWith({ email: 'maria@exemplo.com', token: '123456', type: 'recovery' })
   })
 })
 
@@ -264,8 +293,31 @@ describe('excluirConta', () => {
 })
 
 describe('sair', () => {
-  it('encerra esta sessao e volta para a home', async () => {
+  it('encerra so esta sessao e volta para a home', async () => {
     await expect(acoes.sair()).rejects.toThrow('REDIRECIONOU /')
-    expect(auth.signOut).toHaveBeenCalledWith()
+    expect(auth.signOut).toHaveBeenCalledWith({ scope: 'local' })
+  })
+  it('com o Supabase recusando, apaga o cookie do mesmo jeito', async () => {
+    auth.signOut.mockResolvedValue({ data: {}, error: { code: 'unexpected_failure', status: 500 } })
+    await expect(acoes.sair()).rejects.toThrow('REDIRECIONOU /')
+    expect(apagarCookiesDaSessao).toHaveBeenCalled()
+  })
+})
+
+describe('o tempo nao diz se o e-mail tem conta', () => {
+  it.each([
+    ['entrar', acoes.entrar, { email: 'maria@exemplo.com', senha: 'qualquer', 'cf-turnstile-response': 'tok' }, 'PISO_DO_LOGIN'],
+    ['cadastrar', acoes.cadastrar, CADASTRO, 'PISO_DO_ENVIO'],
+    ['reenviarCodigo', acoes.reenviarCodigo, { email: 'maria@exemplo.com', 'cf-turnstile-response': 'tok' }, 'PISO_DO_ENVIO'],
+    ['pedirCodigoDeSenha', acoes.pedirCodigoDeSenha, { email: 'maria@exemplo.com', 'cf-turnstile-response': 'tok' }, 'PISO_DO_ENVIO'],
+  ] as [string, Acao, Record<string, string>, 'PISO_DO_LOGIN' | 'PISO_DO_ENVIO'][])('%s segura a resposta do Supabase no piso', async (_, acao, campos, piso) => {
+    const tempo = await import('@/lib/auth/tempo')
+    await chamar(acao, campos)
+    expect(comPiso).toHaveBeenCalledTimes(1)
+    expect(comPiso.mock.calls[0][0]).toBe(tempo[piso])
+  })
+  it('campo invalido responde na hora, sem piso', async () => {
+    await chamar(acoes.pedirCodigoDeSenha, { email: 'sem-arroba' })
+    expect(comPiso).not.toHaveBeenCalled()
   })
 })

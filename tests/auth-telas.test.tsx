@@ -132,6 +132,20 @@ describe('as duas portas', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('robô')
     expect(reinicios.at(-1)).not.toBe(antes)
   })
+  it('CAPTCHA recusado no cadastro: o que foi digitado continua', async () => {
+    respostas.cadastrar = { ok: false, erro: 'captcha' }
+    const u = userEvent.setup()
+    render(await PaginaCadastro(sp()))
+    await u.type(screen.getByLabelText('Nome'), 'Maria')
+    await u.type(screen.getByLabelText('Senha'), 'segredo-123')
+    await u.click(screen.getByLabelText(/Li e aceito/))
+    await u.click(screen.getByRole('button', { name: 'Criar conta' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('robô')
+    await act(() => new Promise((r) => setTimeout(r, 20)))
+    expect(screen.getByLabelText('Nome')).toHaveValue('Maria')
+    expect(screen.getByLabelText('Senha')).toHaveValue('segredo-123')
+    expect(screen.getByLabelText(/Li e aceito/)).toBeChecked()
+  })
   it('enviando, o botao fica desabilitado', async () => {
     // a acao so responde quando o teste solta: o botao e conferido no meio do envio
     let soltar = () => {}

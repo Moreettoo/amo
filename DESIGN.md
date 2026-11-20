@@ -388,7 +388,7 @@ Decisão do cliente em 2026-11-20, entre três esboços (`.impeccable/mocks/deci
 - **Excluir a conta.** O que some e o que fica numa frase de 15 px em expresso, a senha de novo, a caixa "Entendo que a conta não volta depois de excluída." e o botão "Excluir minha conta". Com pedido em andamento, só a frase que explica e o link "Ver os pedidos". Depois de excluir, `/conta/excluida`: o mesmo título, "Sua conta foi excluída." e o botão "Voltar para a página inicial".
 - **Estados:** hover e foco levam abas e botões de texto a expresso e o sublinhado a cobre; links da nota vão a `cobre-texto`.
 - **Movimento:** trocar de aba desliza o coração pelo fio até a aba nova em 0.5 s, na curva da casa. Com movimento reduzido, ou sem JavaScript, ele troca de lugar sem deslizar.
-- **Sem JavaScript:** as abas são links e cada rota já nasce na aba certa; os formulários enviam e voltam com a resposta.
+- **Sem JavaScript:** as abas são links e cada rota já nasce na aba certa. Os formulários com a verificação contra robôs (entrar, criar conta, recuperar a senha e excluir) precisam do JavaScript, que carrega o Turnstile.
 
 ### A palavra da vontade (assinatura do sistema)
 Em "Hoje o dia pede" a frase em script é uma palavra só, em minúscula e em expresso sobre caramelo, com um traço chocolate embaixo. A cada troca as letras saem e a palavra se reescreve da esquerda para a direita. A altura é fixa para a página não pular. A legenda e as miniaturas ficam embaixo da foto, sem sobrepor.

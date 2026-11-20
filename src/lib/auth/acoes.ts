@@ -1,5 +1,6 @@
 'use server'
 
+import type { AMREntry } from '@supabase/supabase-js'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { exigirUsuario } from '@/lib/auth'
@@ -9,6 +10,7 @@ import { erroQueNaoRevelaNada, limiteDeEmailDoSupabase, traduzirErroDoAuth, type
 import { lerIp } from '@/lib/auth/ip'
 import { senhaConfere } from '@/lib/auth/senha'
 import { criarClienteServidor } from '@/lib/auth/servidor'
+import { PISO_DO_ENVIO, PISO_DO_LOGIN, comPiso } from '@/lib/auth/tempo'
 import { VERSAO_DOS_TERMOS } from '@/lib/auth/termos'
 import { voltaSegura } from '@/lib/auth/volta'
 import { conferirCodigo, conferirEmail, conferirPerfil, conferirSenha, conferirSenhaAtual } from '@/lib/conta/regras'
@@ -69,7 +71,9 @@ export async function entrar(_: RespostaDaConta | null, form: FormData): Promise
   if (!(await dentroDosLimites([[`entrar:ip:${ip}`, 10, 900], [`entrar:email:${email}`, 10, 900]]))) return falha('muitas_tentativas')
   try {
     const banco = await criarClienteServidor()
-    const { error } = await banco.auth.signInWithPassword({ email, password: senha, options: { captchaToken: tokenDoCaptcha(form) } })
+    const { error } = await comPiso(PISO_DO_LOGIN, () =>
+      banco.auth.signInWithPassword({ email, password: senha, options: { captchaToken: tokenDoCaptcha(form) } }),
+    )
     if (error?.code === 'email_not_confirmed') return { ok: true, passo: 'codigo', email }
     if (error) return falha(traduzirErroDoAuth(error))
   } catch {
@@ -95,7 +99,8 @@ export async function cadastrar(_: RespostaDaConta | null, form: FormData): Prom
   if (!(await dentroDosLimites([[`cadastrar:ip:${ip}`, 5, 3600]]))) return falha('muitas_tentativas')
   try {
     const banco = await criarClienteServidor()
-    const { error } = await banco.auth.signUp({
+    const { error } = await comPiso(PISO_DO_ENVIO, () =>
+      banco.auth.signUp({
       email,
       password: senha,
       options: {
@@ -108,7 +113,8 @@ export async function cadastrar(_: RespostaDaConta | null, form: FormData): Prom
           aceite_marketing: texto(form, 'novidades') === 'on',
         },
       },
-    })
+    }),
+    )
     // conta que ja existe responde igual a conta nova (spec 4.1), e o limite de
     // e-mail, que so pega conta nova, tambem
     const naoRevela = error?.code === 'user_already_exists' || error?.code === 'email_exists' || limiteDeEmailDoSupabase(error)
@@ -145,7 +151,9 @@ export async function reenviarCodigo(_: RespostaDaConta | null, form: FormData):
   if (!(await dentroDosLimites([[`codigo:email:${email}`, 5, 3600]]))) return falha('muitas_tentativas', { passo: 'codigo', email })
   try {
     const banco = await criarClienteServidor()
-    const { error } = await banco.auth.resend({ type: 'signup', email, options: { captchaToken: tokenDoCaptcha(form) } })
+    const { error } = await comPiso(PISO_DO_ENVIO, () =>
+      banco.auth.resend({ type: 'signup', email, options: { captchaToken: tokenDoCaptcha(form) } }),
+    )
     if (error && !erroQueNaoRevelaNada(error)) return falha(traduzirErroDoAuth(error), { passo: 'codigo', email })
   } catch {
     return falha('tente_de_novo', { passo: 'codigo', email })
@@ -160,13 +168,30 @@ export async function pedirCodigoDeSenha(_: RespostaDaConta | null, form: FormDa
   if (!(await dentroDosLimites([[`esqueci:ip:${ip}`, 5, 3600], [`esqueci:email:${email}`, 5, 3600]]))) return falha('muitas_tentativas')
   try {
     const banco = await criarClienteServidor()
-    const { error } = await banco.auth.resetPasswordForEmail(email, { captchaToken: tokenDoCaptcha(form) })
+    const { error } = await comPiso(PISO_DO_ENVIO, () => banco.auth.resetPasswordForEmail(email, { captchaToken: tokenDoCaptcha(form) }))
     // com e sem conta, a mesma resposta (spec 4.1)
     if (error && !erroQueNaoRevelaNada(error)) return falha(traduzirErroDoAuth(error))
   } catch {
     return falha('tente_de_novo')
   }
   return { ok: true, passo: 'senha-nova', email }
+}
+
+/** Validade do codigo no painel (spec 12): 1 hora. */
+const VALIDADE_DO_CODIGO = 3600
+
+/**
+ * A sessao atual foi aberta por um codigo mandado a este e-mail ha menos de
+ * uma hora (amr "otp")? A identidade vem de getUser, validado no Supabase; o
+ * amr, do mesmo token, por getClaims.
+ */
+async function sessaoAbertaPorCodigo(banco: Awaited<ReturnType<typeof criarClienteServidor>>, email: string): Promise<boolean> {
+  const { data } = await banco.auth.getUser()
+  if (data.user?.email !== email) return false
+  const { data: token } = await banco.auth.getClaims()
+  const agora = Date.now() / 1000
+  const metodos = (token?.claims.amr ?? []) as (AMREntry | string)[]
+  return metodos.some((m) => typeof m !== 'string' && m.method === 'otp' && agora - m.timestamp < VALIDADE_DO_CODIGO)
 }
 
 export async function trocarSenhaComCodigo(_: RespostaDaConta | null, form: FormData): Promise<RespostaDaConta> {
@@ -188,8 +213,12 @@ export async function trocarSenhaComCodigo(_: RespostaDaConta | null, form: Form
   if (!(await dentroDosLimites([[`redefinir:ip:${ip}`, 10, 3600], [`redefinir:email:${email}`, 10, 3600]]))) return falha('muitas_tentativas', passo)
   try {
     const banco = await criarClienteServidor()
-    const conferido = await banco.auth.verifyOtp({ email, token: codigo, type: 'recovery' })
-    if (conferido.error) return falha(traduzirErroDoAuth(conferido.error), passo)
+    // senha nova recusada depois do codigo: o verifyOtp ja gastou o codigo, mas a
+    // sessao que ele abriu continua, e o novo envio troca a senha nela
+    if (!(await sessaoAbertaPorCodigo(banco, email))) {
+      const conferido = await banco.auth.verifyOtp({ email, token: codigo, type: 'recovery' })
+      if (conferido.error) return falha(traduzirErroDoAuth(conferido.error), passo)
+    }
     const trocado = await banco.auth.updateUser({ password: senha })
     if (trocado.error) return falha(traduzirErroDoAuth(trocado.error), passo)
     // trocar a senha encerra as outras sessoes (contrato, item 6)
@@ -231,9 +260,11 @@ export async function excluirConta(_: RespostaDaConta | null, form: FormData): P
 export async function sair(): Promise<never> {
   try {
     const banco = await criarClienteServidor()
-    await banco.auth.signOut()
+    // so esta sessao (spec 5); com "local" a biblioteca apaga a sessao do cookie
+    // antes de chamar o Supabase, e se ele recusar o cookie some do mesmo jeito
+    const { error } = await banco.auth.signOut({ scope: 'local' })
+    if (error) await apagarCookiesDaSessao()
   } catch {
-    // sem sessao ou Supabase fora do ar: o cookie local some do mesmo jeito
     await apagarCookiesDaSessao()
   }
   redirect('/')

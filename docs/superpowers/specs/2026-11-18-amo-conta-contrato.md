@@ -41,7 +41,9 @@ só a própria seção, e o que for comum se combina por mensagem antes.
 > e testada; o que mudou para quem usa:
 > - `/redefinir-senha` deixou de existir: a senha nova vem com o código de
 >   6 dígitos, no passo 2 de `/esqueci-a-senha`.
-> - `sair` mora em `src/lib/auth/acoes.ts` (`'use server'`). Componente
+> - `sair` encerra só esta sessão (`scope: 'local'`) e volta para `/`; com o
+>   Supabase fora do ar, o cookie some do mesmo jeito. Mora em
+>   `src/lib/auth/acoes.ts` (`'use server'`). Componente
 >   cliente importa de `@/lib/auth/acoes`; `src/lib/auth/index.ts` não a
 >   reexporta (fecharia um ciclo de import).
 > - `src/lib/auth/navegador.ts` não existe: o navegador não fala com o

@@ -83,9 +83,15 @@ describe('a conta de ponta a ponta', () => {
     const { data, error } = await admin.auth.admin.generateLink({ type: 'recovery', email })
     expect(error).toBeNull()
     trocarNavegador('recuperacao')
-    await expect(trocarSenhaComCodigo(null, formulario({ email, codigo: data.properties!.email_otp, senha: senhaNova }))).rejects.toThrow(
-      'REDIRECIONOU /conta',
-    )
+    const codigo = data.properties!.email_otp
+    // a senha atual o Supabase recusa depois de gastar o codigo; o novo envio usa a sessao que o codigo abriu
+    expect(await trocarSenhaComCodigo(null, formulario({ email, codigo, senha }))).toEqual({
+      ok: false,
+      erro: 'senha_igual',
+      passo: 'senha-nova',
+      email,
+    })
+    await expect(trocarSenhaComCodigo(null, formulario({ email, codigo, senha: senhaNova }))).rejects.toThrow('REDIRECIONOU /conta')
     trocarNavegador('segundo')
     expect(await obterUsuario()).toBeNull()
     trocarNavegador('quarto')
