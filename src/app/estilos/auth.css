@@ -1,0 +1,94 @@
+/* A conta: "as duas portas" (.impeccable/surfaces/src-app-entrar-page-tsx.md).
+   Mesmas pecas da sacola: titulo em duas vozes, fio de 1 px que segura as
+   abas, coracao cobre que aponta, campos de contorno fino, botao reto. */
+@layer components {
+  .conta-pagina { padding: calc(64px + clamp(28px, 4vw, 48px)) 0 clamp(72px, 8vw, 112px); }
+  .conta { width: min(440px, 100%); margin: 0 auto; }
+  .conta__titulo { margin: 0; text-align: center; font-weight: 300; font-size: clamp(32px, 4vw, 44px); line-height: 1.1; letter-spacing: -.03em; }
+  .conta__titulo em {
+    display: block; font-family: var(--font-script); font-style: normal; font-size: 1.5em;
+    line-height: 1.05; letter-spacing: 0; color: var(--color-cobre-texto);
+  }
+
+  /* as abas sobre o fio; o coracao pousa embaixo da atual */
+  .porta__abas { position: relative; display: grid; grid-template-columns: 1fr 1fr; margin-top: 26px; border-bottom: 1px solid var(--fio); }
+  .porta__abas a {
+    display: grid; place-items: center; min-height: 48px; font-size: 16px; color: var(--color-suave);
+    text-decoration: none; transition: color .2s ease;
+  }
+  .porta__abas a[aria-current="page"] { color: var(--color-expresso); font-weight: 500; }
+  .porta__abas a:focus-visible { color: var(--color-expresso); }
+  @media (hover: hover) { .porta__abas a:hover { color: var(--color-expresso); } }
+  .porta__trilho {
+    position: absolute; left: 0; bottom: -7px; display: flex; justify-content: center; width: 50%;
+    pointer-events: none; transform: translateX(calc(var(--lado, 0) * 100%));
+  }
+  .porta__coracao { width: 13px; height: 13px; background: var(--color-cobre); mask: var(--coracao) center / contain no-repeat; }
+
+  /* os formularios */
+  .porta__form { display: grid; gap: 16px; margin-top: 26px; }
+  .porta__par { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
+  .conta .campo { display: grid; align-content: start; gap: 6px; font-size: 13px; color: var(--color-suave); }
+  .conta .campo input { width: 100%; }
+  .campo__senha { position: relative; display: block; }
+  .campo__senha input { padding-right: 84px; }
+  .campo__mostrar {
+    position: absolute; top: 0; right: 12px; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer;
+    font: 400 13px var(--font-sans); color: var(--color-suave);
+    text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; text-decoration-color: var(--fio);
+    transition: color .2s ease, text-decoration-color .2s ease;
+  }
+  .campo__mostrar:focus-visible { color: var(--color-expresso); text-decoration-color: var(--color-cobre); }
+  @media (hover: hover) { .campo__mostrar:hover { color: var(--color-expresso); text-decoration-color: var(--color-cobre); } }
+  .campo__dica { font-size: 13px; line-height: 1.5; color: var(--color-suave); }
+  .marcar { display: grid; grid-template-columns: 18px 1fr; gap: 4px 10px; align-items: start; font-size: 14px; line-height: 1.5; }
+  .marcar input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--color-expresso); cursor: pointer; }
+  .marcar .campo__erro { grid-column: 2; }
+  .conta__erro { min-height: 1.5em; margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-cobre-texto); }
+  .conta__enviar { width: 100%; }
+  .conta__enviar:disabled { opacity: .75; cursor: progress; }
+  .conta__texto { margin: 0; font-size: 15px; line-height: 1.6; color: var(--color-expresso); }
+  .conta__nota { margin: 0; text-align: center; font-size: 13px; line-height: 1.6; color: var(--color-suave); }
+  .conta__nota--fim { margin-top: 28px; }
+  .conta__nota a {
+    color: var(--color-expresso); text-underline-offset: 4px; text-decoration-color: var(--fio);
+    transition: color .2s ease, text-decoration-color .2s ease;
+  }
+  .conta__nota a:focus-visible { color: var(--color-cobre-texto); text-decoration-color: var(--color-cobre); }
+  @media (hover: hover) { .conta__nota a:hover { color: var(--color-cobre-texto); text-decoration-color: var(--color-cobre); } }
+  .conta__acoes { display: flex; justify-content: center; gap: 24px; }
+  .conta__texto-botao {
+    position: relative; padding: 0; border: 0; background: none; cursor: pointer; color: var(--color-suave); font: 400 14px var(--font-sans);
+    text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; text-decoration-color: var(--fio);
+    transition: color .2s ease, text-decoration-color .2s ease;
+  }
+  .conta__texto-botao::before { content: ""; position: absolute; inset-inline: -8px; top: 50%; height: 44px; margin-top: -22px; }
+  .conta__texto-botao:focus-visible { color: var(--color-expresso); text-decoration-color: var(--color-cobre); }
+  @media (hover: hover) { .conta__texto-botao:hover { color: var(--color-expresso); text-decoration-color: var(--color-cobre); } }
+  .porta__codigo { display: grid; gap: 4px; margin-top: 26px; }
+  .porta__codigo .porta__form { margin-top: 14px; }
+  .porta__reenviar { display: grid; gap: 8px; margin-top: 12px; }
+  .conta__fim { display: grid; gap: 22px; margin-top: 30px; }
+  .turnstile:empty { display: none; }
+
+  /* recuperar a senha: dois passos sobre o fio, o coracao no atual */
+  .passos { position: relative; margin: 30px 0 0; padding: 0 0 0 40px; list-style: none; }
+  .passos::before { content: ""; position: absolute; left: 6px; top: 10px; bottom: 10px; width: 1px; background: var(--fio); }
+  .passo { position: relative; padding-bottom: 26px; }
+  .passo__nome { margin: 0; font-size: 18px; font-weight: 400; letter-spacing: -.01em; color: var(--color-suave); }
+  .passo--atual .passo__nome { font-size: 22px; color: var(--color-expresso); }
+  .passo--atual::before {
+    content: ""; position: absolute; left: -40px; top: 9px; width: 13px; height: 13px;
+    background: var(--color-cobre); mask: var(--coracao) center / contain no-repeat;
+  }
+  .passo__dica { margin: 4px 0 0; font-size: 14px; line-height: 1.55; color: var(--color-suave); }
+  .passo .porta__form { margin-top: 18px; }
+
+  @media (max-width: 520px) {
+    .porta__par { grid-template-columns: 1fr; }
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html.js .porta__trilho { transition: transform .5s var(--ease-amo); }
+}
