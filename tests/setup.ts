@@ -12,6 +12,13 @@ vi.mock('@/lib/dados/catalogo', async (original) => {
   }
 })
 
+// Fora de um pedido do Next, connection() lanca erro; nos testes de unidade a
+// pagina so renderiza.
+vi.mock('next/server', async (original) => ({
+  ...(await original<typeof import('next/server')>()),
+  connection: async () => {},
+}))
+
 // O mesmo para os comentarios aprovados: os da fixture, do mais novo ao mais antigo.
 vi.mock('@/lib/dados/comentarios', async (original) => {
   const { COMENTARIOS } = await import('./fixtures/comentarios')

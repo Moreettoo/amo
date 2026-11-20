@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { FONTE_SEM_NONCE } from "./src/lib/seguranca/rotas";
 
 /**
  * Cabecalhos de seguranca em toda resposta (spec 11). A CSP aqui e a sem
@@ -8,8 +9,9 @@ import type { NextConfig } from "next";
  * cobre, e ela atrapalha o next start local. O HSTS vai sem
  * includeSubDomains e sem preload ate o dominio ser escolhido (spec 18).
  *
- * As paginas com dado pessoal ganham a CSP com nonce no proxy.ts (sessao de
- * autenticacao); quando isso entrar, esta regra deixa de valer para elas.
+ * As paginas com dado pessoal (src/lib/seguranca/rotas.ts) ganham a CSP com
+ * nonce no proxy.ts; a regra da CSP daqui fica fora delas, para a resposta nao
+ * sair com duas politicas. Os outros cabecalhos valem em toda rota.
  */
 const desenvolvimento = process.env.NODE_ENV === "development";
 
@@ -32,13 +34,16 @@ const nextConfig: NextConfig = {
       {
         source: "/(.*)",
         headers: [
-          { key: "Content-Security-Policy", value: csp },
           { key: "Strict-Transport-Security", value: "max-age=63072000" },
           { key: "X-Content-Type-Options", value: "nosniff" },
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "X-Frame-Options", value: "DENY" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
         ],
+      },
+      {
+        source: FONTE_SEM_NONCE,
+        headers: [{ key: "Content-Security-Policy", value: csp }],
       },
     ];
   },
