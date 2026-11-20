@@ -140,9 +140,10 @@ produção.
 
 1. **Já feito:** chave secreta, schema `privado` exposto, "Secure email
    change" e "Require current password".
-2. **Código de 6 dígitos:** Authentication, Email, "Email OTP Length" em 6.
-   O projeto de desenvolvimento nasceu com 8; a tela e a regra do código
-   contam 6, e um código de 8 é recusado.
+2. **Código de 6 dígitos:** Authentication, Sign In / Providers, linha
+   Email, "Email OTP Length" em 6 (no mesmo painel ficam os itens 3 e 5). O
+   projeto de desenvolvimento nasceu com 8 e foi acertado em 2026-11-20; a
+   tela e a regra do código contam 6, e um código de 8 é recusado.
 3. **Código vale no máximo 1 hora** ("Email OTP Expiration" em 3600), com a
    confirmação de e-mail ligada.
 4. **CAPTCHA:** Turnstile ligado, com o segredo da Cloudflare. O site recebe

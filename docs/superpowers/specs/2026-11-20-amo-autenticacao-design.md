@@ -4,6 +4,8 @@
 **Status:** aprovado pelo dono em 2026-11-20, junto com a escolha do esboço
 "As duas portas" (`.impeccable/mocks/decision/conta-abas.html`; o contrato
 visual está em `.impeccable/surfaces/src-app-entrar-page-tsx.md`).
+Construído e testado em 2026-11-20: unidade, banco de desenvolvimento
+(`npm run test:banco`, com o código de 6 dígitos) e navegador.
 **Anda junto com:** `2026-11-18-amo-backend-design.md` (o banco, as regras de
 segurança e a §16, que dava esta parte a outra sessão) e
 `2026-11-18-amo-conta-contrato.md` (os nomes que Minha conta já usa). Onde
@@ -251,8 +253,8 @@ email change" e "Require current password". Falta:
    membro da organização no Supabase, e com um limite baixo de envios por
    hora (o ensaio de 2026-11-20 esbarrou nele).
 7. **Código de 6 dígitos**: "Email OTP Length" em 6. O projeto de
-   desenvolvimento nasceu com 8 (achado em 2026-11-20); a tela e a regra do
-   código contam 6.
+   desenvolvimento nasceu com 8 e foi acertado para 6 em 2026-11-20; o de
+   produção precisa do mesmo. A tela e a regra do código contam 6.
 
 ## 13. Como provar
 
