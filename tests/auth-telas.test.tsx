@@ -41,6 +41,7 @@ const { default: PaginaEntrar } = await import('@/app/entrar/page')
 const { default: PaginaCadastro } = await import('@/app/cadastro/page')
 const { default: PaginaEsqueci } = await import('@/app/esqueci-a-senha/page')
 const { default: PaginaExcluir } = await import('@/app/conta/excluir/page')
+const { default: PaginaExcluida } = await import('@/app/conta/excluida/page')
 
 const sp = (volta?: string) => ({ searchParams: Promise.resolve(volta ? { volta } : {}) })
 const principal = () => screen.getByRole('main')
@@ -58,6 +59,7 @@ describe.each([
   ['/cadastro', () => PaginaCadastro(sp())],
   ['/esqueci-a-senha', () => PaginaEsqueci()],
   ['/conta/excluir', () => PaginaExcluir()],
+  ['/conta/excluida', () => PaginaExcluida()],
 ])('%s', (_, montar) => {
   it('um h1, sem pular nivel, campos com rotulo, sem reticencias, axe limpo', async () => {
     const { container } = render(await montar())
@@ -167,11 +169,8 @@ describe('esqueci a senha e excluir a conta', () => {
     expect(screen.queryByLabelText('Senha')).toBeNull()
   })
   it('excluida, diz e leva para a home', async () => {
-    respostas.excluirConta = { ok: true, aviso: 'conta_excluida' }
-    const u = userEvent.setup()
-    render(await PaginaExcluir())
-    await u.click(screen.getByRole('button', { name: 'Excluir minha conta' }))
-    expect(await screen.findByText('Sua conta foi excluída.')).toBeInTheDocument()
+    render(await PaginaExcluida())
+    expect(principal()).toHaveTextContent('Sua conta foi excluída.')
     expect(screen.getByRole('link', { name: 'Voltar para a página inicial' })).toHaveAttribute('href', '/')
   })
 })

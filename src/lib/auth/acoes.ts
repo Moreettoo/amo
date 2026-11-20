@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { exigirUsuario } from '@/lib/auth'
 import { criarClienteAdmin } from '@/lib/auth/admin'
 import { apagarCookiesDaSessao } from '@/lib/auth/cookies'
-import { erroQueNaoRevelaNada, traduzirErroDoAuth, type CodigoDaConta } from '@/lib/auth/erros'
+import { erroQueNaoRevelaNada, limiteDeEmailDoSupabase, traduzirErroDoAuth, type CodigoDaConta } from '@/lib/auth/erros'
 import { lerIp } from '@/lib/auth/ip'
 import { senhaConfere } from '@/lib/auth/senha'
 import { criarClienteServidor } from '@/lib/auth/servidor'
@@ -23,7 +23,7 @@ import { consumirLimite } from '@/lib/dados/limites'
 
 export type PassoDaConta = 'codigo' | 'senha-nova'
 export type RespostaDaConta =
-  | { ok: true; passo?: PassoDaConta; email?: string; aviso?: 'codigo_reenviado' | 'conta_excluida' }
+  | { ok: true; passo?: PassoDaConta; email?: string; aviso?: 'codigo_reenviado' }
   | { ok: false; erro: CodigoDaConta; campos?: Record<string, string>; passo?: PassoDaConta; email?: string }
 
 const MENSAGEM = {
@@ -109,8 +109,10 @@ export async function cadastrar(_: RespostaDaConta | null, form: FormData): Prom
         },
       },
     })
-    // conta que ja existe responde igual a conta nova (spec 4.1)
-    if (error && error.code !== 'user_already_exists' && error.code !== 'email_exists') return falha(traduzirErroDoAuth(error))
+    // conta que ja existe responde igual a conta nova (spec 4.1), e o limite de
+    // e-mail, que so pega conta nova, tambem
+    const naoRevela = error?.code === 'user_already_exists' || error?.code === 'email_exists' || limiteDeEmailDoSupabase(error)
+    if (error && !naoRevela) return falha(traduzirErroDoAuth(error))
   } catch {
     return falha('tente_de_novo')
   }
@@ -220,7 +222,9 @@ export async function excluirConta(_: RespostaDaConta | null, form: FormData): P
   } catch {
     return falha('tente_de_novo')
   }
-  return { ok: true, aviso: 'conta_excluida' }
+  // apagar o cookie faz o Next renderizar de novo /conta/excluir, que sem
+  // sessao manda entrar: o aviso mora numa pagina propria
+  redirect('/conta/excluida')
 }
 
 /** Encerra esta sessao e volta para a home. */

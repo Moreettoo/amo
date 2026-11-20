@@ -9,7 +9,7 @@ import {
   type RespostaDaConta,
 } from '@/lib/auth/acoes'
 import { mascararCelular } from '@/lib/pedido'
-import { Campo, CampoSenha, Enviar, ErroGeral, Marcar, erroDe } from '@/components/conta/pecas'
+import { Campo, CampoSenha, Envio, ErroGeral, Marcar, erroDe } from '@/components/conta/pecas'
 import { Turnstile } from '@/components/conta/Turnstile'
 
 type Aba = 'entrar' | 'cadastro'
@@ -88,9 +88,9 @@ function FormEntrar({ email, setEmail, volta, verificacao, aoPedirCodigo }: Form
       <Campo rotulo="E-mail" name="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} erro={erroDe(resposta, 'email')} />
       <CampoSenha rotulo="Senha" name="senha" autoComplete="current-password" erro={erroDe(resposta, 'senha')} />
       <input type="hidden" name="volta" value={volta} />
-      <Turnstile {...verificacao} reiniciar={resposta} />
-      <ErroGeral resposta={resposta} />
-      <Enviar enviando={enviando} rotulo="Entrar" rotuloEnviando="Entrando" />
+      <Envio resposta={resposta} enviando={enviando} rotulo="Entrar" rotuloEnviando="Entrando">
+        <Turnstile {...verificacao} reiniciar={resposta} />
+      </Envio>
       <p className="conta__nota">
         <a href="/esqueci-a-senha">Esqueci a senha</a>
       </p>
@@ -123,9 +123,9 @@ function FormCadastro({ email, setEmail, verificacao, aoPedirCodigo }: FormProps
         Li e aceito os termos de uso e a política de privacidade.
       </Marcar>
       <Marcar nome="novidades">Quero receber novidades e sabores novos por e-mail.</Marcar>
-      <Turnstile {...verificacao} reiniciar={resposta} />
-      <ErroGeral resposta={resposta} />
-      <Enviar enviando={enviando} rotulo="Criar conta" rotuloEnviando="Criando a conta" />
+      <Envio resposta={resposta} enviando={enviando} rotulo="Criar conta" rotuloEnviando="Criando a conta">
+        <Turnstile {...verificacao} reiniciar={resposta} />
+      </Envio>
       <p className="conta__nota">Enviamos um código de 6 dígitos para confirmar o seu e-mail.</p>
     </form>
   )
@@ -143,8 +143,7 @@ function FormCodigo({ email, volta, verificacao, aoTrocarEmail }: { email: strin
         <input type="hidden" name="email" value={email} />
         <input type="hidden" name="volta" value={volta} />
         <Campo rotulo="Código" name="codigo" inputMode="numeric" autoComplete="one-time-code" maxLength={9} largura="meio" erro={erroDe(resposta, 'codigo')} />
-        <ErroGeral resposta={resposta} />
-        <Enviar enviando={enviando} rotulo="Confirmar" rotuloEnviando="Conferindo o código" />
+        <Envio resposta={resposta} enviando={enviando} rotulo="Confirmar" rotuloEnviando="Conferindo o código" />
       </form>
       <form action={reenviar} className="porta__reenviar" noValidate>
         <input type="hidden" name="email" value={email} />

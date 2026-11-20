@@ -41,8 +41,18 @@ export function traduzirErroDoAuth(erro: ErroDoAuth): CodigoDaConta {
   }
 }
 
-/** Erro 4xx que nao e CAPTCHA nem limite: nao diz nada sobre a conta existir. */
+/**
+ * O limite de envio de e-mail do Supabase so dispara quando um e-mail sairia:
+ * na recuperacao, so para conta que existe; no cadastro, so para conta nova.
+ * Mostra-lo diria se a conta existe, entao quem deve a mesma resposta com e
+ * sem conta (spec 4.1) o trata como sucesso. O limite por IP vale para todos
+ * e continua aparecendo.
+ */
+export const limiteDeEmailDoSupabase = (erro: ErroDoAuth): boolean => erro?.code === 'over_email_send_rate_limit'
+
+/** Erro 4xx que nao e CAPTCHA nem limite por IP: nao diz nada sobre a conta existir. */
 export function erroQueNaoRevelaNada(erro: ErroDoAuth): boolean {
+  if (limiteDeEmailDoSupabase(erro)) return true
   const codigo = traduzirErroDoAuth(erro)
   const status = erro?.status ?? 0
   return status >= 400 && status < 500 && codigo !== 'captcha' && codigo !== 'muitas_tentativas'

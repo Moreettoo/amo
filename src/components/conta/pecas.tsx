@@ -81,7 +81,24 @@ export function ErroGeral({ resposta }: { resposta: RespostaDaConta | null }) {
 export const erroDe = (resposta: RespostaDaConta | null, campo: string) =>
   resposta && !resposta.ok ? resposta.campos?.[campo] : undefined
 
-export function Enviar({ enviando, rotulo, rotuloEnviando }: { enviando: boolean; rotulo: string; rotuloEnviando: string }) {
+/**
+ * O fim do formulario, num bloco so: a verificacao contra robos (quando ha),
+ * a linha de erro reservada e o botao, a 6 px um do outro. O Turnstile sem
+ * desafio tem altura 0 e, fora da grade do formulario, nao abre intervalo.
+ */
+export function Envio({ resposta, children, ...botao }: { resposta: RespostaDaConta | null; children?: React.ReactNode } & EnviarProps) {
+  return (
+    <div className="conta__envio">
+      {children}
+      <ErroGeral resposta={resposta} />
+      <Enviar {...botao} />
+    </div>
+  )
+}
+
+type EnviarProps = { enviando: boolean; rotulo: string; rotuloEnviando: string }
+
+export function Enviar({ enviando, rotulo, rotuloEnviando }: EnviarProps) {
   return (
     <button type="submit" className="btn-retro btn-retro--escuro conta__enviar" disabled={enviando}>
       {enviando ? rotuloEnviando : rotulo}

@@ -168,6 +168,10 @@ describe('cadastrar', () => {
     delete semTermos.termos
     expect(await chamar(acoes.cadastrar, semTermos)).toMatchObject({ ok: false, erro: 'campos_invalidos', campos: { termos: expect.any(String) } })
   })
+  it('o limite de envio de e-mail do Supabase (so conta nova recebe e-mail) responde como sucesso', async () => {
+    auth.signUp.mockResolvedValue(erroDoAuth('over_email_send_rate_limit', { status: 429 }))
+    expect(await chamar(acoes.cadastrar, CADASTRO)).toEqual({ ok: true, passo: 'codigo', email: 'maria@exemplo.com' })
+  })
   it('senha vazada', async () => {
     auth.signUp.mockResolvedValue(erroDoAuth('weak_password', { reasons: ['pwned'] }))
     expect(await chamar(acoes.cadastrar, CADASTRO)).toMatchObject({ ok: false, erro: 'senha_vazada' })
@@ -201,6 +205,21 @@ describe('pedirCodigoDeSenha', () => {
     })
     expect(certo).toEqual({ ok: true, passo: 'senha-nova', email: 'maria@exemplo.com' })
   })
+  it('o limite de envio de e-mail do Supabase (so conta que existe recebe e-mail) responde como sucesso', async () => {
+    auth.resetPasswordForEmail.mockResolvedValue(erroDoAuth('over_email_send_rate_limit', { status: 429 }))
+    expect(await chamar(acoes.pedirCodigoDeSenha, { email: 'maria@exemplo.com', 'cf-turnstile-response': 'tok' })).toEqual({
+      ok: true,
+      passo: 'senha-nova',
+      email: 'maria@exemplo.com',
+    })
+  })
+  it('o limite por IP do Supabase vale para todos e aparece', async () => {
+    auth.resetPasswordForEmail.mockResolvedValue(erroDoAuth('over_request_rate_limit', { status: 429 }))
+    expect(await chamar(acoes.pedirCodigoDeSenha, { email: 'maria@exemplo.com', 'cf-turnstile-response': 'tok' })).toEqual({
+      ok: false,
+      erro: 'muitas_tentativas',
+    })
+  })
 })
 
 describe('trocarSenhaComCodigo', () => {
@@ -233,8 +252,10 @@ describe('excluirConta', () => {
     expect(await chamar(acoes.excluirConta, EXCLUIR)).toMatchObject({ ok: false, erro: 'credenciais' })
     expect(deleteUser).not.toHaveBeenCalled()
   })
-  it('apaga a conta da sessao, os cookies e avisa', async () => {
-    expect(await chamar(acoes.excluirConta, EXCLUIR)).toEqual({ ok: true, aviso: 'conta_excluida' })
+  // apagar o cookie faz o Next renderizar de novo a pagina atual, que sem sessao
+  // manda entrar: o aviso mora numa pagina propria
+  it('apaga a conta da sessao, os cookies e leva ao aviso', async () => {
+    expect(await chamar(acoes.excluirConta, EXCLUIR)).toEqual({ lancou: 'REDIRECIONOU /conta/excluida' })
     expect(senhaConfere).toHaveBeenCalledWith('maria@exemplo.com', 'atual', 'tok')
     expect(deleteUser).toHaveBeenCalledWith('usuario-1')
     expect(apagarCookiesDaSessao).toHaveBeenCalled()

@@ -44,7 +44,10 @@
   .marcar { display: grid; grid-template-columns: 18px 1fr; gap: 4px 10px; align-items: start; font-size: 14px; line-height: 1.5; }
   .marcar input { width: 18px; height: 18px; margin: 2px 0 0; accent-color: var(--color-expresso); cursor: pointer; }
   .marcar .campo__erro { grid-column: 2; }
-  .conta__erro { min-height: 1.5em; margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-cobre-texto); }
+  /* o fim do formulario: o Turnstile sem desafio tem altura 0 e, sem gap aqui,
+     nao abre intervalo; a linha de erro fica reservada a 6 px do botao */
+  .conta__envio { display: grid; }
+  .conta__erro { min-height: 1.5em; margin: 0 0 6px; font-size: 14px; line-height: 1.5; color: var(--color-cobre-texto); }
   .conta__enviar { width: 100%; }
   .conta__enviar:disabled { opacity: .75; cursor: progress; }
   .conta__texto { margin: 0; font-size: 15px; line-height: 1.6; color: var(--color-expresso); }
