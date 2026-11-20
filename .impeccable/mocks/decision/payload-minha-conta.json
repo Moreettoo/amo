@@ -1,0 +1,46 @@
+{
+  "title": "AMO: Minha conta",
+  "question": "Três jeitos de montar Minha conta: a tela inicial (/conta), os pedidos (/conta/pedidos), um pedido (/conta/pedidos/AMO-7K2M9QXR) e o perfil (/conta/perfil), com o link \"Minha conta\" na nav. Nos três, o pedido em andamento abre a conta, com o coração pousado no fio na etapa em que ele está; os pedidos antigos e os seus dados ficam a um toque. Aqui aparece a tela inicial; as quatro telas de cada esboço ficam em .impeccable/mocks/minha-conta-*-telas.html. O visual é o do site, e os dados são de exemplo. Escolha um, peça outra rodada ou escreva um ajuste.",
+  "options": [
+    {
+      "id": "minha-conta-carta",
+      "kind": "assigned",
+      "label": "A carta",
+      "kicker": "THE ROLL",
+      "lineage": "O título em duas vozes da home e o fio das etapas da sacola",
+      "thesis": "Uma coluna só, lida de cima para baixo como uma carta: a saudação, o pedido em andamento contado numa frase e no fio, os pedidos anteriores e os seus dados, cada um com o seu caminho.",
+      "palette": ["#FAF2E9", "#2B1B16", "#C9784A", "#9A5530", "#5E4A40"],
+      "materials": ["título em duas vozes", "o fio das etapas com o coração", "lista sem caixa, separada por espaço"],
+      "viewport": "'Olá, Mariana' com 'que bom te ver' em script; embaixo, a frase grande e leve 'Seu pedido saiu para entrega às 15h10.' e o fio Feito, Pago, Em preparo, A caminho, Entregue com o coração em A caminho; o botão 'Acompanhar no Uber'; depois os pedidos anteriores e o resumo dos seus dados.",
+      "risk": "Sem um menu fixo da conta: quem quer só trocar o endereço rola ou usa o link do resumo dos dados.",
+      "html": ".impeccable/mocks/decision/minha-conta-carta.html"
+    },
+    {
+      "id": "minha-conta-sumario",
+      "kind": "dealt",
+      "label": "O sumário da conta",
+      "lineage": "O sumário do catálogo: a coluna presa com o fio e o coração no item atual",
+      "thesis": "Duas colunas, como o catálogo: à esquerda o sumário da conta (Pedido atual, Pedidos, Seus dados, Endereços, E-mail e senha, Sair) com o coração no item atual; à direita a tela escolhida.",
+      "palette": ["#FAF2E9", "#2B1B16", "#C9784A", "#9A5530", "#5E4A40"],
+      "materials": ["sumário com o fio e o coração", "título em duas vozes", "o fio das etapas no pedido"],
+      "viewport": "Sumário de 208 px à esquerda com 'Pedido atual' marcado; à direita, 'Pedido AMO-7K2M9QXR' com 'a caminho' em script, o fio das etapas na horizontal, os potes com miniatura e o total; abaixo, os dois últimos pedidos.",
+      "risk": "É o desenho mais parecido com o de outras lojas; o sumário com poucos itens pode parecer vazio no desktop.",
+      "html": ".impeccable/mocks/decision/minha-conta-sumario.html"
+    },
+    {
+      "id": "minha-conta-abas",
+      "kind": "dealt",
+      "label": "As abas da conta",
+      "lineage": "As duas portas: as abas sobre o fio, com o coração na atual",
+      "thesis": "A mesma porta de entrar, agora por dentro: três abas sobre um fio (Pedido atual, Pedidos, Seus dados) com o coração embaixo da atual, e a tela de cada uma logo abaixo, numa coluna centrada.",
+      "palette": ["#FAF2E9", "#2B1B16", "#C9784A", "#9A5530", "#5E4A40"],
+      "materials": ["abas sobre o fio com o coração", "título em duas vozes centrado", "o fio das etapas no pedido"],
+      "viewport": "'Olá, Mariana' centrado com 'sua conta' em script; as três abas com o coração em 'Pedido atual'; abaixo, o pedido AMO-7K2M9QXR com o fio das etapas na horizontal, o botão 'Acompanhar no Uber', os potes e o total.",
+      "risk": "Sem pedido em andamento, a primeira aba precisa de um convite bom ao catálogo para não ficar vazia.",
+      "html": ".impeccable/mocks/decision/minha-conta-abas.html"
+    }
+  ],
+  "reroll": true,
+  "buildPath": { "value": "code" },
+  "steer": true
+}

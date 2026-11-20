@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>O sumário da conta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --linho:#F6EBDD; --suave:#5E4A40;
+    --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38);
+    --coracao:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20.6s-7.6-4.7-7.6-10.3a4.3 4.3 0 0 1 7.6-2.7 4.3 4.3 0 0 1 7.6 2.7c0 5.6-7.6 10.3-7.6 10.3z'/%3E%3C/svg%3E");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  ul, ol { list-style: none; }
+  a { color: inherit; text-decoration: none; }
+  body {
+    position: relative; width: 1440px; height: 900px; overflow: hidden;
+    font-family: Poppins, system-ui, sans-serif; color: var(--expresso); -webkit-font-smoothing: antialiased;
+    background: var(--creme) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .11 0 0 0 0 .08 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap { width: 1128px; margin: 0 auto; }
+  .num { font-variant-numeric: tabular-nums; }
+  .cor { display: block; width: 13px; height: 13px; background: var(--cobre); -webkit-mask: var(--coracao) center / contain no-repeat; mask: var(--coracao) center / contain no-repeat; }
+  svg { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* a nav da casa, com o link novo marcado */
+  nav { height: 64px; border-bottom: 1px solid var(--fio); }
+  nav .wrap { height: 100%; display: flex; align-items: center; gap: 30px; font-size: 15px; }
+  nav .menu, nav .sacola { display: flex; align-items: center; gap: 8px; }
+  nav svg { width: 20px; height: 20px; }
+  nav .menu svg { stroke-width: 1.3; }
+  nav img { height: 30px; margin: 0 auto 0 -4px; }
+  nav .atual { font-weight: 500; }
+
+  /* duas colunas, como o catálogo com sumário: 208, 64 de vão, o resto */
+  .conta { display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 64px; padding-top: 48px; }
+  .ola, .rot, .sair { padding-left: 27px; }
+  .ola { padding-top: 6px; }
+  .ola b { display: block; font-size: 22px; font-weight: 400; line-height: 1.2; letter-spacing: -.01em; }
+  .ola span { display: block; margin-top: 4px; font-size: 13px; color: var(--suave); }
+  .rot { margin: 46px 0 14px; font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--cobre-texto); }
+  .trilho { position: relative; padding-left: 26px; border-left: 1px solid var(--fio); }
+  .trilho a { display: flex; align-items: center; justify-content: space-between; min-height: 44px; font-size: 17px; line-height: 1.3; }
+  .trilho small { font-size: 12px; font-weight: 500; color: var(--suave); }
+  .trilho .atual a { font-weight: 500; }
+  .trilho .cor { position: absolute; left: -7px; top: 15.5px; }
+  .sair { display: flex; align-items: center; min-height: 44px; margin-top: 30px; font-size: 15px; color: var(--suave); }
+
+  /* a tela: o pedido em andamento */
+  .cabeca { display: flex; justify-content: space-between; align-items: flex-end; }
+  h1 { font-weight: 300; font-size: 44px; line-height: 1.1; letter-spacing: -.03em; }
+  h1 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 1.5em; line-height: 1.05; letter-spacing: 0; color: var(--cobre-texto); }
+  .chega { width: 250px; padding-bottom: 6px; font-size: 15px; line-height: 1.5; }
+  .chega span { display: block; font-size: 13px; color: var(--suave); }
+  .botao { display: flex; align-items: center; justify-content: center; height: 50px; margin-top: 14px; padding: 0 28px; border-radius: 2px; background: var(--expresso); color: var(--creme); font-size: 15px; font-weight: 500; letter-spacing: .02em; }
+
+  /* o fio das etapas, deitado: o coração pousa na atual */
+  .etapas { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 36px; }
+  .etapas::before { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 1px; background: var(--fio); }
+  .etapas li { position: relative; padding-top: 24px; font-size: 15px; line-height: 1.4; }
+  .etapas li::before { content: ""; position: absolute; left: 6px; top: 3px; width: 1px; height: 7px; background: var(--contorno); }
+  .etapas .vem { color: var(--suave); }
+  .etapas .vem::before { background: var(--fio); }
+  .etapas .atual { font-weight: 500; }
+  .etapas .atual::before { display: none; }
+  .etapas .cor { position: absolute; left: 0; top: 0; }
+  .etapas time { display: block; margin-top: 1px; font-size: 13px; font-weight: 400; color: var(--suave); }
+
+  .potes { margin-top: 28px; }
+  .potes li { display: grid; grid-template-columns: 64px minmax(0, 1fr) 120px 110px; gap: 20px; align-items: center; padding: 10px 0; }
+  .potes li + li { border-top: 1px solid var(--fio); }
+  .potes img { display: block; width: 64px; height: 80px; object-fit: cover; border-radius: 3px; background: var(--linho); }
+  .potes b { display: block; font-size: 16px; font-weight: 400; }
+  .potes small { font-size: 13px; color: var(--suave); }
+  .qtd { font-size: 15px; color: var(--suave); }
+  .preco { font-size: 16px; text-align: right; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--fio); }
+  .total b { font-size: 15px; font-weight: 500; }
+  .total small { margin-left: 14px; font-size: 13px; color: var(--suave); }
+  .total strong { font-size: 30px; font-weight: 300; letter-spacing: -.02em; }
+
+  .anteriores { margin-top: 42px; }
+  .anteriores header { display: flex; justify-content: space-between; align-items: baseline; }
+  h2 { font-size: 22px; font-weight: 400; line-height: 1.2; letter-spacing: -.01em; }
+  .link { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; }
+  .link svg, .lista svg { width: 16px; height: 16px; }
+  .lista { margin-top: 6px; }
+  .lista li { display: grid; grid-template-columns: 160px 170px minmax(0, 1fr) 94px 100px 16px; gap: 20px; align-items: center; min-height: 48px; font-size: 15px; }
+  .lista li + li { border-top: 1px solid var(--fio); }
+  .lista .n { font-weight: 500; }
+  .lista .s { color: var(--suave); }
+  .lista .r { text-align: right; }
+  .lista svg { color: var(--suave); }
+  .exemplo { position: absolute; left: 183px; bottom: 26px; font-size: 13px; color: var(--suave); }
+</style>
+</head>
+<body>
+<nav><div class="wrap">
+  <span class="menu"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</span>
+  <img src="../../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <a class="atual" aria-current="page">Minha conta</a>
+  <span class="sacola"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</span>
+</div></nav>
+
+<div class="wrap conta">
+  <aside class="sumario">
+    <p class="ola"><b>Olá, Mariana</b><span>mariana@exemplo.com.br</span></p>
+    <p class="rot">Sua conta</p>
+    <ul class="trilho">
+      <li class="atual"><span class="cor" aria-hidden="true"></span><a aria-current="page">Pedido atual</a></li>
+      <li><a>Pedidos <small class="num">4</small></a></li>
+      <li><a>Seus dados</a></li>
+      <li><a>Endereços <small class="num">2</small></a></li>
+      <li><a>E-mail e senha</a></li>
+    </ul>
+    <a class="sair">Sair</a>
+  </aside>
+
+  <main>
+    <div class="cabeca">
+      <h1>Pedido <span translate="no">AMO</span>-7K2M9QXR <em>a caminho</em></h1>
+      <div class="chega">
+        <p><span>Entrega pelo Uber</span>Chega em cerca de 25 minutos.</p>
+        <a class="botao">Acompanhar no Uber</a>
+      </div>
+    </div>
+
+    <ol class="etapas num">
+      <li>Feito<time>14h02</time></li>
+      <li>Pago<time>14h03</time></li>
+      <li>Em preparo<time>14h20</time></li>
+      <li class="atual"><span class="cor" aria-hidden="true"></span>A caminho<time>15h10</time></li>
+      <li class="vem">Entregue</li>
+    </ol>
+
+    <ul class="potes num">
+      <li><img src="../../../public/produtos/prestigio.webp" alt=""><p><b>Prestígio</b><small>Bolo no pote · R$ 18,90 cada</small></p><span class="qtd">2 potes</span><span class="preco">R$ 37,80</span></li>
+      <li><img src="../../../public/produtos/ninho-com-frutas-vermelhas.webp" alt=""><p><b>Ninho com frutas vermelhas</b><small>Bolo no pote · R$ 21,90 cada</small></p><span class="qtd">1 pote</span><span class="preco">R$ 21,90</span></li>
+      <li><img src="../../../public/produtos/mousse-de-maracuja.webp" alt=""><p><b>Mousse de maracujá</b><small>Bolo no pote · R$ 18,90 cada</small></p><span class="qtd">1 pote</span><span class="preco">R$ 18,90</span></li>
+    </ul>
+    <p class="total num"><span><b>Total</b><small>R$ 78,60 em potes e R$ 14,20 de entrega, pago com Pix</small></span><strong>R$ 92,80</strong></p>
+
+    <section class="anteriores">
+      <header><h2>Pedidos anteriores</h2><a class="link">Ver todos os pedidos <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></header>
+      <ul class="lista num">
+        <li><span class="n"><span translate="no">AMO</span>-3F8D2WLA</span><span class="s">8 de novembro</span><span>Entregue</span><span class="s">6 potes</span><span class="r">R$ 128,40</span><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></li>
+        <li><span class="n"><span translate="no">AMO</span>-9QTR4ZEN</span><span class="s">25 de outubro</span><span>Entregue</span><span class="s">3 potes</span><span class="r">R$ 71,10</span><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></li>
+      </ul>
+    </section>
+  </main>
+</div>
+<p class="exemplo">Dados de exemplo.</p>
+</body>
+</html>

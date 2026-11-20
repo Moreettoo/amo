@@ -200,6 +200,87 @@
         ],
         "createdAt": "2026-11-20T04:21:01.509Z",
         "reason": "esboço de decisão: o recuo dos campos (14 px) e a altura das abas repetem o componente campo e a etiqueta já construídos no site (DESIGN.md, Inputs / Fields)"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/minha-conta-carta.html"
+        ],
+        "createdAt": "2026-11-20T18:25:13.928Z",
+        "reason": "user confirmed: PRODUCT.md, Brand Commitments, 'Paleta marrom, cobre e creme: fica (decisão do cliente, 2026-11-18)'"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/minha-conta-sumario.html"
+        ],
+        "createdAt": "2026-11-20T18:25:14.166Z",
+        "reason": "user confirmed: PRODUCT.md, Brand Commitments, 'Paleta marrom, cobre e creme: fica (decisão do cliente, 2026-11-18)'"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/minha-conta-abas.html"
+        ],
+        "createdAt": "2026-11-20T18:25:14.407Z",
+        "reason": "user confirmed: PRODUCT.md, Brand Commitments, 'Paleta marrom, cobre e creme: fica (decisão do cliente, 2026-11-18)'"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/minha-conta-carta-telas.html"
+        ],
+        "createdAt": "2026-11-20T18:30:25.956Z",
+        "reason": "user confirmed: PRODUCT.md, Brand Commitments, 'Paleta marrom, cobre e creme: fica (decisão do cliente, 2026-11-18)'"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/minha-conta-sumario-telas.html"
+        ],
+        "createdAt": "2026-11-20T18:30:26.195Z",
+        "reason": "user confirmed: PRODUCT.md, Brand Commitments, 'Paleta marrom, cobre e creme: fica (decisão do cliente, 2026-11-18)'"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/minha-conta-abas-telas.html"
+        ],
+        "createdAt": "2026-11-20T18:30:26.435Z",
+        "reason": "user confirmed: PRODUCT.md, Brand Commitments, 'Paleta marrom, cobre e creme: fica (decisão do cliente, 2026-11-18)'"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/minha-conta-abas-telas.html"
+        ],
+        "createdAt": "2026-11-20T18:31:45.292Z",
+        "reason": "falso positivo medido no esboço: .quadro é a moldura da janela no quadro de telas; as fileiras da lista têm 76 px com o texto centrado (cerca de 28 px do fio) e a linha de soma tem 16 px de recuo"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/minha-conta-sumario.html"
+        ],
+        "createdAt": "2026-11-20T18:32:57.171Z",
+        "reason": "falso positivo medido no esboço: as fileiras dos potes e dos pedidos têm de 48 a 80 px com o texto centrado longe do fio entre elas (como na sacola), e .quadro é a moldura da janela no quadro de telas"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/minha-conta-sumario-telas.html"
+        ],
+        "createdAt": "2026-11-20T18:32:57.400Z",
+        "reason": "falso positivo medido no esboço: as fileiras dos potes e dos pedidos têm de 48 a 80 px com o texto centrado longe do fio entre elas (como na sacola), e .quadro é a moldura da janela no quadro de telas"
       }
     ]
   }

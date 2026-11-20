@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>A carta</title>
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --linho:#F6EBDD; --suave:#5E4A40;
+    --fio:rgb(43 27 22 / .18); --tinta:rgb(43 27 22 / .5);
+    --coracao:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20.6s-7.6-4.7-7.6-10.3a4.3 4.3 0 0 1 7.6-2.7 4.3 4.3 0 0 1 7.6 2.7c0 5.6-7.6 10.3-7.6 10.3z'/%3E%3C/svg%3E");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    width: 1440px; height: 900px; overflow: hidden; position: relative;
+    font-family: Poppins, system-ui, sans-serif; color: var(--expresso); -webkit-font-smoothing: antialiased;
+    background: var(--creme) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .11 0 0 0 0 .08 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  a { color: inherit; text-decoration: none; }
+  svg.traco { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* a nav da casa, com o link novo marcado como atual */
+  header { height: 64px; border-bottom: 1px solid var(--fio); }
+  header .wrap { width: 1128px; height: 100%; margin: 0 auto; display: flex; align-items: center; gap: 26px; font-size: 15px; }
+  .menu, .sacola { display: flex; align-items: center; gap: 10px; }
+  .menu svg, .sacola svg { width: 20px; height: 20px; }
+  header img { height: 30px; }
+  header nav { margin-left: auto; display: flex; gap: 30px; }
+  header [aria-current] { font-weight: 500; }
+
+  /* a carta: uma coluna so, lida de cima para baixo */
+  main { width: 720px; margin: 0 auto; padding-top: 48px; }
+  h1 { font-weight: 300; font-size: 44px; line-height: 1.1; letter-spacing: -.03em; }
+  h1 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 1.5em; line-height: 1.05; letter-spacing: 0; color: var(--cobre-texto); }
+  .num { font-variant-numeric: tabular-nums; }
+
+  .frase { margin-top: 40px; font-weight: 300; font-size: 32px; line-height: 1.25; letter-spacing: -.02em; }
+  .chega { margin-top: 8px; font-size: 15px; line-height: 1.6; color: var(--suave); }
+  .chega b { font-weight: 400; color: var(--expresso); letter-spacing: .02em; }
+
+  /* o fio das etapas: nomes em cima, horas embaixo, o coracao na atual */
+  .fio { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 38px; list-style: none; }
+  .fio::before, .fio::after { content: ""; position: absolute; left: 0; top: 35px; height: 1px; }
+  .fio::before { right: 0; background: var(--fio); }
+  .fio::after { width: 60%; background: var(--tinta); }
+  .fio li { position: relative; font-size: 15px; line-height: 24px; }
+  .fio time { display: block; margin-top: 22px; font-size: 13px; line-height: 20px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .fio .atual { font-weight: 500; }
+  .fio .atual time { color: var(--expresso); font-weight: 400; }
+  .fio .vem { color: var(--suave); }
+  .fio .atual::before { content: ""; position: absolute; left: 0; top: 29px; width: 13px; height: 13px; background: var(--cobre); -webkit-mask: var(--coracao) center / contain no-repeat; mask: var(--coracao) center / contain no-repeat; }
+
+  .acoes { display: flex; align-items: center; gap: 30px; margin-top: 40px; }
+  .botao { display: inline-flex; align-items: center; height: 50px; padding: 0 32px; border-radius: 2px; background: var(--expresso); color: var(--creme); font-size: 15px; font-weight: 500; letter-spacing: .02em; }
+  .ir { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; }
+  .ir svg { width: 14px; height: 14px; }
+  .total { margin-left: auto; text-align: right; }
+  .total small { display: block; font-size: 13px; color: var(--suave); }
+  .total b { font-weight: 300; font-size: 26px; line-height: 1.2; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+
+  /* os pedidos anteriores: lista sem caixa, quem separa e o espaco */
+  .rotulo { font-size: 12px; font-weight: 600; letter-spacing: .24em; text-transform: uppercase; color: var(--cobre-texto); }
+  .anteriores { margin-top: 84px; }
+  .lista { margin-top: 12px; list-style: none; }
+  /* as colunas da lista caem nas mesmas verticais das etapas do fio */
+  .lista li { position: relative; display: grid; grid-template-columns: repeat(4, 144px) 1fr; align-items: baseline; padding: 10px 0; font-size: 15px; line-height: 24px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .lista a { font-size: 14px; letter-spacing: .04em; color: var(--expresso); }
+  .lista b { font-weight: 400; color: var(--expresso); text-align: right; }
+  .lista svg { position: absolute; right: -26px; top: 16px; width: 12px; height: 12px; color: var(--suave); }
+  .lista + .ir { margin-top: 14px; }
+
+  .aviso { position: absolute; right: 156px; bottom: 22px; font-size: 13px; color: var(--suave); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="menu"><svg class="traco" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</a>
+  <a><img src="../../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis"></a>
+  <nav>
+    <a>Hoje o dia pede</a><a>O que é saudável</a><a>A marca</a>
+    <a aria-current="page">Minha conta</a>
+  </nav>
+  <a class="sacola"><svg class="traco" viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</a>
+</div></header>
+
+<main>
+  <h1>Olá, Mariana <em>que bom te ver</em></h1>
+
+  <section aria-label="Pedido em andamento">
+    <p class="frase">Seu pedido saiu para entrega às <span class="num">15h10</span>.</p>
+    <p class="chega">Pedido <b translate="no">AMO-7K2M9QXR</b> · chega em cerca de 25 minutos</p>
+    <ol class="fio">
+      <li>Feito<time>14h02</time></li>
+      <li>Pago<time>14h03</time></li>
+      <li>Em preparo<time>14h20</time></li>
+      <li class="atual" aria-current="step">A caminho<time>15h10</time></li>
+      <li class="vem">Entregue<time>&nbsp;</time></li>
+    </ol>
+    <div class="acoes">
+      <a class="botao">Acompanhar no Uber</a>
+      <a class="ir">Ver o pedido <svg class="traco" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+      <p class="total"><small>Total, 4 potes</small><b>R$ 92,80</b></p>
+    </div>
+  </section>
+
+  <section class="anteriores">
+    <h2 class="rotulo">Pedidos anteriores</h2>
+    <ol class="lista">
+      <li><a translate="no">AMO-3F8D2WLA</a><span>8 de novembro</span><span>Entregue</span><span>6 potes</span><b>R$ 128,40</b><svg class="traco" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></li>
+      <li><a translate="no">AMO-9QTR4ZEN</a><span>25 de outubro</span><span>Entregue</span><span>3 potes</span><b>R$ 71,10</b><svg class="traco" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></li>
+      <li><a translate="no">AMO-B2XH7MPC</a><span>12 de outubro</span><span>Cancelado</span><span>2 potes</span><b>R$ 52,00</b><svg class="traco" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></li>
+    </ol>
+    <a class="ir">Ver todos os pedidos <svg class="traco" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+  </section>
+</main>
+
+<p class="aviso">dados de exemplo</p>
+</body>
+</html>

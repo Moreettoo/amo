@@ -1,0 +1,733 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>O sumário da conta: as telas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --linho:#F6EBDD; --suave:#5E4A40; --claro-suave:#EADDD0;
+    --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38);
+    --coracao:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20.6s-7.6-4.7-7.6-10.3a4.3 4.3 0 0 1 7.6-2.7 4.3 4.3 0 0 1 7.6 2.7c0 5.6-7.6 10.3-7.6 10.3z'/%3E%3C/svg%3E");
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  ul, ol { list-style: none; }
+  a { color: inherit; text-decoration: none; }
+  svg { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  img { display: block; }
+  p, small, dd, span { text-wrap: pretty; }
+  .num { font-variant-numeric: tabular-nums; }
+  .cor { display: block; width: 13px; height: 13px; background: var(--cobre); -webkit-mask: var(--coracao) center / contain no-repeat; mask: var(--coracao) center / contain no-repeat; }
+
+  /* a mesa onde os quadros ficam: um tom abaixo do creme, sem moldura */
+  body { width: 1568px; padding: 56px 64px 120px; background: #E9DFD3; font-family: Poppins, system-ui, sans-serif; color: var(--expresso); -webkit-font-smoothing: antialiased; }
+  .capa { display: flex; justify-content: space-between; align-items: baseline; }
+  .capa h1 { font-size: 26px; font-weight: 300; letter-spacing: -.02em; }
+  .capa p { max-width: 760px; font-size: 14px; line-height: 1.6; color: var(--suave); }
+  .rota { display: flex; align-items: baseline; gap: 16px; margin: 72px 0 14px; font-size: 13px; line-height: 1.5; color: var(--suave); }
+  .rota b { flex: none; font-size: 14px; font-weight: 500; color: var(--expresso); }
+  .quadro { position: relative; overflow: hidden; background: var(--creme) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .11 0 0 0 0 .08 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .quadro.d { width: 1440px; }
+  .quadro.m { width: 390px; }
+  .par { display: flex; align-items: flex-start; gap: 64px; width: max-content; }
+  .par > div > .rota { margin-top: 0; }
+
+  /* ===== desktop ===== */
+  .d .wrap { width: 1128px; margin: 0 auto; }
+  .d nav { height: 64px; border-bottom: 1px solid var(--fio); }
+  .d nav .wrap { height: 100%; display: flex; align-items: center; gap: 30px; font-size: 15px; }
+  .d nav .menu, .d nav .sacola { display: flex; align-items: center; gap: 8px; }
+  .d nav svg { width: 20px; height: 20px; }
+  .d nav .menu svg { stroke-width: 1.3; }
+  .d nav img { height: 30px; margin: 0 auto 0 -4px; }
+  .d nav .atual { font-weight: 500; }
+
+  .d .conta { display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 64px; padding: 48px 0 112px; }
+  .d .conta.curta { padding-bottom: 72px; }
+  .ola, .rot-sumario, .sair { padding-left: 27px; }
+  .ola { padding-top: 6px; }
+  .ola b { display: block; font-size: 22px; font-weight: 400; line-height: 1.2; letter-spacing: -.01em; }
+  .ola span { display: block; margin-top: 4px; font-size: 13px; color: var(--suave); }
+  .rot-sumario { margin: 46px 0 14px; }
+  .rot { font-size: 12px; font-weight: 600; line-height: 1.3; letter-spacing: .24em; text-transform: uppercase; color: var(--cobre-texto); }
+  .trilho { position: relative; padding-left: 26px; border-left: 1px solid var(--fio); }
+  .trilho a { display: flex; align-items: center; justify-content: space-between; min-height: 44px; font-size: 17px; line-height: 1.3; }
+  .trilho small { font-size: 12px; font-weight: 500; color: var(--suave); }
+  .trilho .atual a { font-weight: 500; }
+  .trilho .cor { position: absolute; left: -7px; margin-top: 15.5px; }
+  .sair { display: flex; align-items: center; min-height: 44px; margin-top: 30px; font-size: 15px; color: var(--suave); }
+
+  /* o título em duas vozes; à direita, pela base, o que acompanha o título */
+  .cabeca { display: flex; justify-content: space-between; align-items: flex-end; gap: 48px; }
+  .titulo { font-weight: 300; font-size: 44px; line-height: 1.1; letter-spacing: -.03em; }
+  .titulo em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 1.5em; line-height: 1.05; letter-spacing: 0; color: var(--cobre-texto); }
+  .lado { width: 250px; text-wrap: balance; padding-bottom: 8px; font-size: 15px; line-height: 1.55; color: var(--suave); }
+  .chega { width: 250px; padding-bottom: 6px; font-size: 15px; line-height: 1.5; }
+  .chega span, .apoio { display: block; font-size: 13px; color: var(--suave); }
+  .botao { display: flex; align-items: center; justify-content: center; height: 50px; padding: 0 28px; border-radius: 2px; background: var(--expresso); color: var(--creme); font-size: 15px; font-weight: 500; letter-spacing: .02em; white-space: nowrap; }
+  .chega .botao { margin-top: 14px; }
+  .botao.solto { display: inline-flex; min-width: 220px; }
+  .texto-botao { position: relative; font-size: 14px; color: var(--suave); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; text-decoration-color: var(--fio); white-space: nowrap; }
+  .trilha { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; font-size: 14px; color: var(--suave); }
+  .trilha svg { width: 10px; height: 10px; stroke-width: 2; opacity: .7; }
+  .trilha b { font-weight: 500; color: var(--expresso); }
+  .lead { margin-top: 0; font-size: 15px; line-height: 1.6; color: var(--suave); }
+
+  /* o fio das etapas, deitado: o coração pousa na atual */
+  .etapas { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 36px; }
+  .etapas::before { content: ""; position: absolute; left: 0; right: 0; top: 6px; height: 1px; background: var(--fio); }
+  .etapas li { position: relative; padding-top: 24px; font-size: 15px; line-height: 1.4; }
+  .etapas li::before { content: ""; position: absolute; left: 6px; top: 3px; width: 1px; height: 7px; background: var(--contorno); }
+  .etapas .vem { color: var(--suave); }
+  .etapas .vem::before { background: var(--fio); }
+  .etapas .atual { font-weight: 500; }
+  .etapas .atual::before { display: none; }
+  .etapas .cor { position: absolute; left: 0; top: 0; }
+  .etapas time { display: block; margin-top: 1px; font-size: 13px; font-weight: 400; color: var(--suave); }
+
+  .potes { margin-top: 28px; }
+  .potes li { display: grid; grid-template-columns: 64px minmax(0, 1fr) 120px 110px; gap: 20px; align-items: center; padding: 10px 0; }
+  .potes li + li { border-top: 1px solid var(--fio); }
+  .potes img { width: 64px; height: 80px; object-fit: cover; border-radius: 3px; background: var(--linho); }
+  .potes b { display: block; font-size: 16px; font-weight: 400; }
+  .potes small { font-size: 13px; color: var(--suave); }
+  .qtd { font-size: 15px; color: var(--suave); }
+  .preco { font-size: 16px; text-align: right; }
+  .total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--fio); }
+  .total b { font-size: 15px; font-weight: 500; }
+  .total small { margin-left: 14px; font-size: 13px; color: var(--suave); }
+  .total strong { font-size: 30px; font-weight: 300; letter-spacing: -.02em; }
+
+  .bloco { margin-top: 42px; }
+  .bloco-topo { display: flex; justify-content: space-between; align-items: baseline; }
+  .subtitulo { font-size: 22px; font-weight: 400; line-height: 1.2; letter-spacing: -.01em; }
+  .link { display: inline-flex; align-items: center; gap: 8px; font-size: 15px; white-space: nowrap; }
+  .link svg { width: 16px; height: 16px; }
+
+  /* a lista de pedidos: uma fileira por pedido, o fio entre elas */
+  .lista { margin-top: 6px; }
+  .lista li { display: grid; grid-template-columns: 160px 170px minmax(0, 1fr) 94px 100px 16px; gap: 20px; align-items: center; min-height: 48px; font-size: 15px; }
+  .lista li + li { border-top: 1px solid var(--fio); }
+  .lista .n { font-weight: 500; }
+  .lista .s { color: var(--suave); }
+  .lista .r { text-align: right; }
+  .lista svg { width: 16px; height: 16px; color: var(--suave); }
+  .lista.alta { margin-top: 40px; }
+  .lista.alta li { min-height: 60px; }
+  .lista .cabecalho { min-height: 36px !important; font-size: 13px; color: var(--suave); }
+  .lista .cancelado { color: var(--suave); }
+  .lista .agora { font-weight: 500; }
+
+  /* o pedido: as contas, a entrega e o pagamento numa coluna estreita, como o resumo da sacola */
+  .pedido { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 64px; align-items: start; margin-top: 28px; }
+  .pedido .potes { margin-top: 0; }
+  .resumo { padding-top: 12px; }
+  .pedido .potes li { grid-template-columns: 64px minmax(0, 1fr) 70px 84px; }
+  .resumo .contas { margin-top: 8px; }
+  .resumo .contas div { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 7px 0; font-size: 15px; }
+  .resumo .contas .soma { margin-top: 6px; padding-top: 14px; border-top: 1px solid var(--fio); }
+  .resumo .soma dt { font-weight: 500; }
+  .resumo .soma dd { font-size: 34px; font-weight: 300; letter-spacing: -.02em; }
+  .resumo .botao { margin-top: 18px; }
+  .resumo .nota { margin-top: 10px; text-align: center; font-size: 13px; color: var(--suave); }
+  .dados { margin-top: 30px; display: grid; gap: 20px; }
+  .dados dt { font-size: 13px; color: var(--suave); }
+  .dados dd { margin-top: 4px; font-size: 15px; line-height: 1.6; }
+
+  /* os campos da casa: rótulo em cima, contorno fino, 44 px */
+  .form { display: grid; gap: 16px; max-width: 560px; margin-top: 34px; }
+  .par-campos { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
+  .campo { display: grid; gap: 6px; font-size: 13px; color: var(--suave); }
+  .entrada { display: flex; align-items: center; justify-content: space-between; height: 44px; padding: 0 14px; border: 1px solid var(--contorno); border-radius: 2px; font-size: 15px; color: var(--expresso); }
+  .entrada.vazia { color: transparent; }
+  .entrada small { font-size: 13px; color: var(--suave); text-decoration: underline; text-decoration-color: var(--fio); text-underline-offset: 4px; }
+  .dica { font-size: 13px; line-height: 1.5; color: var(--suave); }
+  .valor { display: flex; align-items: baseline; gap: 18px; font-size: 15px; color: var(--expresso); }
+  .marcar { display: grid; grid-template-columns: 18px 1fr; gap: 10px; align-items: start; font-size: 14px; line-height: 1.5; }
+  .marcar i { width: 18px; height: 18px; margin-top: 2px; border: 1px solid var(--contorno); border-radius: 2px; }
+  .marcar i.sim { background: var(--expresso); border-color: var(--expresso); }
+  .acoes-form { display: flex; align-items: center; gap: 28px; margin-top: 10px; }
+  .excluir { margin-top: 72px; display: flex; align-items: baseline; gap: 16px; }
+  .excluir span { font-size: 13px; color: var(--suave); }
+
+  /* os endereços */
+  .enderecos { margin-top: 40px; }
+  .enderecos li { display: grid; grid-template-columns: 200px minmax(0, 1fr) auto; gap: 24px; align-items: start; padding: 22px 0; }
+  .enderecos li + li { border-top: 1px solid var(--fio); }
+  .enderecos li:first-child { padding-top: 0; }
+  .enderecos b { display: block; font-size: 17px; font-weight: 400; line-height: 1.4; }
+  .principal { display: block; margin-top: 2px; font-size: 13px; font-weight: 500; color: var(--cobre-texto); }
+  .enderecos p { font-size: 15px; line-height: 1.6; }
+  .enderecos .acoes { display: flex; gap: 22px; padding-top: 2px; }
+  .novo { margin-top: 48px; max-width: 520px; }
+  .campos { display: flex; flex-wrap: wrap; gap: 14px 10px; margin-top: 18px; }
+  .campos .campo { flex: 0 0 auto; }
+  .w-nome { width: 230px; } .w-cep { width: 160px; } .w-numero { width: 110px; } .w-largo { flex: 1 1 100% !important; }
+  .novo .marcar { margin-top: 18px; }
+  .novo .acoes-form { margin-top: 22px; }
+
+  /* e-mail e senha: as duas trocas lado a lado */
+  .trocas { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; margin-top: 40px; max-width: 856px; }
+  .trocas .form { margin-top: 18px; max-width: none; }
+  .trocas .atual-email { margin-top: 8px; font-size: 15px; color: var(--suave); }
+  .trocas .atual-email b { font-weight: 400; color: var(--expresso); }
+  .trocas .botao { margin-top: 6px; }
+  .trocas .nota { text-align: center; font-size: 13px; color: var(--suave); }
+
+  .vazio { margin-top: 30px; max-width: 46ch; font-size: 17px; line-height: 1.65; color: var(--suave); }
+  .vazio + .botao { margin-top: 24px; }
+
+  /* o rodapé simplificado */
+  .d footer { padding: 0 0 40px; }
+  .d footer .grade { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 40px 24px; }
+  footer img { width: 200px; height: auto; }
+  footer .rot { margin-bottom: 14px; }
+  footer li { margin: 6px 0; font-size: 15px; color: var(--suave); }
+  footer .copy { margin-top: 40px; font-size: 13px; color: var(--suave); }
+  .exemplo { position: absolute; right: 24px; bottom: 16px; font-size: 13px; color: var(--suave); }
+
+  /* ===== celular ===== */
+  .m nav { display: flex; align-items: center; gap: 10px; height: 64px; padding: 0 20px; }
+  .m nav .q { display: grid; place-items: center; width: 44px; height: 44px; }
+  .m nav .q:first-child { margin-left: -12px; }
+  .m nav .q:last-child { margin-right: -12px; }
+  .m nav svg { width: 20px; height: 20px; }
+  .m nav img { height: 26px; margin-right: auto; }
+  .m nav .conta-link { font-size: 14px; font-weight: 500; }
+  /* a fileira do sumário, presa embaixo da nav: barra creme, fio embaixo, coração na atual */
+  .fileira { position: relative; padding: 8px 0 16px; border-bottom: 1px solid var(--fio); overflow: hidden; }
+  .fileira ul { display: flex; gap: 8px; width: max-content; padding: 0 20px; }
+  .fileira a { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px; border: 1px solid var(--contorno); border-radius: 2px; font-size: 15px; white-space: nowrap; }
+  .fileira small { font-size: 12px; font-weight: 500; color: var(--suave); }
+  .fileira .atual a { background: var(--expresso); border-color: var(--expresso); color: var(--creme); }
+  .fileira .atual small { color: var(--claro-suave); }
+  .fileira .atual { position: relative; }
+  .fileira .cor { position: absolute; left: 50%; bottom: -16px; width: 11px; height: 11px; margin-left: -5.5px; -webkit-mask-position: 50% calc(100% + 2px); mask-position: 50% calc(100% + 2px); }
+  .m main { padding: 24px 20px 72px; }
+  .m .saudacao { font-size: 15px; color: var(--suave); margin-bottom: 8px; }
+  .m .trilha { margin-bottom: 12px; }
+  .m .titulo { font-size: 30px; }
+  .m .chega { width: auto; margin-top: 22px; padding: 0; }
+  .m .chega .botao { margin-top: 12px; }
+  .m .lead { margin-top: 12px; font-size: 14px; }
+  /* no celular o fio das etapas fica em pé, como na sacola */
+  .m .etapas-pe { position: relative; margin-top: 30px; padding-left: 30px; }
+  .m .etapas-pe::before { content: ""; position: absolute; left: 6px; top: 11px; bottom: 11px; width: 1px; background: var(--fio); }
+  .m .etapas-pe li { position: relative; display: flex; justify-content: space-between; align-items: baseline; min-height: 34px; padding-top: 4px; font-size: 15px; }
+  .m .etapas-pe time { font-size: 13px; color: var(--suave); }
+  .m .etapas-pe .atual { font-weight: 500; }
+  .m .etapas-pe .vem { color: var(--suave); }
+  .m .etapas-pe .cor { position: absolute; left: -30px; top: 8px; }
+  .m .potes { margin-top: 24px; }
+  .m .potes li { grid-template-columns: 56px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 12px 0; }
+  .m .potes img { width: 56px; height: 70px; }
+  .m .potes b { font-size: 15px; line-height: 1.4; }
+  .m .potes small { display: block; margin-top: 2px; line-height: 1.45; }
+  .m .potes .preco { font-size: 15px; padding-top: 1px; }
+  .m .total { display: grid; grid-template-columns: 1fr auto; align-items: baseline; }
+  .m .total strong { font-size: 26px; }
+  .m .total small { grid-column: 1 / -1; margin: 4px 0 0; line-height: 1.5; }
+  .m .bloco { margin-top: 44px; }
+  .m .subtitulo { font-size: 20px; }
+  .m .lista-cel { margin-top: 8px; }
+  .m .lista-cel li { display: grid; grid-template-columns: minmax(0, 1fr) auto 16px; gap: 12px; align-items: center; padding: 12px 0; }
+  .m .lista-cel li + li { border-top: 1px solid var(--fio); }
+  .m .lista-cel b { display: block; font-size: 15px; font-weight: 500; }
+  .m .lista-cel .meta { display: block; font-size: 13px; color: var(--suave); }
+  .m .lista-cel .r { font-size: 15px; color: var(--expresso); }
+  .m .lista-cel svg { width: 16px; height: 16px; color: var(--suave); }
+  .m .link { min-height: 44px; margin-top: 6px; }
+  .m .sair { padding: 0; margin-top: 28px; }
+  .m .contas { margin-top: 22px; }
+  .m .contas div { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; font-size: 15px; }
+  .m .contas .soma { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--fio); }
+  .m .contas .soma dt { font-weight: 500; }
+  .m .contas .soma dd { font-size: 26px; font-weight: 300; letter-spacing: -.02em; }
+  .m .dados { margin-top: 28px; }
+  .m footer { padding: 0 20px 36px; }
+  .m footer .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 32px 24px; }
+  .m footer .grade > :first-child { grid-column: 1 / -1; }
+  .m footer img { width: 180px; }
+  .m .exemplo { right: 20px; }
+</style>
+</head>
+<body>
+<header class="capa">
+  <h1>O sumário da conta</h1>
+  <p>Duas colunas, como o catálogo com sumário: à esquerda o sumário da conta, preso, com o fio e o coração no item em que a pessoa está; à direita a tela escolhida. No celular o sumário vira a fileira de etiquetas presa embaixo da nav. Dados de exemplo.</p>
+</header>
+<section id="conta">
+<p class="rota"><b>/conta</b><span>Pedido atual. O pedido em andamento abre a conta; o sumário leva aos pedidos, aos dados e a Sair.</span></p>
+<div class="quadro d">
+<nav><div class="wrap">
+  <span class="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</span>
+  <img src="../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <a class="atual" aria-current="page">Minha conta</a>
+  <span class="sacola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</span>
+</div></nav>
+<div class="wrap conta">
+  <aside class="sumario">
+    <p class="ola"><b>Olá, Mariana</b><span>mariana@exemplo.com.br</span></p>
+    <p class="rot rot-sumario">Sua conta</p>
+    <ul class="trilho">
+      <li class="atual"><span class="cor" aria-hidden="true"></span><a aria-current="page">Pedido atual</a></li><li><a>Pedidos <small class="num">4</small></a></li><li><a>Seus dados</a></li><li><a>Endereços <small class="num">2</small></a></li><li><a>E-mail e senha</a></li>
+    </ul>
+    <a class="sair">Sair</a>
+  </aside>
+  <main>
+    <div class="cabeca">
+      <h1 class="titulo">Pedido <span translate="no">AMO</span>-7K2M9QXR <em>a caminho</em></h1>
+      <div class="chega"><p><span>Entrega pelo Uber</span>Chega em cerca de 25 minutos.</p><a class="botao">Acompanhar no Uber</a></div>
+    </div>
+    <ol class="etapas num">
+      <li>Feito<time>14h02</time></li>
+      <li>Pago<time>14h03</time></li>
+      <li>Em preparo<time>14h20</time></li>
+      <li class="atual"><span class="cor" aria-hidden="true"></span>A caminho<time>15h10</time></li>
+      <li class="vem">Entregue</li>
+    </ol>
+    <ul class="potes num">
+      <li><img src="../../public/produtos/prestigio.webp" alt=""><p><b>Prestígio</b><small>Bolo no pote · R$ 18,90 cada</small></p><span class="qtd">2 potes</span><span class="preco">R$ 37,80</span></li>
+      <li><img src="../../public/produtos/ninho-com-frutas-vermelhas.webp" alt=""><p><b>Ninho com frutas vermelhas</b><small>Bolo no pote · R$ 21,90 cada</small></p><span class="qtd">1 pote</span><span class="preco">R$ 21,90</span></li>
+      <li><img src="../../public/produtos/mousse-de-maracuja.webp" alt=""><p><b>Mousse de maracujá</b><small>Bolo no pote · R$ 18,90 cada</small></p><span class="qtd">1 pote</span><span class="preco">R$ 18,90</span></li>
+    </ul>
+    <p class="total num"><span><b>Total</b><small>R$ 78,60 em potes e R$ 14,20 de entrega, pago com Pix</small></span><strong>R$ 92,80</strong></p>
+    <section class="bloco">
+      <div class="bloco-topo"><h2 class="subtitulo">Pedidos anteriores</h2><a class="link">Ver todos os pedidos <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+      <ul class="lista num">
+        <li><span class="n"><span translate="no">AMO</span>-3F8D2WLA</span><span class="s">8 de novembro</span><span>Entregue</span><span class="s">6 potes</span><span class="r">R$ 128,40</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></li>
+        <li><span class="n"><span translate="no">AMO</span>-9QTR4ZEN</span><span class="s">25 de outubro</span><span>Entregue</span><span class="s">3 potes</span><span class="r">R$ 71,10</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></li>
+      </ul>
+    </section>
+  </main>
+</div>
+<footer><div class="wrap">
+  <div class="grade">
+    <img src="../../public/marca/logo-amo-lockup.png" alt="AMO Sabores Saudáveis · para quem ama comer bem">
+    <div><p class="rot">Linhas</p><ul><li>Bolos no pote</li></ul></div>
+    <div><p class="rot">A marca</p><ul><li>A marca</li><li>O que é saudável aqui</li><li>Hoje o dia pede</li></ul></div>
+  </div>
+  <p class="copy">© 2026 <span translate="no">AMO</span> Sabores Saudáveis</p>
+</div></footer>
+<p class="exemplo">Dados de exemplo.</p>
+</div>
+</section>
+<section id="pedidos">
+<p class="rota"><b>/conta/pedidos</b><span>Pedidos. Do mais novo ao mais antigo; a fileira inteira leva ao pedido.</span></p>
+<div class="quadro d">
+<nav><div class="wrap">
+  <span class="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</span>
+  <img src="../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <a class="atual" aria-current="page">Minha conta</a>
+  <span class="sacola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</span>
+</div></nav>
+<div class="wrap conta">
+  <aside class="sumario">
+    <p class="ola"><b>Olá, Mariana</b><span>mariana@exemplo.com.br</span></p>
+    <p class="rot rot-sumario">Sua conta</p>
+    <ul class="trilho">
+      <li><a>Pedido atual</a></li><li class="atual"><span class="cor" aria-hidden="true"></span><a aria-current="page">Pedidos <small class="num">4</small></a></li><li><a>Seus dados</a></li><li><a>Endereços <small class="num">2</small></a></li><li><a>E-mail e senha</a></li>
+    </ul>
+    <a class="sair">Sair</a>
+  </aside>
+  <main>
+    <div class="cabeca">
+      <h1 class="titulo">Seus pedidos <em>até aqui</em></h1>
+      <p class="lado">4 pedidos, do mais novo ao mais antigo.</p>
+    </div>
+    <ul class="lista alta num">
+      <li class="cabecalho"><span>Pedido</span><span>Feito em</span><span>Estado</span><span>Potes</span><span class="r">Total</span><span></span></li>
+      <li><span class="n"><span translate="no">AMO</span>-7K2M9QXR</span><span class="s">20 de novembro</span><span class="agora">A caminho</span><span class="s">4 potes</span><span class="r">R$ 92,80</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></li><li><span class="n"><span translate="no">AMO</span>-3F8D2WLA</span><span class="s">8 de novembro</span><span>Entregue</span><span class="s">6 potes</span><span class="r">R$ 128,40</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></li><li><span class="n"><span translate="no">AMO</span>-9QTR4ZEN</span><span class="s">25 de outubro</span><span>Entregue</span><span class="s">3 potes</span><span class="r">R$ 71,10</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></li><li><span class="n"><span translate="no">AMO</span>-B2XH7MPC</span><span class="s">12 de outubro</span><span class="cancelado">Cancelado</span><span class="s">2 potes</span><span class="r">R$ 52,00</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></li>
+    </ul>
+  </main>
+</div>
+<footer><div class="wrap">
+  <div class="grade">
+    <img src="../../public/marca/logo-amo-lockup.png" alt="AMO Sabores Saudáveis · para quem ama comer bem">
+    <div><p class="rot">Linhas</p><ul><li>Bolos no pote</li></ul></div>
+    <div><p class="rot">A marca</p><ul><li>A marca</li><li>O que é saudável aqui</li><li>Hoje o dia pede</li></ul></div>
+  </div>
+  <p class="copy">© 2026 <span translate="no">AMO</span> Sabores Saudáveis</p>
+</div></footer>
+<p class="exemplo">Dados de exemplo.</p>
+</div>
+</section>
+<section id="pedido">
+<p class="rota"><b>/conta/pedidos/AMO-7K2M9QXR</b><span>Um pedido. As contas, a entrega e o pagamento ficam na coluna estreita, como o resumo da sacola. &quot;Cancelar pedido&quot; só aparece ali enquanto o pedido aguarda pagamento.</span></p>
+<div class="quadro d">
+<nav><div class="wrap">
+  <span class="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</span>
+  <img src="../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <a class="atual" aria-current="page">Minha conta</a>
+  <span class="sacola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</span>
+</div></nav>
+<div class="wrap conta">
+  <aside class="sumario">
+    <p class="ola"><b>Olá, Mariana</b><span>mariana@exemplo.com.br</span></p>
+    <p class="rot rot-sumario">Sua conta</p>
+    <ul class="trilho">
+      <li><a>Pedido atual</a></li><li class="atual"><span class="cor" aria-hidden="true"></span><a aria-current="page">Pedidos <small class="num">4</small></a></li><li><a>Seus dados</a></li><li><a>Endereços <small class="num">2</small></a></li><li><a>E-mail e senha</a></li>
+    </ul>
+    <a class="sair">Sair</a>
+  </aside>
+  <main>
+    <p class="trilha"><span>Pedidos</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg><b><span translate="no">AMO</span>-7K2M9QXR</b></p>
+    <div class="cabeca">
+      <h1 class="titulo">Pedido <span translate="no">AMO</span>-7K2M9QXR <em>a caminho</em></h1>
+      <p class="lado">Feito em 20 de novembro, às <span class="num">14h02</span>, e pago com Pix.</p>
+    </div>
+    <ol class="etapas num">
+      <li>Feito<time>14h02</time></li>
+      <li>Pago<time>14h03</time></li>
+      <li>Em preparo<time>14h20</time></li>
+      <li class="atual"><span class="cor" aria-hidden="true"></span>A caminho<time>15h10</time></li>
+      <li class="vem">Entregue</li>
+    </ol>
+    <div class="pedido">
+      <div>
+        <ul class="potes num">
+      <li><img src="../../public/produtos/prestigio.webp" alt=""><p><b>Prestígio</b><small>Bolo no pote · R$ 18,90 cada</small></p><span class="qtd">2 potes</span><span class="preco">R$ 37,80</span></li>
+      <li><img src="../../public/produtos/ninho-com-frutas-vermelhas.webp" alt=""><p><b>Ninho com frutas vermelhas</b><small>Bolo no pote · R$ 21,90 cada</small></p><span class="qtd">1 pote</span><span class="preco">R$ 21,90</span></li>
+      <li><img src="../../public/produtos/mousse-de-maracuja.webp" alt=""><p><b>Mousse de maracujá</b><small>Bolo no pote · R$ 18,90 cada</small></p><span class="qtd">1 pote</span><span class="preco">R$ 18,90</span></li>
+    </ul>
+      </div>
+      <aside class="resumo">
+        <p class="rot">Resumo</p>
+        <dl class="contas num">
+          <div><dt>Subtotal, 4 potes</dt><dd>R$ 78,60</dd></div>
+          <div><dt>Entrega pelo Uber</dt><dd>R$ 14,20</dd></div>
+          <div class="soma"><dt>Total</dt><dd>R$ 92,80</dd></div>
+        </dl>
+        <a class="botao">Acompanhar no Uber</a>
+        <p class="nota">Chega em cerca de 25 minutos.</p>
+        <dl class="dados">
+          <div><dt>Entregar em</dt><dd>Rua Cuiabá, 412, apto 31<br>Alto da Mooca · São Paulo, SP<br><span class="num">03183-002</span></dd></div>
+          <div><dt>Pagamento</dt><dd>Pix, pago às <span class="num">14h03</span></dd></div>
+        </dl>
+      </aside>
+    </div>
+  </main>
+</div>
+<footer><div class="wrap">
+  <div class="grade">
+    <img src="../../public/marca/logo-amo-lockup.png" alt="AMO Sabores Saudáveis · para quem ama comer bem">
+    <div><p class="rot">Linhas</p><ul><li>Bolos no pote</li></ul></div>
+    <div><p class="rot">A marca</p><ul><li>A marca</li><li>O que é saudável aqui</li><li>Hoje o dia pede</li></ul></div>
+  </div>
+  <p class="copy">© 2026 <span translate="no">AMO</span> Sabores Saudáveis</p>
+</div></footer>
+<p class="exemplo">Dados de exemplo.</p>
+</div>
+</section>
+<section id="dados">
+<p class="rota"><b>/conta/perfil</b><span>Seus dados. Nome, celular e o aceite de novidades; o e-mail se troca em E-mail e senha. Excluir conta fica no fim, discreto.</span></p>
+<div class="quadro d">
+<nav><div class="wrap">
+  <span class="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</span>
+  <img src="../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <a class="atual" aria-current="page">Minha conta</a>
+  <span class="sacola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</span>
+</div></nav>
+<div class="wrap conta">
+  <aside class="sumario">
+    <p class="ola"><b>Olá, Mariana</b><span>mariana@exemplo.com.br</span></p>
+    <p class="rot rot-sumario">Sua conta</p>
+    <ul class="trilho">
+      <li><a>Pedido atual</a></li><li><a>Pedidos <small class="num">4</small></a></li><li class="atual"><span class="cor" aria-hidden="true"></span><a aria-current="page">Seus dados</a></li><li><a>Endereços <small class="num">2</small></a></li><li><a>E-mail e senha</a></li>
+    </ul>
+    <a class="sair">Sair</a>
+  </aside>
+  <main>
+    <div class="cabeca">
+      <h1 class="titulo">Seus dados <em>sempre em dia</em></h1>
+      <p class="lado">Nome, celular e e-mail para acompanhar o pedido.</p>
+    </div>
+    <div class="form">
+      <div class="par-campos">
+        <label class="campo">Nome<span class="entrada">Mariana Costa</span></label>
+        <label class="campo">Celular<span class="entrada num">(11) 98765-4321</span></label>
+      </div>
+      <div class="campo">E-mail<p class="valor">mariana@exemplo.com.br <a class="texto-botao">Trocar em E-mail e senha</a></p></div>
+      <p class="marcar"><i></i>Quero receber novidades e sabores novos por e-mail.</p>
+      <div class="acoes-form"><a class="botao solto">Salvar</a></div>
+    </div>
+    <p class="excluir"><a class="texto-botao">Excluir conta</a><span>Pede a sua senha, e a conta não volta depois de excluída.</span></p>
+  </main>
+</div>
+<footer><div class="wrap">
+  <div class="grade">
+    <img src="../../public/marca/logo-amo-lockup.png" alt="AMO Sabores Saudáveis · para quem ama comer bem">
+    <div><p class="rot">Linhas</p><ul><li>Bolos no pote</li></ul></div>
+    <div><p class="rot">A marca</p><ul><li>A marca</li><li>O que é saudável aqui</li><li>Hoje o dia pede</li></ul></div>
+  </div>
+  <p class="copy">© 2026 <span translate="no">AMO</span> Sabores Saudáveis</p>
+</div></footer>
+<p class="exemplo">Dados de exemplo.</p>
+</div>
+</section>
+<section id="enderecos">
+<p class="rota"><b>/conta/perfil/enderecos</b><span>Endereços. Até 5, um principal. O formulário de adicionar aparece aberto; Alterar abre o mesmo formulário no lugar da fileira.</span></p>
+<div class="quadro d">
+<nav><div class="wrap">
+  <span class="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</span>
+  <img src="../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <a class="atual" aria-current="page">Minha conta</a>
+  <span class="sacola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</span>
+</div></nav>
+<div class="wrap conta">
+  <aside class="sumario">
+    <p class="ola"><b>Olá, Mariana</b><span>mariana@exemplo.com.br</span></p>
+    <p class="rot rot-sumario">Sua conta</p>
+    <ul class="trilho">
+      <li><a>Pedido atual</a></li><li><a>Pedidos <small class="num">4</small></a></li><li><a>Seus dados</a></li><li class="atual"><span class="cor" aria-hidden="true"></span><a aria-current="page">Endereços <small class="num">2</small></a></li><li><a>E-mail e senha</a></li>
+    </ul>
+    <a class="sair">Sair</a>
+  </aside>
+  <main>
+    <div class="cabeca">
+      <h1 class="titulo">Endereços <em>de entrega</em></h1>
+      <p class="lado"><span class="num">2</span> guardados, de até <span class="num">5</span>.</p>
+    </div>
+    <ul class="enderecos">
+      <li><p><b>Casa</b><span class="principal">Principal</span></p><p>Rua Cuiabá, 412, apto 31<br>Alto da Mooca · São Paulo, SP · <span class="num">03183-002</span></p>
+        <p class="acoes"><a class="texto-botao">Alterar</a><a class="texto-botao">Remover</a></p></li>
+      <li><p><b>Trabalho</b></p><p>Rua Tabapuã, 1123, sala 52<br>Itaim Bibi · São Paulo, SP · <span class="num">04533-014</span></p>
+        <p class="acoes"><a class="texto-botao">Tornar principal</a><a class="texto-botao">Alterar</a><a class="texto-botao">Remover</a></p></li>
+    </ul>
+    <section class="novo">
+      <h2 class="subtitulo">Adicionar endereço</h2>
+      <div class="campos">
+        <label class="campo w-nome">Nome do endereço<span class="entrada" style="color:var(--suave)">Ex.: Casa, Trabalho</span></label>
+        <label class="campo w-cep">CEP<span class="entrada vazia">0</span></label>
+        <label class="campo w-numero">Número<span class="entrada vazia">0</span></label>
+        <label class="campo w-largo">Complemento (opcional)<span class="entrada vazia">0</span></label>
+      </div>
+      <p class="marcar"><i></i>Usar como endereço principal.</p>
+      <div class="acoes-form"><a class="botao solto">Salvar endereço</a><a class="texto-botao">Cancelar</a></div>
+    </section>
+  </main>
+</div>
+<footer><div class="wrap">
+  <div class="grade">
+    <img src="../../public/marca/logo-amo-lockup.png" alt="AMO Sabores Saudáveis · para quem ama comer bem">
+    <div><p class="rot">Linhas</p><ul><li>Bolos no pote</li></ul></div>
+    <div><p class="rot">A marca</p><ul><li>A marca</li><li>O que é saudável aqui</li><li>Hoje o dia pede</li></ul></div>
+  </div>
+  <p class="copy">© 2026 <span translate="no">AMO</span> Sabores Saudáveis</p>
+</div></footer>
+<p class="exemplo">Dados de exemplo.</p>
+</div>
+</section>
+<section id="acesso">
+<p class="rota"><b>/conta/perfil/email-e-senha</b><span>E-mail e senha. As duas trocas lado a lado; a do e-mail confirma nos dois endereços, a da senha pede a atual.</span></p>
+<div class="quadro d">
+<nav><div class="wrap">
+  <span class="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</span>
+  <img src="../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <a class="atual" aria-current="page">Minha conta</a>
+  <span class="sacola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</span>
+</div></nav>
+<div class="wrap conta">
+  <aside class="sumario">
+    <p class="ola"><b>Olá, Mariana</b><span>mariana@exemplo.com.br</span></p>
+    <p class="rot rot-sumario">Sua conta</p>
+    <ul class="trilho">
+      <li><a>Pedido atual</a></li><li><a>Pedidos <small class="num">4</small></a></li><li><a>Seus dados</a></li><li><a>Endereços <small class="num">2</small></a></li><li class="atual"><span class="cor" aria-hidden="true"></span><a aria-current="page">E-mail e senha</a></li>
+    </ul>
+    <a class="sair">Sair</a>
+  </aside>
+  <main>
+    <div class="cabeca">
+      <h1 class="titulo">E-mail e senha <em>bem guardados</em></h1>
+    </div>
+    <div class="trocas">
+      <section>
+        <h2 class="subtitulo">Trocar o e-mail</h2>
+        <p class="atual-email">Hoje: <b>mariana@exemplo.com.br</b></p>
+        <div class="form">
+          <div class="campo">E-mail novo<span class="entrada vazia">0</span><span class="dica">A troca vale depois que você confirmar nos dois e-mails, o atual e o novo.</span></div>
+          <a class="botao">Trocar o e-mail</a>
+        </div>
+      </section>
+      <section>
+        <h2 class="subtitulo">Trocar a senha</h2>
+        <p class="atual-email">Primeiro a atual, depois a nova.</p>
+        <div class="form">
+          <label class="campo">Senha atual<span class="entrada">••••••••••<small>mostrar</small></span></label>
+          <div class="campo">Senha nova<span class="entrada vazia">0<small style="color:var(--suave)">mostrar</small></span><span class="dica">8 caracteres ou mais.</span></div>
+          <a class="botao">Trocar a senha</a>
+          <p class="nota">Esqueci a senha</p>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+<footer><div class="wrap">
+  <div class="grade">
+    <img src="../../public/marca/logo-amo-lockup.png" alt="AMO Sabores Saudáveis · para quem ama comer bem">
+    <div><p class="rot">Linhas</p><ul><li>Bolos no pote</li></ul></div>
+    <div><p class="rot">A marca</p><ul><li>A marca</li><li>O que é saudável aqui</li><li>Hoje o dia pede</li></ul></div>
+  </div>
+  <p class="copy">© 2026 <span translate="no">AMO</span> Sabores Saudáveis</p>
+</div></footer>
+<p class="exemplo">Dados de exemplo.</p>
+</div>
+</section>
+<section id="sem-pedido">
+<p class="rota"><b>/conta, sem pedido em andamento</b><span>O mesmo lugar do pedido vira o convite ao catálogo.</span></p>
+<div class="quadro d">
+<nav><div class="wrap">
+  <span class="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</span>
+  <img src="../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <a class="atual" aria-current="page">Minha conta</a>
+  <span class="sacola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</span>
+</div></nav>
+<div class="wrap conta curta">
+  <aside class="sumario">
+    <p class="ola"><b>Olá, Mariana</b><span>mariana@exemplo.com.br</span></p>
+    <p class="rot rot-sumario">Sua conta</p>
+    <ul class="trilho">
+      <li class="atual"><span class="cor" aria-hidden="true"></span><a aria-current="page">Pedido atual</a></li><li><a>Pedidos <small class="num">4</small></a></li><li><a>Seus dados</a></li><li><a>Endereços <small class="num">2</small></a></li><li><a>E-mail e senha</a></li>
+    </ul>
+    <a class="sair">Sair</a>
+  </aside>
+  <main>
+    <h1 class="titulo">Nenhum pedido <em>a caminho</em></h1>
+    <p class="vazio">Quando você fizer um pedido, ele aparece aqui com cada etapa, do pagamento à entrega.</p>
+    <a class="botao solto">Ver o catálogo</a>
+    <section class="bloco" style="margin-top:56px">
+      <div class="bloco-topo"><h2 class="subtitulo">Pedidos anteriores</h2><a class="link">Ver todos os pedidos <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+      <ul class="lista num">
+        <li><span class="n"><span translate="no">AMO</span>-3F8D2WLA</span><span class="s">8 de novembro</span><span>Entregue</span><span class="s">6 potes</span><span class="r">R$ 128,40</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></li>
+        <li><span class="n"><span translate="no">AMO</span>-9QTR4ZEN</span><span class="s">25 de outubro</span><span>Entregue</span><span class="s">3 potes</span><span class="r">R$ 71,10</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<p class="exemplo">Dados de exemplo.</p>
+</div>
+</section>
+<section id="pedidos-vazio">
+<p class="rota"><b>/conta/pedidos, sem nenhum pedido</b><span>O estado vazio leva ao catálogo.</span></p>
+<div class="quadro d">
+<nav><div class="wrap">
+  <span class="menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</span>
+  <img src="../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <a class="atual" aria-current="page">Minha conta</a>
+  <span class="sacola"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</span>
+</div></nav>
+<div class="wrap conta curta">
+  <aside class="sumario">
+    <p class="ola"><b>Olá, Mariana</b><span>mariana@exemplo.com.br</span></p>
+    <p class="rot rot-sumario">Sua conta</p>
+    <ul class="trilho">
+      <li><a>Pedido atual</a></li><li class="atual"><span class="cor" aria-hidden="true"></span><a aria-current="page">Pedidos</a></li><li><a>Seus dados</a></li><li><a>Endereços</a></li><li><a>E-mail e senha</a></li>
+    </ul>
+    <a class="sair">Sair</a>
+  </aside>
+  <main>
+    <h1 class="titulo">Seus pedidos <em>até aqui</em></h1>
+    <p class="vazio">Você ainda não fez nenhum pedido. Os sabores estão no catálogo.</p>
+    <a class="botao solto">Ver o catálogo</a>
+  </main>
+</div>
+
+<p class="exemplo">Dados de exemplo.</p>
+</div>
+</section>
+<section id="celular">
+<p class="rota"><b>Celular, 390</b><span>O sumário vira a fileira de etiquetas que rola de lado, presa embaixo da nav; o coração pousa no fio da barra, embaixo da etiqueta atual. O fio das etapas fica em pé, como na sacola.</span></p>
+<div class="par">
+  <div><p class="rota"><b>/conta</b></p><div class="quadro m">
+<nav>
+  <span class="q"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>
+  <img src="../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <a class="conta-link" aria-current="page">Minha conta</a>
+  <span class="q"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg></span>
+</nav>
+<div class="fileira"><ul><li class="atual"><a>Pedido atual</a><span class="cor" aria-hidden="true"></span></li><li><a>Pedidos<small class="num">4</small></a></li><li><a>Seus dados</a></li><li><a>Endereços<small class="num">2</small></a></li><li><a>E-mail e senha</a></li></ul></div>
+<main>
+    <p class="saudacao">Olá, Mariana</p>
+    <h1 class="titulo">Pedido <span translate="no">AMO</span>-7K2M9QXR <em>a caminho</em></h1>
+    <div class="chega"><p><span>Entrega pelo Uber</span>Chega em cerca de 25 minutos.</p><a class="botao">Acompanhar no Uber</a></div>
+    <ol class="etapas-pe num">
+      <li>Feito<time>14h02</time></li>
+      <li>Pago<time>14h03</time></li>
+      <li>Em preparo<time>14h20</time></li>
+      <li class="atual"><span class="cor" aria-hidden="true"></span>A caminho<time>15h10</time></li>
+      <li class="vem">Entregue</li>
+    </ol>
+    <ul class="potes num"><li><img src="../../public/produtos/prestigio.webp" alt=""><p><b>Prestígio</b><small>2 potes · R$ 18,90 cada</small></p><span class="preco">R$ 37,80</span></li><li><img src="../../public/produtos/ninho-com-frutas-vermelhas.webp" alt=""><p><b>Ninho com frutas vermelhas</b><small>1 pote · R$ 21,90 cada</small></p><span class="preco">R$ 21,90</span></li><li><img src="../../public/produtos/mousse-de-maracuja.webp" alt=""><p><b>Mousse de maracujá</b><small>1 pote · R$ 18,90 cada</small></p><span class="preco">R$ 18,90</span></li></ul>
+    <p class="total num"><b>Total</b><strong>R$ 92,80</strong><small>R$ 78,60 em potes e R$ 14,20 de entrega, pago com Pix</small></p>
+    <section class="bloco">
+      <h2 class="subtitulo">Pedidos anteriores</h2>
+      <ul class="lista-cel num"><li><p><b><span translate="no">AMO</span>-3F8D2WLA</b><span class="meta">8 de novembro · Entregue · 6 potes</span></p><span class="r">R$ 128,40</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></li><li><p><b><span translate="no">AMO</span>-9QTR4ZEN</b><span class="meta">25 de outubro · Entregue · 3 potes</span></p><span class="r">R$ 71,10</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></li></ul>
+      <a class="link">Ver todos os pedidos <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+    </section>
+    <a class="sair">Sair</a>
+</main>
+<footer>
+  <div class="grade">
+    <img src="../../public/marca/logo-amo-lockup.png" alt="AMO Sabores Saudáveis · para quem ama comer bem">
+    <div><p class="rot">Linhas</p><ul><li>Bolos no pote</li></ul></div>
+    <div><p class="rot">A marca</p><ul><li>A marca</li><li>O que é saudável aqui</li><li>Hoje o dia pede</li></ul></div>
+  </div>
+  <p class="copy">© 2026 <span translate="no">AMO</span> Sabores Saudáveis</p>
+</footer>
+<p class="exemplo">Dados de exemplo.</p>
+</div></div>
+  <div><p class="rota"><b>/conta/pedidos/AMO-7K2M9QXR</b></p><div class="quadro m">
+<nav>
+  <span class="q"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>
+  <img src="../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <a class="conta-link" aria-current="page">Minha conta</a>
+  <span class="q"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg></span>
+</nav>
+<div class="fileira"><ul><li><a>Pedido atual</a></li><li class="atual"><a>Pedidos<small class="num">4</small></a><span class="cor" aria-hidden="true"></span></li><li><a>Seus dados</a></li><li><a>Endereços<small class="num">2</small></a></li><li><a>E-mail e senha</a></li></ul></div>
+<main>
+    <p class="trilha"><span>Pedidos</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg><b><span translate="no">AMO</span>-7K2M9QXR</b></p>
+    <h1 class="titulo">Pedido <span translate="no">AMO</span>-7K2M9QXR <em>a caminho</em></h1>
+    <p class="lead">Feito em 20 de novembro, às 14h02.</p>
+    <ol class="etapas-pe num">
+      <li>Feito<time>14h02</time></li>
+      <li>Pago<time>14h03</time></li>
+      <li>Em preparo<time>14h20</time></li>
+      <li class="atual"><span class="cor" aria-hidden="true"></span>A caminho<time>15h10</time></li>
+      <li class="vem">Entregue</li>
+    </ol>
+    <div class="chega"><p><span>Entrega pelo Uber</span>Chega em cerca de 25 minutos.</p><a class="botao">Acompanhar no Uber</a></div>
+    <ul class="potes num"><li><img src="../../public/produtos/prestigio.webp" alt=""><p><b>Prestígio</b><small>2 potes · R$ 18,90 cada</small></p><span class="preco">R$ 37,80</span></li><li><img src="../../public/produtos/ninho-com-frutas-vermelhas.webp" alt=""><p><b>Ninho com frutas vermelhas</b><small>1 pote · R$ 21,90 cada</small></p><span class="preco">R$ 21,90</span></li><li><img src="../../public/produtos/mousse-de-maracuja.webp" alt=""><p><b>Mousse de maracujá</b><small>1 pote · R$ 18,90 cada</small></p><span class="preco">R$ 18,90</span></li></ul>
+    <dl class="contas num">
+      <div><dt>Subtotal, 4 potes</dt><dd>R$ 78,60</dd></div>
+      <div><dt>Entrega pelo Uber</dt><dd>R$ 14,20</dd></div>
+      <div class="soma"><dt>Total</dt><dd>R$ 92,80</dd></div>
+    </dl>
+    <dl class="dados">
+      <div><dt>Entregar em</dt><dd>Rua Cuiabá, 412, apto 31<br>Alto da Mooca · São Paulo, SP<br><span class="num">03183-002</span></dd></div>
+      <div><dt>Pagamento</dt><dd>Pix, pago às <span class="num">14h03</span></dd></div>
+    </dl>
+</main>
+<footer>
+  <div class="grade">
+    <img src="../../public/marca/logo-amo-lockup.png" alt="AMO Sabores Saudáveis · para quem ama comer bem">
+    <div><p class="rot">Linhas</p><ul><li>Bolos no pote</li></ul></div>
+    <div><p class="rot">A marca</p><ul><li>A marca</li><li>O que é saudável aqui</li><li>Hoje o dia pede</li></ul></div>
+  </div>
+  <p class="copy">© 2026 <span translate="no">AMO</span> Sabores Saudáveis</p>
+</footer>
+<p class="exemplo">Dados de exemplo.</p>
+</div></div>
+</div>
+</section>
+</body>
+</html>

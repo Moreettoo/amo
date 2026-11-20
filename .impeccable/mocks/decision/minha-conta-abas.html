@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>As abas da conta</title>
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --linho:#F6EBDD; --suave:#5E4A40; --fio:rgb(43 27 22 / .18); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { height: 900px; overflow: hidden; }
+  body { width: 1440px; height: 900px; overflow: hidden; position: relative; font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); -webkit-font-smoothing: antialiased; }
+  .wrap { width: 1128px; margin: 0 auto; }
+  svg.coracao { width: 13px; height: 13px; fill: var(--cobre); display: block; }
+
+  /* a nav da casa: o mesmo desenho, com "Minha conta" marcado */
+  header { height: 64px; border-bottom: 1px solid var(--fio); }
+  header .wrap { height: 100%; display: flex; align-items: center; gap: 30px; font-size: 15px; }
+  header .marca { height: 30px; margin-right: auto; }
+  .ic { display: inline-flex; align-items: center; gap: 8px; }
+  .ic svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+  .atual-nav { font-weight: 500; }
+
+  /* a coluna da conta: a porta de entrar, mais larga */
+  main { width: 880px; margin: 0 auto; padding-top: 48px; }
+  h1 { font-weight: 300; font-size: 44px; line-height: 1.1; letter-spacing: -.03em; text-align: center; }
+  h1 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 1.5em; line-height: 1.05; letter-spacing: 0; color: var(--cobre-texto); }
+  .abas { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 26px; border-bottom: 1px solid var(--fio); }
+  .abas a { height: 48px; display: grid; place-items: center; font-size: 16px; color: var(--suave); text-decoration: none; }
+  .abas a[aria-current] { color: var(--expresso); font-weight: 500; }
+  .abas .coracao { position: absolute; bottom: -7px; left: calc(100% / 6 - 6.5px); }
+
+  /* o pedido em andamento */
+  .cabeca { margin-top: 46px; text-align: center; }
+  .numero { font-size: 14px; color: var(--suave); font-variant-numeric: tabular-nums; letter-spacing: .02em; }
+  .estado { margin-top: 2px; font-weight: 300; font-size: 32px; line-height: 1.2; letter-spacing: -.02em; }
+  .quando { margin-top: 2px; font-size: 15px; color: var(--suave); }
+
+  /* o fio das etapas, deitado: cada etapa pendurada no fio, o coracao na atual */
+  .etapas { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); margin-top: 42px; list-style: none; text-align: center; }
+  .etapas::before { content: ""; position: absolute; top: 6px; left: 10%; right: 10%; height: 1px; background: var(--fio); }
+  .etapas li { position: relative; padding-top: 22px; }
+  .etapas li::before { content: ""; position: absolute; top: 6px; left: 50%; width: 1px; height: 6px; background: var(--fio); }
+  .etapas li.agora::before { display: none; }
+  .etapas li .coracao { position: absolute; top: 0; left: calc(50% - 6.5px); }
+  .etapas b { display: block; font-weight: 400; font-size: 15px; line-height: 1.4; }
+  .etapas .agora b { font-weight: 500; }
+  .etapas .vem b { color: var(--suave); }
+  .etapas time { display: block; min-height: 20px; margin-top: 2px; font-size: 13px; color: var(--suave); font-variant-numeric: tabular-nums; }
+
+  .botao { display: flex; align-items: center; justify-content: center; width: 300px; height: 50px; margin: 38px auto 0; background: var(--expresso); color: var(--creme); border-radius: 2px; font-size: 15px; font-weight: 500; letter-spacing: .02em; text-decoration: none; }
+
+  /* os potes: uma fileira por sabor, sem caixa */
+  /* potes alinhados as pontas do fio das etapas */
+  .potes { margin: 56px 88px 0; list-style: none; }
+  .pote { display: grid; grid-template-columns: 64px minmax(0, 1fr) 120px; gap: 20px; align-items: center; padding: 12px 0; }
+  .pote img { width: 64px; height: 80px; object-fit: cover; border-radius: 3px; background: var(--linho); display: block; }
+  .pote p { font-size: 16px; }
+  .pote small { display: block; font-size: 13px; color: var(--suave); font-variant-numeric: tabular-nums; }
+  .pote .val { font-size: 16px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  .aviso { position: absolute; right: 24px; bottom: 18px; font-size: 13px; color: var(--suave); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <span class="ic"><svg viewBox="0 0 24 24" style="stroke-width:1.3"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Catálogo</span>
+  <img class="marca" src="../../../public/marca/logo-amo.png" alt="AMO Sabores Saudáveis">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <span class="atual-nav">Minha conta</span>
+  <span class="ic"><svg viewBox="0 0 24 24"><path d="M5 8h14l-1 12H6L5 8Z"/><path d="M9 10V7a3 3 0 0 1 6 0v3"/></svg>Sacola</span>
+</div></header>
+
+<main>
+  <h1>Olá, Mariana <em>sua conta</em></h1>
+  <nav class="abas" aria-label="Sua conta">
+    <a href="#" aria-current="page">Pedido atual</a><a href="#">Pedidos</a><a href="#">Seus dados</a>
+    <svg class="coracao" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.6s-7.6-4.7-7.6-10.3a4.3 4.3 0 0 1 7.6-2.7 4.3 4.3 0 0 1 7.6 2.7c0 5.6-7.6 10.3-7.6 10.3z"/></svg>
+  </nav>
+
+  <div class="cabeca">
+    <p class="numero">Pedido <span translate="no">AMO</span>-7K2M9QXR</p>
+    <h2 class="estado">A caminho</h2>
+    <p class="quando">chega em cerca de 25 minutos</p>
+  </div>
+
+  <ol class="etapas">
+    <li><b>Feito</b><time>14h02</time></li>
+    <li><b>Pago</b><time>14h03</time></li>
+    <li><b>Em preparo</b><time>14h20</time></li>
+    <li class="agora"><svg class="coracao" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.6s-7.6-4.7-7.6-10.3a4.3 4.3 0 0 1 7.6-2.7 4.3 4.3 0 0 1 7.6 2.7c0 5.6-7.6 10.3-7.6 10.3z"/></svg><b>A caminho</b><time>15h10</time></li>
+    <li class="vem"><b>Entregue</b><time></time></li>
+  </ol>
+
+  <a class="botao" href="#">Acompanhar no Uber</a>
+
+  <ul class="potes">
+    <li class="pote"><img src="../../../public/produtos/prestigio.webp" alt=""><p>Prestígio<small>2 potes</small></p><span class="val">R$ 37,80</span></li>
+    <li class="pote"><img src="../../../public/produtos/ninho-com-frutas-vermelhas.webp" alt=""><p>Ninho com frutas vermelhas<small>1 pote</small></p><span class="val">R$ 21,90</span></li>
+    <li class="pote"><img src="../../../public/produtos/mousse-de-maracuja.webp" alt=""><p>Mousse de maracujá<small>1 pote</small></p><span class="val">R$ 18,90</span></li>
+  </ul>
+</main>
+<p class="aviso">dados de exemplo</p>
+</body>
+</html>
