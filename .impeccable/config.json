@@ -164,6 +164,42 @@
         ],
         "createdAt": "2026-11-18T19:54:23.377Z",
         "reason": "client decision recorded in PRODUCT.md Brand Commitments (2026-11-18): brown, copper and cream palette stays"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/conta-abas.html"
+        ],
+        "createdAt": "2026-11-20T04:21:00.667Z",
+        "reason": "user confirmed: PRODUCT.md, Brand Commitments, 'Paleta marrom, cobre e creme: fica (decisão do cliente, 2026-11-18)'"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/conta-abas.html"
+        ],
+        "createdAt": "2026-11-20T04:21:00.957Z",
+        "reason": "esboço de decisão: o recuo dos campos (14 px) e a altura das abas repetem o componente campo e a etiqueta já construídos no site (DESIGN.md, Inputs / Fields)"
+      },
+      {
+        "rule": "cream-palette",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/conta-cartao.html"
+        ],
+        "createdAt": "2026-11-20T04:21:01.236Z",
+        "reason": "user confirmed: PRODUCT.md, Brand Commitments, 'Paleta marrom, cobre e creme: fica (decisão do cliente, 2026-11-18)'"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/conta-cartao.html"
+        ],
+        "createdAt": "2026-11-20T04:21:01.509Z",
+        "reason": "esboço de decisão: o recuo dos campos (14 px) e a altura das abas repetem o componente campo e a etiqueta já construídos no site (DESIGN.md, Inputs / Fields)"
       }
     ]
   }

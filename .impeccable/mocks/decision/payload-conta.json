@@ -1,0 +1,46 @@
+{
+  "title": "AMO: entrar, criar conta e recuperar a senha",
+  "question": "Três jeitos de montar as telas de conta: /entrar, /cadastro (com o código de 6 dígitos no segundo passo) e /esqueci-a-senha. Os esboços mostram o cadastro, a tela mais cheia; as outras seguem a mesma estrutura. O visual é o do site (creme, cobre, script e Poppins), e os campos e botões são os mesmos da sacola. A verificação contra robôs fica invisível na maior parte das vezes. Escolha um, peça outra rodada ou escreva um ajuste.",
+  "options": [
+    {
+      "id": "conta-abas",
+      "kind": "assigned",
+      "label": "As duas portas",
+      "kicker": "THE ROLL",
+      "lineage": "O sumário e as etapas da sacola: o coração pousado no fio marca onde a pessoa está",
+      "thesis": "Uma coluna estreita e centrada com duas abas, Entrar e Criar conta, sobre um fio; o coração do logo pousa embaixo da aba atual e o formulário troca no lugar.",
+      "palette": ["#FAF2E9", "#2B1B16", "#C9784A", "#9A5530", "#5E4A40"],
+      "materials": ["título em duas vozes", "abas sobre o fio com o coração", "campos e botão da sacola"],
+      "viewport": "Título 'Que bom ter você aqui' centrado; abaixo, as abas Entrar e Criar conta com o coração sob a atual; o formulário do cadastro numa coluna de 440 px, os dois aceites e o botão escuro de largura inteira.",
+      "risk": "Duas telas numa página: quem chega pelo link 'Entrar' precisa cair já na aba certa, e a troca de aba não pode apagar o que foi digitado.",
+      "html": ".impeccable/mocks/decision/conta-abas.html"
+    },
+    {
+      "id": "conta-cartao",
+      "kind": "dealt",
+      "label": "O cartão",
+      "lineage": "O cartão do rótulo da home, com a moldura cobre por dentro",
+      "thesis": "O formulário mora num cartão de papel com a moldura cobre do rótulo, centrado no creme; o título em duas vozes e a linha em caixa alta abrem o cartão, e o link para a outra tela fica embaixo dele.",
+      "palette": ["#FAF2E9", "#FFFBF5", "#2B1B16", "#C9784A", "#9A5530"],
+      "materials": ["cartão de papel com moldura cobre", "linha em caixa alta com o coração", "campos e botão da sacola"],
+      "viewport": "Um cartão papel de 540 px no centro, com a moldura cobre a 8 px da borda: 'Criar sua conta', 'Para pedir e acompanhar', o formulário e o botão; abaixo do cartão, 'Já tem conta? Entrar'.",
+      "risk": "O cartão é a peça mais reconhecível do rótulo; repetido em toda tela de conta, pode perder o peso que tem na home.",
+      "html": ".impeccable/mocks/decision/conta-cartao.html"
+    },
+    {
+      "id": "conta-dupla",
+      "kind": "dealt",
+      "label": "A página dupla",
+      "lineage": "A página do produto: a foto do pote com o fio cobre deslocado atrás",
+      "thesis": "Duas colunas: à esquerda a foto do pote presa pelo fio cobre, lembrando o que a pessoa veio buscar; à direita o título, uma frase do porquê da conta e o formulário.",
+      "palette": ["#FAF2E9", "#F6EBDD", "#2B1B16", "#C9784A", "#9A5530"],
+      "materials": ["foto do pote com o fio deslocado", "título em duas vozes e lead", "campos e botão da sacola"],
+      "viewport": "A foto do Prestígio ocupa a coluna esquerda, com o fio cobre atrás; à direita, 'Criar sua conta', a frase 'Para pedir, acompanhar a entrega e guardar o endereço', o formulário e o botão com 'Já tem conta? Entrar' ao lado.",
+      "risk": "A foto pesa numa tela de tarefa; no celular ela precisa encolher para uma faixa, senão empurra o formulário para fora da primeira tela.",
+      "html": ".impeccable/mocks/decision/conta-dupla.html"
+    }
+  ],
+  "reroll": true,
+  "buildPath": { "value": "code" },
+  "steer": true
+}

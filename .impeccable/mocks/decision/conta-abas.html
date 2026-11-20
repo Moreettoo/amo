@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>As duas portas</title>
+<link href="https://fonts.googleapis.com/css2?family=Allura&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --expresso:#2B1B16; --cobre:#C9784A; --cobre-texto:#9A5530; --creme:#FAF2E9; --papel:#FFFBF5; --linho:#F6EBDD; --suave:#5E4A40; --fio:rgb(43 27 22 / .18); --contorno:rgb(43 27 22 / .38); }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1440px; height: 900px; overflow: hidden; font-family: Poppins, system-ui, sans-serif; background: var(--creme); color: var(--expresso); position: relative; }
+  .wrap { width: 1128px; margin: 0 auto; }
+  header { height: 64px; border-bottom: 1px solid var(--fio); }
+  header .wrap { height: 100%; display: flex; align-items: center; gap: 30px; font-size: 15px; }
+  header img { height: 30px; margin-right: auto; }
+  .menu { display: flex; align-items: center; gap: 10px; }
+  .menu i { width: 16px; height: 9px; border-top: 1.4px solid; border-bottom: 1.4px solid; }
+  .conta { font-weight: 500; }
+  main { width: 440px; margin: 44px auto 0; }
+  h1 { font-weight: 300; font-size: 44px; letter-spacing: -.03em; line-height: 1.1; text-align: center; }
+  h1 em { display: block; font-family: Allura, cursive; font-style: normal; font-size: 1.5em; letter-spacing: 0; line-height: 1.05; color: var(--cobre-texto); }
+  .abas { position: relative; display: grid; grid-template-columns: 1fr 1fr; margin-top: 26px; border-bottom: 1px solid var(--fio); }
+  .abas span { height: 48px; display: grid; place-items: center; font-size: 16px; color: var(--suave); }
+  .abas .atual { color: var(--expresso); font-weight: 500; }
+  .abas svg { position: absolute; bottom: -7px; width: 13px; height: 13px; fill: var(--cobre); left: calc(75% - 6px); }
+  form { margin-top: 26px; display: grid; gap: 16px; }
+  .par { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
+  label { display: block; font-size: 13px; color: var(--suave); margin-bottom: 6px; }
+  .campo { height: 44px; border: 1px solid var(--contorno); border-radius: 2px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; }
+  .campo small { font-size: 13px; color: var(--suave); text-decoration: underline; text-decoration-color: var(--fio); text-underline-offset: 4px; }
+  .dica { font-size: 13px; color: var(--suave); margin-top: 6px; }
+  .marca { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.5; }
+  .marca i { flex: none; width: 18px; height: 18px; border: 1px solid var(--contorno); border-radius: 2px; margin-top: 1px; }
+  .marca i.sim { background: var(--expresso); border-color: var(--expresso); }
+  .botao { margin-top: 6px; height: 50px; background: var(--expresso); color: var(--creme); border-radius: 2px; display: flex; align-items: center; justify-content: center; font-weight: 500; font-size: 15px; letter-spacing: .02em; }
+  .nota { font-size: 13px; color: var(--suave); text-align: center; }
+  .aviso { position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 12px; color: var(--suave); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <span class="menu"><i></i>Catálogo</span>
+  <img src="http://localhost:3000/marca/logo-amo.png" alt="AMO">
+  <span>Hoje o dia pede</span><span>O que é saudável</span><span>A marca</span>
+  <span class="conta">Minha conta</span><span>Sacola</span>
+</div></header>
+<main>
+  <h1>Que bom <em>ter você aqui</em></h1>
+  <div class="abas">
+    <span>Entrar</span><span class="atual">Criar conta</span>
+    <svg viewBox="0 0 12 12"><path d="M6 11 1.5 6.6A2.6 2.6 0 0 1 6 3a2.6 2.6 0 0 1 4.5 3.6Z"/></svg>
+  </div>
+  <form>
+    <div class="par">
+      <div><label>Nome</label><div class="campo">Maria José</div></div>
+      <div><label>Celular</label><div class="campo">(11) 98765-4321</div></div>
+    </div>
+    <div><label>E-mail</label><div class="campo">maria@exemplo.com</div></div>
+    <div><label>Senha</label><div class="campo">••••••••••<small>mostrar</small></div><p class="dica">8 caracteres ou mais.</p></div>
+    <p class="marca"><i class="sim"></i>Li e aceito os termos de uso e a política de privacidade.</p>
+    <p class="marca"><i></i>Quero receber novidades e sabores novos por e-mail.</p>
+    <div class="botao">Criar conta</div>
+    <p class="nota">Enviamos um código de 6 dígitos para confirmar o seu e-mail.</p>
+  </form>
+</main>
+<p class="aviso">Esboço. A aba "Entrar" troca o formulário por e-mail e senha; o código de 6 dígitos aparece no mesmo lugar depois de "Criar conta".</p>
+</body>
+</html>
