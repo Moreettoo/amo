@@ -5,7 +5,12 @@ import 'server-only'
  * process.env. O acesso e literal (process.env.NOME) para o Next saber o que
  * e cada uma, e acontece na hora da chamada, nunca no topo do modulo.
  */
-type Nome = 'NEXT_PUBLIC_SUPABASE_URL' | 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY' | 'SUPABASE_PORTA'
+type Nome =
+  | 'NEXT_PUBLIC_SUPABASE_URL'
+  | 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'
+  | 'NEXT_PUBLIC_TURNSTILE_SITE_KEY'
+  | 'SUPABASE_PORTA'
+  | 'SUPABASE_SECRET_KEY'
 
 function ler(nome: Nome): string | undefined {
   switch (nome) {
@@ -13,8 +18,12 @@ function ler(nome: Nome): string | undefined {
       return process.env.NEXT_PUBLIC_SUPABASE_URL
     case 'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY':
       return process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+    case 'NEXT_PUBLIC_TURNSTILE_SITE_KEY':
+      return process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
     case 'SUPABASE_PORTA':
       return process.env.SUPABASE_PORTA
+    case 'SUPABASE_SECRET_KEY':
+      return process.env.SUPABASE_SECRET_KEY
   }
 }
 
