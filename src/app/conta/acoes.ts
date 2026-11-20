@@ -1,6 +1,7 @@
 'use server'
 
 import { refresh } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { exigirUsuario, type Usuario } from '@/lib/auth'
 import { senhaConfere } from '@/lib/auth/senha'
 import { criarClienteServidor } from '@/lib/auth/servidor'
@@ -198,13 +199,18 @@ export async function trocarEmail(_: Resposta | null, form: FormData): Promise<R
   })
 }
 
-/** Sem limite (backend 11): o banco so cancela o que aguarda pagamento. */
+/**
+ * Sem limite (backend 11): o banco so cancela o que aguarda pagamento. Feito,
+ * volta ao pedido com ?cancelado=1, que a pagina le para dizer que cancelou
+ * (o formulario some com o pedido cancelado). O redirect fica fora do try.
+ */
 export async function cancelarPedido(_: Resposta | null, form: FormData): Promise<Resposta> {
   const numero = conferirNumeroDoPedido(form.get('numero'))
-  return comSessao(numero ? `/conta/pedidos/${numero}` : '/conta/pedidos', async (usuario) => {
+  const resposta = await comSessao(numero ? `/conta/pedidos/${numero}` : '/conta/pedidos', async (usuario) => {
     if (!numero) return falha('pedido_invalido')
     await cancelarPedidoDaCliente(usuario.id, numero)
-    refresh()
     return feito('pedido_cancelado')
   })
+  if (resposta.ok && numero) redirect(`/conta/pedidos/${numero}?cancelado=1`)
+  return resposta
 }

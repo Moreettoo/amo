@@ -1,4 +1,5 @@
 import 'server-only'
+import { RolarAteAtual } from '@/components/conta/FormsDaConta'
 import { Footer } from '@/components/layout/Footer'
 import { Nav } from '@/components/layout/Nav'
 import type { Usuario } from '@/lib/auth'
@@ -65,6 +66,7 @@ export function PainelDaConta({ atual, usuario, dados, children }: Props) {
                   </li>
                 ))}
               </ul>
+              <RolarAteAtual />
               <form action={sair} className="painel__sair">
                 <button type="submit">Sair</button>
               </form>
@@ -81,7 +83,7 @@ export function PainelDaConta({ atual, usuario, dados, children }: Props) {
 }
 
 type CabecaProps = {
-  titulo: string
+  titulo: React.ReactNode
   /** a segunda voz, em script e em minuscula */
   frase: string
   /** o que acompanha o titulo, a direita pela base (no celular, embaixo) */

@@ -49,6 +49,11 @@ vi.mock('@/lib/dados/enderecos', () => ({
 vi.mock('@/lib/dados/cep', () => ({ buscarCep: m.buscarCep }))
 vi.mock('@/lib/dados/pedidos', () => ({ cancelarPedidoDaCliente: m.cancelarPedidoDaCliente }))
 vi.mock('next/cache', () => ({ refresh: m.refresh }))
+vi.mock('next/navigation', () => ({
+  redirect: (url: string) => {
+    throw new Error(`REDIRECIONOU ${url}`)
+  },
+}))
 
 import {
   cancelarPedido,
@@ -101,7 +106,7 @@ describe('a ordem: a sessao primeiro, sempre', () => {
     ['trocarEmail', () => trocarEmail(null, form({ email: 'nova@exemplo.com' })), '/conta/perfil/email-e-senha'],
     ['cancelarPedido', () => cancelarPedido(null, form({ numero: 'AMO-2B7KQ9XZ' })), '/conta/pedidos/AMO-2B7KQ9XZ'],
   ])('%s chama exigirUsuario antes de tudo, com a propria rota', async (_, acao, rota) => {
-    await acao()
+    await acao().catch(() => undefined)
     expect(m.ordem[0]).toBe('exigirUsuario')
     expect(m.exigirUsuario).toHaveBeenCalledWith(rota)
   })
@@ -313,8 +318,8 @@ describe('cancelarPedido', () => {
     expect(await cancelarPedido(null, form({ numero: 'AMO-2B7KQ9XZ' }))).toEqual({ ok: false, erro: 'pedido_invalido' })
   })
 
-  it('sucesso: cancela o da cliente, sem limite', async () => {
-    expect(await cancelarPedido(null, form({ numero: 'AMO-2B7KQ9XZ' }))).toEqual({ ok: true, aviso: 'pedido_cancelado' })
+  it('sucesso: cancela o da cliente, sem limite, e volta ao pedido dizendo que cancelou', async () => {
+    await expect(cancelarPedido(null, form({ numero: 'AMO-2B7KQ9XZ' }))).rejects.toThrow('REDIRECIONOU /conta/pedidos/AMO-2B7KQ9XZ?cancelado=1')
     expect(m.cancelarPedidoDaCliente).toHaveBeenCalledWith('usuario-1', 'AMO-2B7KQ9XZ')
     expect(m.consumirLimite).not.toHaveBeenCalled()
   })

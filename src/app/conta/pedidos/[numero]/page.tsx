@@ -12,9 +12,9 @@ import { textoPotes } from '@/lib/sacola'
 
 export const metadata: Metadata = { title: 'Pedido · AMO', robots: { index: false } }
 
-type Props = { params: Promise<{ numero: string }> }
+type Props = { params: Promise<{ numero: string }>; searchParams: Promise<{ cancelado?: string | string[] }> }
 
-export default async function PaginaDoPedido({ params }: Props) {
+export default async function PaginaDoPedido({ params, searchParams }: Props) {
   const bruto = (await params).numero
   const numero = conferirNumeroDoPedido(bruto)
   const usuario = await exigirUsuario(numero ? `/conta/pedidos/${numero}` : '/conta/pedidos')
@@ -25,14 +25,25 @@ export default async function PaginaDoPedido({ params }: Props) {
   const potes = pedido.itens.reduce((soma, i) => soma + i.quantos, 0)
   const pagamento = descreverPagamento(pedido.pagamento)
   const rastreio = pedido.estado === 'a_caminho' ? pedido.entrega.rastreioUrl : null
+  // depois de cancelar, a acao volta para ca com ?cancelado=1
+  const acabouDeCancelar = (await searchParams).cancelado === '1' && pedido.estado === 'cancelado'
 
   return (
     <PainelDaConta atual="pedidos" usuario={usuario} dados={dados}>
       <CabecaDaConta
-        titulo={`Pedido ${pedido.numero}`}
+        titulo={
+          <>
+            Pedido <span className="painel__numero">{pedido.numero}</span>
+          </>
+        }
         frase={FRASE_DO_ESTADO[pedido.estado]}
         trilha={{ href: '/conta/pedidos', rotulo: 'Pedidos', atual: pedido.numero }}
       />
+      {acabouDeCancelar ? (
+        <p className="painel__aviso" role="status">
+          Pedido cancelado.
+        </p>
+      ) : null}
       <p className="painel__lead">
         Feito em {formatarDataEHora(pedido.datas.criado)}.
         {pedido.motivoDoCancelamento ? ` ${MOTIVO_DO_CANCELAMENTO[pedido.motivoDoCancelamento]}` : ''}
@@ -65,7 +76,15 @@ export default async function PaginaDoPedido({ params }: Props) {
           <dl className="pedido__dados">
             <div>
               <dt>Entregar em</dt>
-              <dd>{descreverEntrega(pedido.entrega)}</dd>
+              <dd>
+                {descreverEntrega(pedido.entrega)
+                  .split(' · ')
+                  .map((parte) => (
+                    <span key={parte} className="pedido__linha">
+                      {parte}
+                    </span>
+                  ))}
+              </dd>
             </div>
             {pagamento || pedido.estado === 'aguardando_pagamento' ? (
               <div>

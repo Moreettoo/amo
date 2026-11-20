@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useState } from 'react'
 import { Campo, CampoSenha, Enviar } from '@/components/conta/pecas'
 import { Turnstile } from '@/components/conta/Turnstile'
 import {
@@ -107,16 +107,35 @@ const ENDERECO_VAZIO: EnderecoNovo = {
 }
 const cepComTraco = (cep: string) => (cep.length === 8 ? `${cep.slice(0, 5)}-${cep.slice(5)}` : cep)
 
-type FormEnderecoProps = { id?: string; inicial?: EnderecoNovo; primeiro?: boolean; aoDesistir?: () => void }
+type FormEnderecoProps = {
+  id?: string
+  inicial?: EnderecoNovo
+  primeiro?: boolean
+  /** o primeiro campo recebe o foco ao abrir */
+  focar?: boolean
+  aoDesistir?: () => void
+  /** depois de guardar: quem abriu o formulario o fecha */
+  aoSalvar?: () => void
+}
 
 /**
  * Um endereco, novo ou para alterar. O CEP completo preenche rua, bairro,
  * cidade e estado (ViaCEP, pelo servidor); o que a cliente ja escreveu fica.
  */
-export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = false, aoDesistir }: FormEnderecoProps) {
-  const [resposta, enviar, enviando] = useActionState<Resposta | null, FormData>(salvarEndereco, null)
+export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = false, focar = false, aoDesistir, aoSalvar }: FormEnderecoProps) {
   const [campos, setCampos] = useState({ ...inicial, cep: cepComTraco(inicial.cep) })
   const [buscando, setBuscando] = useState(false)
+  const [avisoDoCep, setAvisoDoCep] = useState('')
+  const [resposta, enviar, enviando] = useActionState<Resposta | null, FormData>(async (anterior, form) => {
+    const r = await salvarEndereco(anterior, form)
+    if (r.ok) {
+      // o endereco novo foi guardado: o formulario volta vazio, para nao guardar de novo
+      if (!id) setCampos({ ...ENDERECO_VAZIO })
+      setAvisoDoCep('')
+      aoSalvar?.()
+    }
+    return r
+  }, null)
   const mudar = (campo: keyof EnderecoNovo) => (e: { target: { value: string } }) => setCampos((c) => ({ ...c, [campo]: e.target.value }))
   const erro = (campo: string) => erroDoCampo(resposta, campo)
 
@@ -125,12 +144,17 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
     setBuscando(true)
     const achado = await consultarCep(valor)
     setBuscando(false)
-    if (!achado) return
+    if (!achado) {
+      setAvisoDoCep('Não achamos esse CEP. Confira os números ou escreva a rua, o bairro e a cidade.')
+      return
+    }
+    setAvisoDoCep('')
+    // o CEP manda na rua, no bairro, na cidade e no estado; numero e complemento ficam
     setCampos((c) => ({
       ...c,
-      logradouro: c.logradouro || achado.logradouro,
-      bairro: c.bairro || achado.bairro,
-      cidade: c.cidade || achado.cidade,
+      logradouro: achado.logradouro || c.logradouro,
+      bairro: achado.bairro || c.bairro,
+      cidade: achado.cidade,
       uf: achado.uf,
     }))
   }
@@ -140,7 +164,7 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
     <form action={enviar} className="painel__form painel__endereco" noValidate>
       <input type="hidden" name="id" value={id} />
       <div className="campos">
-        <Campo rotulo="Nome do lugar (opcional)" name="apelido" largura="meio" value={campos.apelido ?? ''} onChange={mudar('apelido')} placeholder="Casa" erro={erro('apelido')} />
+        <Campo rotulo="Nome do lugar (opcional)" name="apelido" largura="meio" autoFocus={focar} value={campos.apelido ?? ''} onChange={mudar('apelido')} erro={erro('apelido')} />
         <Campo
           rotulo={buscando ? 'CEP (buscando o endereço)' : 'CEP'}
           name="cep"
@@ -168,6 +192,9 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
           </select>
         </div>
       </div>
+      <p className="painel__nota" aria-live="polite">
+        {avisoDoCep}
+      </p>
       {!inicial.principal && !primeiro ? (
         <div className="marcar">
           <input id={`${prefixo}-principal`} type="checkbox" name="principal" />
@@ -190,12 +217,12 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
 }
 
 /** Um botao de acao sobre um endereco, num formulario so dele. */
-function AcaoDoEndereco({ acao, id, rotulo, rotuloEnviando }: { acao: Acao; id: string; rotulo: string; rotuloEnviando: string }) {
+function AcaoDoEndereco({ acao, id, rotulo, rotuloEnviando, focar = false }: { acao: Acao; id: string; rotulo: string; rotuloEnviando: string; focar?: boolean }) {
   const [resposta, enviar, enviando] = useActionState<Resposta | null, FormData>(acao, null)
   return (
     <form action={enviar} className="painel__acao">
       <input type="hidden" name="id" value={id} />
-      <button type="submit" className="conta__texto-botao" disabled={enviando}>
+      <button type="submit" className="conta__texto-botao" disabled={enviando} autoFocus={focar}>
         {enviando ? rotuloEnviando : rotulo}
       </button>
       <RespostaDaAcao resposta={resposta} />
@@ -209,7 +236,13 @@ type ItemProps = { id: string; endereco: EnderecoNovo; texto: string; nome: stri
 export function ItemDeEndereco({ id, endereco, texto, nome }: ItemProps) {
   const [alterando, setAlterando] = useState(false)
   const [removendo, setRemovendo] = useState(false)
-  if (alterando) return <FormEndereco id={id} inicial={endereco} aoDesistir={() => setAlterando(false)} />
+  // ao fechar a alteracao ou a confirmacao, o foco volta ao botao que as abriu
+  const [voltar, setVoltar] = useState<'alterar' | 'remover' | null>(null)
+  const fecharAlteracao = () => {
+    setAlterando(false)
+    setVoltar('alterar')
+  }
+  if (alterando) return <FormEndereco id={id} inicial={endereco} focar aoDesistir={fecharAlteracao} aoSalvar={fecharAlteracao} />
   return (
     <div className="endereco">
       <p className="endereco__nome">
@@ -218,19 +251,26 @@ export function ItemDeEndereco({ id, endereco, texto, nome }: ItemProps) {
       </p>
       <p className="endereco__texto">{texto}</p>
       <div className="endereco__acoes">
-        <button type="button" className="conta__texto-botao so-js" onClick={() => setAlterando(true)} aria-label={`Alterar ${nome}`}>
+        <button type="button" className="conta__texto-botao so-js" onClick={() => setAlterando(true)} aria-label={`Alterar ${nome}`} autoFocus={voltar === 'alterar'}>
           Alterar
         </button>
         {endereco.principal ? null : <AcaoDoEndereco acao={tornarPrincipal} id={id} rotulo="Tornar principal" rotuloEnviando="Trocando" />}
         {removendo ? (
           <span className="endereco__confirmar">
-            <AcaoDoEndereco acao={removerEndereco} id={id} rotulo="Sim, remover" rotuloEnviando="Removendo" />
-            <button type="button" className="conta__texto-botao" onClick={() => setRemovendo(false)}>
+            <AcaoDoEndereco acao={removerEndereco} id={id} rotulo="Sim, remover" rotuloEnviando="Removendo" focar />
+            <button
+              type="button"
+              className="conta__texto-botao"
+              onClick={() => {
+                setRemovendo(false)
+                setVoltar('remover')
+              }}
+            >
               Manter
             </button>
           </span>
         ) : (
-          <button type="button" className="conta__texto-botao" onClick={() => setRemovendo(true)} aria-label={`Remover ${nome}`}>
+          <button type="button" className="conta__texto-botao" onClick={() => setRemovendo(true)} aria-label={`Remover ${nome}`} autoFocus={voltar === 'remover'}>
             Remover
           </button>
         )}
@@ -242,15 +282,38 @@ export function ItemDeEndereco({ id, endereco, texto, nome }: ItemProps) {
 /** O botao que abre o formulario do endereco novo; sem JavaScript o formulario ja nasce aberto. */
 export function NovoEndereco({ primeiro }: { primeiro: boolean }) {
   const [aberto, setAberto] = useState(primeiro)
+  const [aviso, setAviso] = useState('')
+  const [voltar, setVoltar] = useState(false)
+  const fechar = (texto: string) => {
+    setAberto(false)
+    setAviso(texto)
+    setVoltar(true)
+  }
   return (
     <div className={aberto ? 'novo-endereco novo-endereco--aberto' : 'novo-endereco'}>
       {aberto ? null : (
-        <button type="button" className="btn-retro btn-retro--escuro so-js" onClick={() => setAberto(true)}>
+        <button
+          type="button"
+          className="btn-retro btn-retro--escuro so-js"
+          autoFocus={voltar}
+          onClick={() => {
+            setAberto(true)
+            setAviso('')
+          }}
+        >
           Adicionar endereço
         </button>
       )}
+      <p className="painel__resposta" aria-live="polite">
+        {aviso}
+      </p>
       <div className="novo-endereco__form">
-        <FormEndereco primeiro={primeiro} aoDesistir={primeiro ? undefined : () => setAberto(false)} />
+        <FormEndereco
+          primeiro={primeiro}
+          focar={aberto && !primeiro}
+          aoDesistir={primeiro ? undefined : () => fechar('')}
+          aoSalvar={() => fechar('Endereço guardado.')}
+        />
       </div>
     </div>
   )
@@ -306,10 +369,23 @@ export function FormSenha({ chave, nonce }: { chave: string; nonce: string }) {
   )
 }
 
+/**
+ * No celular o sumario e uma fileira que rola de lado: a etiqueta da pagina
+ * atual vem para a vista ao abrir. Sem JavaScript a fileira comeca do inicio.
+ */
+export function RolarAteAtual() {
+  useEffect(() => {
+    const atual = document.querySelector('.painel__item--atual')
+    if (typeof atual?.scrollIntoView === 'function') atual.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }, [])
+  return null
+}
+
 /** Cancelar pede confirmacao no lugar, sem janela por cima. */
 export function CancelarPedido({ numero }: { numero: string }) {
   const [resposta, enviar, enviando] = useActionState<Resposta | null, FormData>(cancelarPedido, null)
   const [certeza, setCerteza] = useState(false)
+  const [voltar, setVoltar] = useState(false)
   return (
     <form action={enviar} className="cancelar-pedido">
       <input type="hidden" name="numero" value={numero} />
@@ -317,16 +393,23 @@ export function CancelarPedido({ numero }: { numero: string }) {
         <>
           <p className="painel__nota">O pedido sai da fila e nada é cobrado.</p>
           <div className="cancelar-pedido__escolha">
-            <button type="submit" className="btn-retro btn-retro--escuro" disabled={enviando}>
+            <button type="submit" className="btn-retro btn-retro--escuro" disabled={enviando} autoFocus>
               {enviando ? 'Cancelando' : 'Sim, cancelar'}
             </button>
-            <button type="button" className="conta__texto-botao" onClick={() => setCerteza(false)}>
+            <button
+              type="button"
+              className="conta__texto-botao"
+              onClick={() => {
+                setCerteza(false)
+                setVoltar(true)
+              }}
+            >
               Manter o pedido
             </button>
           </div>
         </>
       ) : (
-        <button type="button" className="conta__texto-botao" onClick={() => setCerteza(true)}>
+        <button type="button" className="conta__texto-botao" onClick={() => setCerteza(true)} autoFocus={voltar}>
           Cancelar pedido
         </button>
       )}

@@ -7,10 +7,12 @@ import { criarClienteServidor } from '@/lib/auth/servidor'
  * digitado na pagina, nunca por link.
  */
 const FORMATO_DO_HASH = /^[A-Za-z0-9_-]{10,200}$/
+const ACESSO = '/conta/perfil/email-e-senha'
 
 export async function GET(request: NextRequest): Promise<NextResponse> {
   const ir = (caminho: string) => NextResponse.redirect(new URL(caminho, request.url))
-  const invalido = () => ir('/entrar?aviso=link-invalido')
+  // a tela da troca diz o que aconteceu; sem sessao, exigirUsuario leva a entrar e volta para ela
+  const invalido = () => ir(`${ACESSO}?aviso=link-invalido`)
   const tipo = request.nextUrl.searchParams.get('type')
   const hash = request.nextUrl.searchParams.get('token_hash') ?? ''
   if (tipo !== 'email_change' || !FORMATO_DO_HASH.test(hash)) return invalido()
@@ -18,8 +20,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     const banco = await criarClienteServidor()
     const { error } = await banco.auth.verifyOtp({ token_hash: hash, type: 'email_change' })
     if (error) return invalido()
+    // com "Secure email change" o primeiro dos dois links so confirma um lado:
+    // enquanto o Supabase guarda o e-mail novo a espera, falta o outro link
+    const { data } = await banco.auth.getUser()
+    return ir(`${ACESSO}?aviso=${data.user?.new_email ? 'falta-o-outro-email' : 'email-trocado'}`)
   } catch {
     return invalido()
   }
-  return ir('/conta/perfil?aviso=email-trocado')
 }

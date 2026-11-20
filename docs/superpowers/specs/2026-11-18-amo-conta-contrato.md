@@ -90,6 +90,26 @@ só a própria seção, e o que for comum se combina por mensagem antes.
   as classes `.conta*` em `src/app/estilos/auth.css`; as de Minha conta não
   as repetem nem as redefinem.
 
+> **Como ficou (2026-11-20, etapa 2, Tasks 8 a 13).** O que a autenticação
+> precisa saber de Minha conta:
+> - O perfil virou três páginas, uma por item do sumário da conta:
+>   `/conta/perfil` (nome, celular, novidades e o link para excluir),
+>   `/conta/perfil/enderecos` e `/conta/perfil/email-e-senha`. O link
+>   "Trocar em E-mail e senha" do perfil leva a esta última.
+> - As ações moram em `src/app/conta/acoes.ts`; `CodigoDeErro`, `MENSAGENS` e
+>   `AVISOS` entraram em `src/lib/conta/mensagens.ts`, ao lado de
+>   `MENSAGENS_DA_CONTA`, sem mexer nele.
+> - O painel de desenvolvimento troca a senha sem conferir a atual (achado de
+>   2026-11-20). `trocarSenha` confere a senha atual no servidor com
+>   `senhaConfere` (por isso o formulário tem o Turnstile, como o de excluir)
+>   e ainda manda `current_password` ao `updateUser`.
+> - `trocarEmail` chama `updateUser({ email })` sem `emailRedirectTo`; o link
+>   do e-mail vem do modelo "Change email address" e cai em `/auth/callback`.
+> - `/conta/excluir` e `/conta/excluida` continuam com `TelaConta`; as páginas
+>   de Minha conta usam `PainelDaConta`, sem `layout.tsx` em `src/app/conta`.
+> - `useValorProprio` (em `pecas.tsx`) passou a usar `defaultValue` como valor
+>   inicial, e `Campo` ganhou as larguras `cep` e `numero`.
+
 ## Recado para a sessão de autenticação
 
 Escrito pela amo-c4 em 2026-11-18, quando a amo-72 já não estava no ar. Não

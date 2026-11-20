@@ -70,7 +70,8 @@ const Enderecos = await import('@/app/conta/perfil/enderecos/page')
 const EmailESenha = await import('@/app/conta/perfil/email-e-senha/page')
 
 const NUMERO = 'AMO-7K2M9QXR'
-const comNumero = (numero: string) => ({ params: Promise.resolve({ numero }) })
+const comNumero = (numero: string, busca: Record<string, string> = {}) => ({ params: Promise.resolve({ numero }), searchParams: Promise.resolve(busca) })
+const comBusca = (busca: Record<string, string> = {}) => ({ searchParams: Promise.resolve(busca) })
 
 const naLista = (numero: string, estado: PedidoNaLista['estado'], dia: string, total = 9280): PedidoNaLista => ({
   numero,
@@ -146,7 +147,7 @@ describe.each([
   [`/conta/pedidos/${NUMERO}`, () => Pedido.default(comNumero(NUMERO)), Pedido.metadata],
   ['/conta/perfil', () => Perfil.default(), Perfil.metadata],
   ['/conta/perfil/enderecos', () => Enderecos.default(), Enderecos.metadata],
-  ['/conta/perfil/email-e-senha', () => EmailESenha.default(), EmailESenha.metadata],
+  ['/conta/perfil/email-e-senha', () => EmailESenha.default(comBusca()), EmailESenha.metadata],
 ])('%s', (rota, montar, metadata) => {
   it('exige a sessao com a propria rota, fora dos buscadores', async () => {
     render(await montar())
@@ -212,6 +213,20 @@ describe('/conta', () => {
     render(await Inicio.default())
     expect(within(principal()).getByRole('link', { name: /AMO-3F8D2WLA/ })).toHaveAttribute('href', '/conta/pedidos/AMO-3F8D2WLA')
     expect(within(principal()).getByRole('link', { name: 'Ver todos os pedidos' })).toHaveAttribute('href', '/conta/pedidos')
+  })
+
+  it('dois pedidos em andamento: abre o que esta mais adiantado, e os outros ficam em "Outros pedidos"', async () => {
+    m.pedidos = [naLista('AMO-NV22AGRD', 'aguardando_pagamento', '20'), naLista(NUMERO, 'a_caminho', '20'), naLista('AMO-3F8D2WLA', 'entregue', '08'), naLista('AMO-9QTR4ZEN', 'entregue', '02')]
+    render(await Inicio.default())
+    expect(m.lidos).toEqual([NUMERO])
+    expect(within(principal()).getByRole('heading', { level: 2 })).toHaveTextContent('Outros pedidos')
+    const outros = within(principal()).getAllByRole('link', { name: /AMO-/ })
+    expect(outros.map((a) => a.getAttribute('href'))).toEqual(['/conta/pedidos/AMO-NV22AGRD', '/conta/pedidos/AMO-3F8D2WLA'])
+  })
+
+  it('o numero do pedido no titulo nao quebra no hifen', async () => {
+    render(await Inicio.default())
+    expect(within(principal()).getByRole('heading', { level: 1 }).querySelector('.painel__numero')).toHaveTextContent(NUMERO)
   })
 
   it('sem pedido nenhum: o convite ao catalogo, sem valor', async () => {
@@ -299,6 +314,27 @@ describe('/conta/pedidos/[numero]', () => {
     expect(within(principal()).queryByRole('button', { name: 'Cancelar pedido' })).toBeNull()
   })
 
+  it('depois de cancelar: a pagina diz que o pedido foi cancelado', async () => {
+    m.pedido = completo({
+      estado: 'cancelado',
+      motivoDoCancelamento: 'cliente',
+      pagamento: null,
+      datas: { ...completo().datas, pago: null, emPreparo: null, aCaminho: null, cancelado: '2026-11-20T17:10:00+00:00' },
+    })
+    render(await Pedido.default(comNumero(NUMERO, { cancelado: '1' })))
+    expect(within(principal()).getByRole('status')).toHaveTextContent('Pedido cancelado.')
+  })
+
+  it('o aviso de cancelado nao aparece num pedido que nao foi cancelado', async () => {
+    render(await Pedido.default(comNumero(NUMERO, { cancelado: '1' })))
+    expect(within(principal()).queryByRole('status')).toBeNull()
+  })
+
+  it('o CEP da entrega fica numa linha so, a dele', async () => {
+    render(await Pedido.default(comNumero(NUMERO)))
+    expect(within(principal()).getByText('CEP 03183-002')).toBeInTheDocument()
+  })
+
   it('anonimizado: mostra bairro, cidade e UF, e a pagina nao quebra', async () => {
     m.pedido = completo({
       estado: 'entregue',
@@ -362,8 +398,22 @@ describe('/conta/perfil/enderecos', () => {
 })
 
 describe('/conta/perfil/email-e-senha', () => {
+  it.each([
+    ['email-trocado', 'E-mail trocado.'],
+    ['falta-o-outro-email', 'Falta confirmar no outro e-mail'],
+    ['link-invalido', 'Esse link venceu ou já foi usado'],
+  ])('o aviso %s, que vem do link do e-mail', async (aviso, texto) => {
+    render(await EmailESenha.default(comBusca({ aviso })))
+    expect(within(principal()).getByRole('status')).toHaveTextContent(texto)
+  })
+
+  it('aviso desconhecido na URL nao mostra nada', async () => {
+    render(await EmailESenha.default(comBusca({ aviso: '<script>' })))
+    expect(within(principal()).queryByRole('status')).toBeNull()
+  })
+
   it('as duas trocas, com o e-mail atual a vista', async () => {
-    render(await EmailESenha.default())
+    render(await EmailESenha.default(comBusca()))
     expect(principal()).toHaveTextContent('mariana@exemplo.com.br')
     expect(screen.getByLabelText('E-mail novo')).toBeInTheDocument()
     expect(screen.getByLabelText('Senha atual')).toBeInTheDocument()

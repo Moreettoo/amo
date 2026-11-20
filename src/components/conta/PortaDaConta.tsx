@@ -30,9 +30,11 @@ export function PortaDaConta({ aba: inicial, volta, chaveDoTurnstile, nonce }: P
 
   const trocar = (a: Aba) => (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
+    // o endereco fica o da pagina: trocado para o da outra aba, o cookie que a
+    // acao de cadastro grava fazia o Next montar a outra pagina, e o passo do
+    // codigo sumia (ensaio de 2026-11-20). Sem JavaScript as abas sao links.
     setAba(a)
     setCodigoPara(null)
-    window.history.replaceState(null, '', destino(a))
   }
   const pedirCodigo = useCallback((para: string) => {
     setAba('cadastro')

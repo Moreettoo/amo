@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import type { CSSProperties } from 'react'
 import type { ImagemProduto } from '@/lib/catalogo'
 import { NOME_DO_ESTADO, formatarDia, formatarHora } from '@/lib/conta/textos'
 import type { PedidoCompleto, PedidoNaLista } from '@/lib/dados/pedidos'
@@ -36,7 +37,7 @@ export function EtapasDoPedido({ pedido }: { pedido: PedidoCompleto }) {
   const etapas = etapasDe(pedido)
   const atual = etapas.findLastIndex((e) => e.quando)
   return (
-    <ol className={`etapas-pedido etapas-pedido--${etapas.length}`} aria-label="Etapas do pedido">
+    <ol className="etapas-pedido" aria-label="Etapas do pedido" style={{ '--n': etapas.length } as CSSProperties}>
       {etapas.map((e, i) => (
         <li
           key={e.nome}
@@ -68,7 +69,7 @@ export function PotesDoPedido({ itens, fotos }: { itens: PedidoCompleto['itens']
             <span className="potes-pedido__nome">
               <b>{item.nome}</b>
               <small>
-                {item.tipo} · {formatarPreco(item.precoCentavos)} cada
+                {item.tipo} · <span className="potes-pedido__preco">{formatarPreco(item.precoCentavos)} cada</span>
               </small>
             </span>
             <span className="potes-pedido__quantos">{textoPotes(item.quantos)}</span>

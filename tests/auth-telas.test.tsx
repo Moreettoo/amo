@@ -96,6 +96,17 @@ describe('as duas portas', () => {
     expect(screen.getByLabelText('E-mail')).toHaveValue('maria@exemplo.com')
     expect(screen.getByRole('link', { name: 'Criar conta' })).toHaveAttribute('aria-current', 'page')
   })
+  it('trocar de aba nao troca o endereco: a resposta da acao volta para a mesma pagina', async () => {
+    // com o endereco trocado para /cadastro, o cookie que a acao de cadastro
+    // grava fazia o Next montar a outra pagina e o passo do codigo sumia
+    // (ensaio de 2026-11-20)
+    const trocar = vi.spyOn(window.history, 'replaceState')
+    const u = userEvent.setup()
+    render(await PaginaEntrar(sp()))
+    await u.click(screen.getByRole('link', { name: 'Criar conta' }))
+    expect(trocar).not.toHaveBeenCalled()
+    trocar.mockRestore()
+  })
   it('depois de criar a conta, o passo do codigo', async () => {
     respostas.cadastrar = { ok: true, passo: 'codigo', email: 'maria@exemplo.com' }
     const u = userEvent.setup()

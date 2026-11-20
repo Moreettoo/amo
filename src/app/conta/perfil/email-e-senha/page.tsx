@@ -7,14 +7,30 @@ import { variavel } from '@/lib/dados/ambiente'
 
 export const metadata: Metadata = { title: 'E-mail e senha · AMO', robots: { index: false } }
 
-export default async function PaginaDoAcesso() {
+/** O que o link da troca de e-mail diz ao voltar (src/app/auth/callback/route.ts). */
+const AVISOS_DO_LINK: Record<string, string> = {
+  'email-trocado': 'E-mail trocado. Ele já vale para entrar e para os pedidos.',
+  'falta-o-outro-email': 'Falta confirmar no outro e-mail: a troca vale depois dos dois links.',
+  'link-invalido': 'Esse link venceu ou já foi usado. Se ainda quiser trocar, peça de novo.',
+}
+
+type Props = { searchParams: Promise<{ aviso?: string | string[] }> }
+
+export default async function PaginaDoAcesso({ searchParams }: Props) {
   const usuario = await exigirUsuario('/conta/perfil/email-e-senha')
   const dados = await lerDadosDoPainel()
   const nonce = (await headers()).get('x-nonce') ?? ''
+  const { aviso } = await searchParams
+  const avisoDoLink = typeof aviso === 'string' && Object.hasOwn(AVISOS_DO_LINK, aviso) ? AVISOS_DO_LINK[aviso] : null
 
   return (
     <PainelDaConta atual="acesso" usuario={usuario} dados={dados}>
       <CabecaDaConta titulo="E-mail e senha" frase="bem guardados" />
+      {avisoDoLink ? (
+        <p className="painel__aviso" role="status">
+          {avisoDoLink}
+        </p>
+      ) : null}
       <div className="trocas">
         <section aria-labelledby="trocar-email">
           <h2 id="trocar-email" className="painel__subtitulo">

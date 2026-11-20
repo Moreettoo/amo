@@ -86,16 +86,35 @@ apontar só o que é de propósito: as tabelas de `privado` sem regra de acesso
 (ninguém da API lê) e as 7 funções chamáveis (as 6 da cliente e
 `conferir_porta`).
 
-Dois desvios do desenho, por limite do ambiente:
+Dois desvios do desenho na etapa 1, por limite do ambiente, fechados na
+etapa 2 (2026-11-20):
 
-- **Teste 6.** A exclusão de conta roda como `postgres`, não como
-  `supabase_auth_admin` (o `postgres` não pode assumir esse papel). O teste
-  confere que os gatilhos em `auth.users` rodam como o dono, seja quem for
-  que apague. A prova de ponta a ponta pela API do Auth fica para a etapa 2,
-  com a chave secreta.
-- **Teste 0.** Pela internet, o teste é feito como visitante. Com o token de
-  uma cliente, a porta é testada por dentro do banco (`10_porta.sql`); pela
-  internet, na etapa 2, quando o cadastro existir.
+- **Teste 6.** Nos testes SQL, a exclusão de conta roda como `postgres`, não
+  como `supabase_auth_admin` (o `postgres` não pode assumir esse papel); o
+  teste confere que os gatilhos em `auth.users` rodam como o dono, seja quem
+  for que apague. **Fechado** pela API do Auth com a chave secreta,
+  `scripts/testar-exclusao.mjs`:
+  1. `node scripts/testar-exclusao.mjs` cria uma cliente de ensaio e imprime
+     o `id`.
+  2. Pelo MCP, com esse `id`: um pedido entregue, um comentário e um
+     endereço.
+  3. `node scripts/testar-exclusao.mjs --apagar <id>`.
+  4. Pelo MCP: o usuário, o perfil, o endereço e o comentário somem; o pedido
+     fica, com `user_id` nulo, `anonimizado_em` preenchido, nome, celular,
+     e-mail, rua, número e complemento nulos e o CEP com 5 dígitos.
+  5. Uma segunda cliente com um pedido `pago`: o `--apagar` falha (o Auth
+     responde 500, porque o gatilho recusa) e o usuário continua existindo.
+
+  Limpar depois: os itens de pedido são imutáveis (gatilho
+  `itens_imutaveis`); numa transação, `disable trigger`, apagar os itens,
+  `enable trigger`, apagar pagamentos e pedidos, e só então a conta.
+- **Teste 0.** Pela internet, o teste era feito só como visitante; com o
+  token de uma cliente, a porta era testada por dentro do banco
+  (`10_porta.sql`). **Fechado**: com `SUPABASE_SECRET_KEY` no `.env.local`,
+  `node scripts/testar-porta.mjs` cria uma cliente de ensaio, pega o token
+  dela pelo link mágico do admin e confere que, sem `x-amo-porta`, nem o
+  próprio perfil sai (401 `AMO401`) e que, com a porta, sai uma linha só, a
+  dela. Apaga a cliente no fim e nunca imprime o token.
 
 ## Produto novo pelo painel
 
