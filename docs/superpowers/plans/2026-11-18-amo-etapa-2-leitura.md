@@ -1178,7 +1178,7 @@ export function trocarEmail(anterior: Resposta | null, form: FormData): Promise<
 export function cancelarPedido(anterior: Resposta | null, form: FormData): Promise<Resposta>
 ```
 
-- Produces, em `src/lib/conta/mensagens.ts`: `type CodigoDeErro = 'campos_invalidos' | 'muitas_tentativas' | 'tente_de_novo' | 'limite_de_enderecos' | 'endereco_nao_encontrado' | 'pedido_invalido' | 'senha_atual_errada' | 'senha_fraca' | 'senha_igual'`; `MENSAGENS: Record<CodigoDeErro, string>` e `AVISOS`, com os textos na voz do site.
+- Produces, em `src/lib/conta/mensagens.ts` (o arquivo já existe, com `MENSAGENS_DA_CONTA` das telas de entrar; os nomes abaixo entram ao lado, sem mexer nele): `type CodigoDeErro = 'campos_invalidos' | 'muitas_tentativas' | 'tente_de_novo' | 'limite_de_enderecos' | 'endereco_nao_encontrado' | 'pedido_invalido' | 'senha_atual_errada' | 'senha_fraca' | 'senha_igual'`; `MENSAGENS: Record<CodigoDeErro, string>` e `AVISOS`, com os textos na voz do site.
 
 Toda ação segue a ordem da §11, e o teste confere a ordem:
 
@@ -1197,7 +1197,7 @@ Toda ação segue a ordem da §11, e o teste confere a ordem:
 | `definirMarketing`, `cancelarPedido` | sem limite (§11) | |
 
 - `trocarSenha`: confere a senha nova com a regra do cadastro; `auth.updateUser({ password: nova, current_password: atual })` pelo cliente da sessão; depois `auth.signOut({ scope: 'others' })`. Pelo `code` do erro do Supabase (lista conferida na documentação dele em 2026-11-18): `weak_password` vira `senha_fraca`; `same_password` vira `senha_igual`; `over_request_rate_limit` vira `muitas_tentativas`; o código gravado no teste de banco da Task 10 vira `senha_atual_errada`; qualquer outro vira `tente_de_novo`. Só no sucesso vem o `signOut`.
-- `trocarEmail`: `conferirEmail`; `auth.updateUser({ email }, { emailRedirectTo: <origem>/auth/callback })`. Sucesso e `email_exists` dão a mesma resposta, `{ ok: true, aviso: 'confira_os_dois_emails' }`: a tela não revela se um e-mail já tem cadastro. `email_address_invalid` vira `campos_invalidos` no campo `email`; `over_email_send_rate_limit` e `over_request_rate_limit` viram `muitas_tentativas`; qualquer outro, `tente_de_novo`.
+- `trocarEmail`: `conferirEmail`; `auth.updateUser({ email })`, sem `emailRedirectTo`: o modelo "Change email address" do painel já monta o link com `{{ .SiteURL }}/auth/callback` (Task 7). Sucesso e `email_exists` dão a mesma resposta, `{ ok: true, aviso: 'confira_os_dois_emails' }`: a tela não revela se um e-mail já tem cadastro. `email_address_invalid` vira `campos_invalidos` no campo `email`; `over_email_send_rate_limit` e `over_request_rate_limit` viram `muitas_tentativas`; qualquer outro, `tente_de_novo`.
 
 - [ ] **Step 1: Escrever os testes que falham** em `tests/conta-acoes.test.ts`
 

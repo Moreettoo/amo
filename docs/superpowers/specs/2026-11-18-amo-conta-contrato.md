@@ -81,7 +81,14 @@ só a própria seção, e o que for comum se combina por mensagem antes.
 - Todo o banco, a camada de dados e as ações e rotas de pedido, pagamento,
   entrega e comentário: ver `2026-11-18-amo-backend-design.md`.
 - Nav: link "Entrar" sem sessão, "Minha conta" com sessão.
-- CSS próprio em `src/app/estilos/conta.css`.
+  > **Atualização de 2026-11-20 (Task 7 da etapa 2).** A nav tem um link só,
+  > "Minha conta", para `/conta`, e não lê a sessão: lê-la tornaria dinâmicas
+  > a home e o catálogo, que hoje são estáticos (decisão 5 do plano da etapa
+  > 2). Sem sessão, `/conta` leva a `/entrar?volta=/conta`. Minha conta mexe
+  > em `Nav.tsx` e `Gaveta.tsx` para pôr o link (Task 12).
+- CSS próprio em `src/app/estilos/conta.css`. As telas da autenticação já usam
+  as classes `.conta*` em `src/app/estilos/auth.css`; as de Minha conta não
+  as repetem nem as redefinem.
 
 ## Recado para a sessão de autenticação
 
