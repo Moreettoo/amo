@@ -52,6 +52,19 @@ Cada uma pode ser revertida pelo dono na revisão do plano.
 - A tela e a ação de excluir conta: sessão de autenticação (§16). O perfil só leva até ela.
 - Paginação de pedidos e de comentários: a lista de pedidos mostra os 50 mais recentes.
 
+## Herdado da autenticação (adiado na revisão de 2026-11-20)
+
+Pequenos, achados na revisão final do plano `2026-11-20-amo-autenticacao.md` e deixados para quando a Parte B mexer nas mesmas peças:
+
+- Login de conta não confirmada diz "Enviamos um código" sem ter enviado (`entrar` em `src/lib/auth/acoes.ts`; `FormCodigo` em `PortaDaConta.tsx`).
+- No passo 2 da recuperação não há volta ao passo 1 para pedir outro código (`FormEsqueci.tsx`).
+- `/entrar` ignora o `?aviso=` do `/auth/callback`, e a primeira das duas confirmações do "Secure email change" pode avisar cedo. Entra com a troca de e-mail (Task 11 e 12).
+- Nenhum erro do Supabase é registrado no log do servidor (só o código e o status chegam à tela).
+- O formulário com Turnstile pode ser enviado antes de ter o token (autopreenchimento e clique imediato).
+- Os testes de banco vão precisar do token falso da Cloudflare quando o Turnstile for ligado no painel de desenvolvimento.
+- Conversão de tipo inútil em `excluirConta` (`acoes.ts`, `as CodigoDaConta | false`).
+- Visuais: "Reenviar código" a ~77 px do botão Confirmar (a revisão sugere 28 a 32 px); `.passos` recua 40 px no celular, a sacola usa 30 px (`sacola.css:185`); `.marcar` usa a caixa nativa, de contorno mais pesado que o dos campos; o logo de Nav e Footer gera o aviso de LCP do `next/image` em todas as telas.
+
 ## Global Constraints
 
 - Ler o guia em `node_modules/next/dist/docs/` antes de tocar em rota, cache, ação de servidor ou `next.config.ts` (`AGENTS.md`). Para este plano: `01-app/02-guides/caching-without-cache-components.md`, `incremental-static-regeneration.md`, `data-security.md`, `forms.md` e `content-security-policy.md`.
