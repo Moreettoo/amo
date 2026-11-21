@@ -1,5 +1,6 @@
 -- O banco do pagamento pelo servidor: as tentativas a cancelar no Mercado
--- Pago e o pedido de uma tentativa.
+-- Pago (todas, as de um pedido e as de uma cliente) e o pedido de uma
+-- tentativa.
 
 insert into _v values ('a', pg_temp.nova_cliente('a@teste.invalid'));
 insert into _v values ('p1', pg_temp.pedido_de_exemplo(pg_temp.id('a')));
@@ -66,6 +67,41 @@ select pg_temp.verificar('a chave secreta executa a lista',
   pg_temp.como('service_role', null, $$select * from privado.pagamentos_a_cancelar_no_mp()$$) = 'ok');
 select pg_temp.verificar('a chave secreta executa mp_pedido_da_tentativa',
   pg_temp.como('service_role', null, format($$select privado.mp_pedido_da_tentativa(%L)$$, pg_temp.id('cancelada'))) = 'ok');
+
+-- as da cliente: de todos os pedidos dela, nunca de outra
+insert into _v values ('b', pg_temp.nova_cliente('b@teste.invalid'));
+insert into _v values ('pb', pg_temp.pedido_de_exemplo(pg_temp.id('b')));
+insert into _v values ('da_outra', pg_temp.tentativa(pg_temp.id('pb'), 'cancelado', 'ORD_E', 'pendente'));
+
+select pg_temp.verificar('da cliente: as canceladas e expiradas pendentes no MP, de todos os pedidos dela',
+  (select array_agg(pagamento_id order by pagamento_id) from privado.tentativas_a_cancelar_da_cliente(pg_temp.id('a')))
+  = (select array_agg(id order by id) from unnest(array[pg_temp.id('cancelada'), pg_temp.id('expirada')]) id));
+select pg_temp.verificar('da cliente: com o mp_pedido_id de cada uma',
+  exists (select 1 from privado.tentativas_a_cancelar_da_cliente(pg_temp.id('a'))
+          where pagamento_id = pg_temp.id('expirada') and mp_pedido_id = 'ORD_B'));
+select pg_temp.verificar('da cliente: nao traz a tentativa de outra cliente',
+  not exists (select 1 from privado.tentativas_a_cancelar_da_cliente(pg_temp.id('a')) where pagamento_id = pg_temp.id('da_outra')));
+select pg_temp.verificar('da outra cliente: so a dela',
+  (select count(*) = 1 and bool_and(pagamento_id = pg_temp.id('da_outra') and mp_pedido_id = 'ORD_E')
+   from privado.tentativas_a_cancelar_da_cliente(pg_temp.id('b'))));
+select pg_temp.verificar('cliente sem tentativa a cancelar: vazio',
+  not exists (select 1 from privado.tentativas_a_cancelar_da_cliente(gen_random_uuid())));
+select pg_temp.verificar('da cliente: ja cancelada no MP, sem mp_pedido_id ou ainda pendente aqui ficam de fora',
+  not exists (select 1 from privado.tentativas_a_cancelar_da_cliente(pg_temp.id('a'))
+              where pagamento_id in (pg_temp.id('ja_cancelada_la'), pg_temp.id('sem_mp_pedido'), pg_temp.id('ainda_pendente'), pg_temp.id('sem_linha'))));
+
+insert into _v values ('c', pg_temp.nova_cliente('c@teste.invalid'));
+insert into _v values ('pc', pg_temp.pedido_de_exemplo(pg_temp.id('c')));
+select pg_temp.tentativa(pg_temp.id('pc'), 'cancelado', 'ORD_X' || g, 'pendente') from generate_series(1, 201) g;
+select pg_temp.verificar('da cliente: no maximo 200',
+  (select count(*) = 200 from privado.tentativas_a_cancelar_da_cliente(pg_temp.id('c'))));
+
+select pg_temp.verificar('visitante nao executa a lista da cliente',
+  pg_temp.como('anon', null, format($$select * from privado.tentativas_a_cancelar_da_cliente(%L)$$, pg_temp.id('a'))) like '42501%');
+select pg_temp.verificar('cliente nao executa a lista da cliente, nem a propria',
+  pg_temp.como('authenticated', pg_temp.id('a'), format($$select * from privado.tentativas_a_cancelar_da_cliente(%L)$$, pg_temp.id('a'))) like '42501%');
+select pg_temp.verificar('a chave secreta executa a lista da cliente',
+  pg_temp.como('service_role', null, format($$select * from privado.tentativas_a_cancelar_da_cliente(%L)$$, pg_temp.id('a'))) = 'ok');
 
 select * from pg_temp.relatorio();
 rollback;

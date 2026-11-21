@@ -107,6 +107,62 @@ select pg_temp.verificar('com 61 minutos o pedido expira',
 select pg_temp.verificar('e a tentativa pendente expira junto',
   (select status = 'expirado' from public.pagamentos where id = pg_temp.id('c_pix')));
 
+-- o pedido espera o Pix pendente ainda valido (o Pix vive no minimo 30 minutos)
+insert into _v values ('c_pix_valido', pg_temp.pedido_de_exemplo(pg_temp.id('c')));
+insert into _v values ('c_pix_vencido', pg_temp.pedido_de_exemplo(pg_temp.id('c')));
+insert into _v values ('c_cartao', pg_temp.pedido_de_exemplo(pg_temp.id('c')));
+insert into _v values ('c_pix_cancelado', pg_temp.pedido_de_exemplo(pg_temp.id('c')));
+with nova as (
+  insert into public.pagamentos (pedido_id, forma, valor_centavos, pix_expira_em)
+  values (pg_temp.id('c_pix_valido'), 'pix', 2880, now() + interval '80 minutes') returning id
+)
+insert into _v select 't_pix_valido', id from nova;
+with nova as (
+  insert into public.pagamentos (pedido_id, forma, valor_centavos, pix_expira_em)
+  values (pg_temp.id('c_pix_vencido'), 'pix', 2880, now() + interval '50 minutes') returning id
+)
+insert into _v select 't_pix_vencido', id from nova;
+with nova as (
+  insert into public.pagamentos (pedido_id, forma, valor_centavos)
+  values (pg_temp.id('c_cartao'), 'cartao', 2880) returning id
+)
+insert into _v select 't_cartao', id from nova;
+with nova as (
+  insert into public.pagamentos (pedido_id, forma, valor_centavos, pix_expira_em)
+  values (pg_temp.id('c_pix_cancelado'), 'pix', 2880, now() + interval '80 minutes') returning id
+)
+insert into _v select 't_pix_cancelado', id from nova;
+update public.pagamentos set status = 'cancelado' where id = pg_temp.id('t_pix_cancelado');
+
+select privado.expirar_pedidos(now() + interval '61 minutes');
+select pg_temp.verificar('com 61 minutos e um Pix pendente que vale ate os 80, o pedido espera',
+  (select status = 'aguardando_pagamento' from public.pedidos where id = pg_temp.id('c_pix_valido')));
+select pg_temp.verificar('e o Pix segue pendente',
+  (select status = 'pendente' from public.pagamentos where id = pg_temp.id('t_pix_valido')));
+select pg_temp.verificar('Pix pendente ja vencido nao segura o pedido',
+  (select p.status = 'cancelado' and p.motivo_cancelamento = 'expirado' and t.status = 'expirado'
+   from public.pedidos p, public.pagamentos t
+   where p.id = pg_temp.id('c_pix_vencido') and t.id = pg_temp.id('t_pix_vencido')));
+select pg_temp.verificar('cartao pendente (sem Pix) expira com 60 minutos, como antes',
+  (select p.status = 'cancelado' and t.status = 'expirado'
+   from public.pedidos p, public.pagamentos t
+   where p.id = pg_temp.id('c_cartao') and t.id = pg_temp.id('t_cartao')));
+select pg_temp.verificar('Pix valido de tentativa cancelada nao segura o pedido',
+  (select p.status = 'cancelado' and t.status = 'cancelado'
+   from public.pedidos p, public.pagamentos t
+   where p.id = pg_temp.id('c_pix_cancelado') and t.id = pg_temp.id('t_pix_cancelado')));
+
+select privado.expirar_pedidos(now() + interval '81 minutes');
+select pg_temp.verificar('passado o Pix, o pedido expira',
+  (select status = 'cancelado' and motivo_cancelamento = 'expirado' from public.pedidos where id = pg_temp.id('c_pix_valido')));
+select pg_temp.verificar('e o Pix expira junto',
+  (select status = 'expirado' from public.pagamentos where id = pg_temp.id('t_pix_valido')));
+
+select pg_temp.verificar('a expiracao segue so do dono: a chave secreta nao a executa',
+  pg_temp.como('service_role', null, 'select privado.expirar_pedidos()') like '42501%');
+select pg_temp.verificar('nem a cliente',
+  pg_temp.como('authenticated', pg_temp.id('c'), 'select privado.expirar_pedidos()') like '42501%');
+
 -- guarda
 insert into _v values ('c_entregue', pg_temp.pedido_de_exemplo(pg_temp.id('c'), 'entregue'));
 select privado.registrar_cotacao(pg_temp.id('c'), '04567000', 'Rua X', '1', '', 'Centro', 'São Paulo', 'SP',
