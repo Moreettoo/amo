@@ -233,7 +233,8 @@ describe('entrar com o e-mail ainda nao confirmado', () => {
     const u = userEvent.setup()
     render(await PaginaCadastro(sp()))
     await u.click(screen.getByRole('button', { name: 'Criar conta' }))
-    expect(await screen.findByText(/Enviamos um código de 6 dígitos para/)).toHaveTextContent('maria@exemplo.com')
+    await screen.findByLabelText('Código')
+    expect(principal()).toHaveTextContent('Enviamos um código de 6 dígitos para maria@exemplo.com.')
     await act(() => new Promise((r) => setTimeout(r, 20)))
     expect(acoes.reenviarCodigo).not.toHaveBeenCalled()
   })
@@ -248,6 +249,37 @@ describe('esqueci a senha e excluir a conta', () => {
     await u.click(screen.getByRole('button', { name: 'Enviar o código' }))
     expect(await screen.findByLabelText('Código')).toBeInTheDocument()
     expect(screen.getByLabelText('Senha nova')).toBeInTheDocument()
+  })
+  const irAoPasso2 = async () => {
+    respostas.pedirCodigoDeSenha = { ok: true, passo: 'senha-nova', email: 'maria@exemplo.com' }
+    const u = userEvent.setup()
+    render(await PaginaEsqueci())
+    await u.type(screen.getByLabelText('E-mail'), 'maria@exemplo.com')
+    await u.click(screen.getByRole('button', { name: 'Enviar o código' }))
+    await screen.findByLabelText('Código')
+    return u
+  }
+  it('no passo 2, volta ao passo 1 para pedir outro codigo: o e-mail continua e recebe o foco', async () => {
+    const u = await irAoPasso2()
+    await u.click(screen.getByRole('button', { name: 'Pedir outro código' }))
+    expect(screen.queryByLabelText('Código')).toBeNull()
+    const email = screen.getByLabelText('E-mail')
+    expect(email).toHaveValue('maria@exemplo.com')
+    expect(email).toHaveFocus()
+    expect(screen.getByRole('button', { name: 'Enviar o código' })).toBeInTheDocument()
+  })
+  it('o erro do codigo antigo nao volta junto com o codigo novo', async () => {
+    respostas.trocarSenhaComCodigo = { ok: false, erro: 'codigo_invalido', passo: 'senha-nova', email: 'maria@exemplo.com' }
+    const u = await irAoPasso2()
+    await u.type(screen.getByLabelText('Código'), '123456')
+    await u.type(screen.getByLabelText('Senha nova'), 'senha-nova-123')
+    await u.click(screen.getByRole('button', { name: 'Trocar a senha' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Código inválido ou vencido.')
+    await u.click(screen.getByRole('button', { name: 'Pedir outro código' }))
+    await u.click(screen.getByRole('button', { name: 'Enviar o código' }))
+    await screen.findByLabelText('Código')
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(screen.getByLabelText('E-mail')).toHaveValue('maria@exemplo.com')
   })
   it('com pedido em aberto, nao ha campo de senha', async () => {
     rpc.mockResolvedValue({ data: [{ pode: false, motivo: 'pedido_em_aberto' }], error: null })

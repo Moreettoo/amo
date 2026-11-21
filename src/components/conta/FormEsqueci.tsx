@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { pedirCodigoDeSenha, trocarSenhaComCodigo, type RespostaDaConta } from '@/lib/auth/acoes'
 import { Campo, CampoSenha, Envio, erroDe } from '@/components/conta/pecas'
 import { Turnstile } from '@/components/conta/Turnstile'
@@ -8,7 +8,8 @@ import { Turnstile } from '@/components/conta/Turnstile'
 /**
  * Recuperar a senha em dois passos sobre o fio, com o coracao no atual: o
  * e-mail, depois o codigo e a senha nova. O e-mail passa de um passo ao outro
- * dentro da pagina, nunca na URL.
+ * dentro da pagina, nunca na URL. Do passo 2 da para voltar ao 1 e pedir
+ * outro codigo: o e-mail continua no campo, que recebe o foco.
  */
 export function FormEsqueci({ chaveDoTurnstile, nonce }: { chaveDoTurnstile: string; nonce: string }) {
   const [passo, setPasso] = useState<1 | 2>(1)
@@ -18,11 +19,21 @@ export function FormEsqueci({ chaveDoTurnstile, nonce }: { chaveDoTurnstile: str
     if (resposta.ok) setPasso(2)
     return resposta
   }, null)
-  const [troca, trocar, trocando] = useActionState(trocarSenhaComCodigo, null)
+  const passoUm = useRef<HTMLLIElement>(null)
+  const voltou = useRef(false)
+  useEffect(() => {
+    if (passo !== 1 || !voltou.current) return
+    voltou.current = false
+    passoUm.current?.querySelector<HTMLInputElement>('input[name="email"]')?.focus()
+  }, [passo])
+  const voltar = () => {
+    voltou.current = true
+    setPasso(1)
+  }
 
   return (
     <ol className="passos">
-      <li className={passo === 1 ? 'passo passo--atual' : 'passo'}>
+      <li ref={passoUm} className={passo === 1 ? 'passo passo--atual' : 'passo'}>
         <h2 className="passo__nome">1. Seu e-mail</h2>
         {passo === 1 ? (
           <form action={pedir} className="porta__form" noValidate>
@@ -43,17 +54,32 @@ export function FormEsqueci({ chaveDoTurnstile, nonce }: { chaveDoTurnstile: str
       <li className={passo === 2 ? 'passo passo--atual' : 'passo'}>
         <h2 className="passo__nome">2. Código e senha nova</h2>
         {passo === 2 ? (
-          <form action={trocar} className="porta__form" noValidate>
-            {pedido?.ok ? <p className="conta__texto">Se houver conta com esse e-mail, enviamos um código.</p> : null}
-            <Campo rotulo="E-mail" name="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} erro={erroDe(troca, 'email')} />
-            <Campo rotulo="Código" name="codigo" inputMode="numeric" autoComplete="one-time-code" maxLength={9} largura="meio" erro={erroDe(troca, 'codigo')} />
-            <CampoSenha rotulo="Senha nova" name="senha" autoComplete="new-password" dica="8 caracteres ou mais." erro={erroDe(troca, 'senha')} />
-            <Envio resposta={troca} enviando={trocando} rotulo="Trocar a senha" rotuloEnviando="Trocando a senha" />
-          </form>
+          <PassoDoCodigo email={email} setEmail={setEmail} enviado={pedido?.ok === true} aoPedirOutro={voltar} />
         ) : (
           <p className="passo__dica">O código que chega no e-mail e a senha nova.</p>
         )}
       </li>
     </ol>
+  )
+}
+
+type PassoProps = { email: string; setEmail: (email: string) => void; enviado: boolean; aoPedirOutro: () => void }
+
+/** O passo 2 numa peca so: voltar ao 1 e pedir outro codigo leva junto o erro do codigo antigo. */
+function PassoDoCodigo({ email, setEmail, enviado, aoPedirOutro }: PassoProps) {
+  const [troca, trocar, trocando] = useActionState(trocarSenhaComCodigo, null)
+  return (
+    <form action={trocar} className="porta__form" noValidate>
+      {enviado ? <p className="conta__texto">Se houver conta com esse e-mail, enviamos um código.</p> : null}
+      <Campo rotulo="E-mail" name="email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} erro={erroDe(troca, 'email')} />
+      <Campo rotulo="Código" name="codigo" inputMode="numeric" autoComplete="one-time-code" maxLength={9} largura="meio" erro={erroDe(troca, 'codigo')} />
+      <CampoSenha rotulo="Senha nova" name="senha" autoComplete="new-password" dica="8 caracteres ou mais." erro={erroDe(troca, 'senha')} />
+      <Envio resposta={troca} enviando={trocando} rotulo="Trocar a senha" rotuloEnviando="Trocando a senha" />
+      <p className="conta__nota">
+        <button type="button" className="conta__texto-botao" onClick={aoPedirOutro}>
+          Pedir outro código
+        </button>
+      </p>
+    </form>
   )
 }
