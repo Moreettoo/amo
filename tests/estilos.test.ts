@@ -261,6 +261,13 @@ describe('estilos', () => {
     expect(ultimo(quantos, 'grid-column')).toBe('3')
   })
 
+  it('o e-mail da lateral da conta fica numa linha so, com reticencias quando nao cabe', () => {
+    const email = regra(ler('conta.css'), '.painel__ola span')
+    expect(ultimo(email, 'white-space')).toBe('nowrap')
+    expect(ultimo(email, 'overflow')).toBe('hidden')
+    expect(ultimo(email, 'text-overflow')).toBe('ellipsis')
+  })
+
   it('o link dentro de uma nota da conta e sublinhado no fio, como o das portas', () => {
     expect(ultimo(regra(ler('conta.css'), '.painel__nota a'), 'text-decoration-line')).toBe('underline')
   })

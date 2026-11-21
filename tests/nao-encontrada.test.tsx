@@ -1,6 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { renderToString } from 'react-dom/server'
+import { act } from 'react'
+import { createRoot, hydrateRoot } from 'react-dom/client'
+import { InlineScript, MARCAR_JS } from '@/components/InlineScript'
 import { axe } from 'vitest-axe'
 import NaoEncontrada, { metadata } from '@/app/not-found'
 
@@ -63,5 +66,37 @@ describe('a página 404', () => {
   it('passa no axe', async () => {
     const { container } = render(pagina)
     expect(await axe(container)).toHaveNoViolations()
+  })
+})
+
+/**
+ * A pagina de "nao encontrado" de uma rota que ja comecou a responder chega ao
+ * navegador como arvore do servidor e e criada la, com o layout dentro. Um
+ * <script> criado no cliente avisa "Encountered a script tag" no console de
+ * desenvolvimento (React 19). O script so precisa existir no HTML do servidor.
+ */
+describe('o script que marca o JavaScript', () => {
+  it('o HTML do servidor leva o script e a hidratacao o aceita sem erro', async () => {
+    const html = renderToString(<InlineScript html={MARCAR_JS} />)
+    expect(html).toContain('<script type="text/javascript"')
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const caixa = document.createElement('div')
+    caixa.innerHTML = html
+    await act(async () => {
+      hydrateRoot(caixa, <InlineScript html={MARCAR_JS} />)
+    })
+    expect(erro).not.toHaveBeenCalled()
+    erro.mockRestore()
+  })
+
+  it('criado no cliente, nao cria <script> nem avisa', async () => {
+    const erro = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const caixa = document.createElement('div')
+    await act(async () => {
+      createRoot(caixa).render(<InlineScript html={MARCAR_JS} />)
+    })
+    expect(caixa.querySelector('script')).toBeNull()
+    expect(erro).not.toHaveBeenCalled()
+    erro.mockRestore()
   })
 })

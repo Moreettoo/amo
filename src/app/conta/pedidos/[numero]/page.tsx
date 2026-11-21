@@ -1,25 +1,36 @@
 import type { Metadata } from 'next'
+import { cache } from 'react'
 import { notFound } from 'next/navigation'
 import { CancelarPedido } from '@/components/conta/FormsDaConta'
 import { CabecaDaConta, PainelDaConta, lerDadosDoPainel } from '@/components/conta/PainelDaConta'
 import { EtapasDoPedido, PotesDoPedido } from '@/components/conta/PecasDoPedido'
-import { exigirUsuario } from '@/lib/auth'
+import { exigirUsuario, obterUsuario } from '@/lib/auth'
 import { conferirNumeroDoPedido } from '@/lib/conta/regras'
-import { FRASE_DO_ESTADO, MOTIVO_DO_CANCELAMENTO, descreverEntrega, descreverPagamento, formatarDataEHora } from '@/lib/conta/textos'
+import { FRASE_DO_ESTADO, TITULO_NAO_ENCONTRADA, MOTIVO_DO_CANCELAMENTO, descreverEntrega, descreverPagamento, formatarDataEHora } from '@/lib/conta/textos'
 import { lerPedido } from '@/lib/dados/pedidos'
 import { formatarPreco } from '@/lib/produto'
 import { textoPotes } from '@/lib/sacola'
 
-export const metadata: Metadata = { title: 'Pedido · AMO', robots: { index: false } }
-
 type Props = { params: Promise<{ numero: string }>; searchParams: Promise<{ cancelado?: string | string[] }> }
+
+// o titulo e a pagina leem o mesmo pedido: o cache do React junta as duas leituras numa so
+const lerPedidoDaPagina = cache(lerPedido)
+
+export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
+  const numero = conferirNumeroDoPedido((await params).numero)
+  const usuario = await obterUsuario()
+  const pedido = numero && usuario ? await lerPedidoDaPagina(usuario.id, numero) : null
+  // sem sessao a pagina manda entrar; so quem nao achou o pedido ganha o titulo do 404
+  const titulo = pedido ? `Pedido ${pedido.numero} · AMO` : usuario ? TITULO_NAO_ENCONTRADA : 'Pedido · AMO'
+  return { title: titulo, robots: { index: false } }
+}
 
 export default async function PaginaDoPedido({ params, searchParams }: Props) {
   const bruto = (await params).numero
   const numero = conferirNumeroDoPedido(bruto)
   const usuario = await exigirUsuario(numero ? `/conta/pedidos/${numero}` : '/conta/pedidos')
   if (!numero) notFound()
-  const [dados, pedido] = await Promise.all([lerDadosDoPainel(usuario.id), lerPedido(usuario.id, numero)])
+  const [dados, pedido] = await Promise.all([lerDadosDoPainel(usuario.id), lerPedidoDaPagina(usuario.id, numero)])
   if (!pedido) notFound()
 
   const potes = pedido.itens.reduce((soma, i) => soma + i.quantos, 0)

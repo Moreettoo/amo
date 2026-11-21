@@ -25,6 +25,7 @@ const m = vi.hoisted(() => ({
 vi.mock('@/lib/auth', async () => {
   const { voltaSegura } = await import('@/lib/auth/volta')
   return {
+    obterUsuario: async () => (m.semSessao ? null : { id: 'usuario-1', email: 'mariana@exemplo.com.br', nome: 'Mariana Costa', celular: '11987654321' }),
     exigirUsuario: async (rota: string) => {
       m.rotas.push(rota)
       if (m.semSessao) throw new Error(`REDIRECIONOU /entrar?volta=${encodeURIComponent(voltaSegura(rota))}`)
@@ -153,7 +154,7 @@ beforeEach(() => {
 describe.each([
   ['/conta', () => Inicio.default(), Inicio.metadata],
   ['/conta/pedidos', () => Pedidos.default(), Pedidos.metadata],
-  [`/conta/pedidos/${NUMERO}`, () => Pedido.default(comNumero(NUMERO)), Pedido.metadata],
+  [`/conta/pedidos/${NUMERO}`, () => Pedido.default(comNumero(NUMERO)), () => Pedido.generateMetadata(comNumero(NUMERO))],
   ['/conta/perfil', () => Perfil.default(), Perfil.metadata],
   ['/conta/perfil/enderecos', () => Enderecos.default(), Enderecos.metadata],
   ['/conta/perfil/email-e-senha', () => EmailESenha.default(comBusca()), EmailESenha.metadata],
@@ -161,7 +162,8 @@ describe.each([
   it('exige a sessao com a propria rota, fora dos buscadores', async () => {
     render(await montar())
     expect(m.rotas[0]).toBe(rota)
-    expect(metadata?.robots).toEqual({ index: false })
+    const meta = typeof metadata === 'function' ? await metadata() : metadata
+    expect(meta?.robots).toEqual({ index: false })
   })
 
   it('um h1, sem pular nivel, campos com rotulo, axe limpo', async () => {
@@ -192,6 +194,13 @@ describe.each([
     const esperado = rota.startsWith('/conta/pedidos') ? '/conta/pedidos' : rota
     expect(atual[0]).toHaveAttribute('href', esperado)
     expect(within(sumario).getByRole('button', { name: 'Sair' })).toBeInTheDocument()
+  })
+
+  it('o e-mail da lateral leva o endereco inteiro no title, para quando a linha o corta', async () => {
+    const { container } = render(await montar())
+    const email = container.querySelector('.painel__ola span')!
+    expect(email).toHaveTextContent('mariana@exemplo.com.br')
+    expect(email).toHaveAttribute('title', 'mariana@exemplo.com.br')
   })
 
   it('o sumario conta os pedidos e os enderecos, como o esboco', async () => {
@@ -286,6 +295,16 @@ describe('/conta/pedidos', () => {
 })
 
 describe('/conta/pedidos/[numero]', () => {
+  it('o titulo da aba: o do pedido que existe, o da pagina 404 para o que nao se acha', async () => {
+    m.pedido = completo()
+    expect((await Pedido.generateMetadata(comNumero(NUMERO))).title).toBe(`Pedido ${NUMERO} · AMO`)
+    m.pedido = null
+    expect((await Pedido.generateMetadata(comNumero(NUMERO))).title).toBe('Página não encontrada · AMO')
+    m.lidos = []
+    expect((await Pedido.generateMetadata(comNumero("AMO-7K2M9QXR' or 1=1"))).title).toBe('Página não encontrada · AMO')
+    expect(m.lidos).toEqual([])
+  })
+
   it('numero fora do formato: 404 sem ler o banco', async () => {
     await expect(Pedido.default(comNumero("AMO-7K2M9QXR' or 1=1"))).rejects.toThrow('NAO_ENCONTRADO')
     expect(m.lidos).toEqual([])

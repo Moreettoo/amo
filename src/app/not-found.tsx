@@ -4,10 +4,11 @@ import { Nav } from '@/components/layout/Nav'
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
 import { LinkSublinhado } from '@/components/ui/LinkSublinhado'
 import { SeloCarimbo } from '@/components/ui/SeloCarimbo'
+import { TITULO_NAO_ENCONTRADA } from '@/lib/conta/textos'
 import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { CAMINHO_CATALOGO, linhasComProduto, montarGaveta } from '@/lib/visao'
 
-export const metadata: Metadata = { title: 'Página não encontrada · AMO' }
+export const metadata: Metadata = { title: TITULO_NAO_ENCONTRADA }
 
 /**
  * O 404 do site inteiro: o slug de linha que nao existe e qualquer endereco

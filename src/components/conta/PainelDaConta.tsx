@@ -56,7 +56,7 @@ export function PainelDaConta({ atual, usuario, dados, children }: Props) {
           <aside className="painel__lado">
             <p className="painel__ola">
               <b>Olá, {primeiroNome(usuario.nome)}</b>
-              <span>{usuario.email}</span>
+              <span title={usuario.email}>{usuario.email}</span>
             </p>
             <nav aria-label="Sua conta" className="painel__sumario">
               <p className="painel__rotulo" aria-hidden="true">
