@@ -50,3 +50,9 @@ export function variavel(nome: Nome): string {
 export function mercadoPagoEmTeste(): boolean {
   return process.env.MERCADOPAGO_AMBIENTE?.trim() === 'teste'
 }
+
+/** A chave publica do Mercado Pago, que o Brick usa no navegador; vazia ou ausente, null. */
+export function chavePublicaDoMercadoPago(): string | null {
+  const valor = ler('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY')?.trim()
+  return valor ? valor : null
+}

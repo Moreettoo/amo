@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mercadoPagoEmTeste, variavel } from '@/lib/dados/ambiente'
+import { chavePublicaDoMercadoPago, mercadoPagoEmTeste, variavel } from '@/lib/dados/ambiente'
 import { ErroDeRegra, falhaDoBanco, registrarFalha } from '@/lib/dados/erros'
 import { criarClienteDoCatalogo, criarClienteDoVisitante } from '@/lib/dados/publico'
 
@@ -146,5 +146,20 @@ describe('mercadoPagoEmTeste', () => {
     } finally {
       if (anterior !== undefined) process.env.MERCADOPAGO_AMBIENTE = anterior
     }
+  })
+})
+
+describe('chavePublicaDoMercadoPago', () => {
+  it('devolve a chave publica, sem os espacos', () => {
+    vi.stubEnv('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY', ' TEST-chave-publica ')
+    expect(chavePublicaDoMercadoPago()).toBe('TEST-chave-publica')
+  })
+  it.each(['', '   '])('%j e null', (valor) => {
+    vi.stubEnv('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY', valor)
+    expect(chavePublicaDoMercadoPago()).toBeNull()
+  })
+  it('ausente e null', () => {
+    vi.stubEnv('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY', undefined)
+    expect(chavePublicaDoMercadoPago()).toBeNull()
   })
 })

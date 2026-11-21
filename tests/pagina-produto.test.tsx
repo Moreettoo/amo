@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
@@ -9,9 +9,15 @@ import { TelaProduto } from '@/components/layout/TelaProduto'
 import type { Produto } from '@/lib/catalogo'
 import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { PRODUTOS } from './fixtures/cadastro'
-import { cotarEntregaDeExemplo, mascararCep, validarEndereco } from '@/lib/entrega'
+import { mascararCep, validarEndereco } from '@/lib/entrega'
+import { MENSAGENS_DO_FECHAMENTO } from '@/lib/fechamento/tipos'
 import { formatarPreco, montarPaginaProduto, resumirNotas } from '@/lib/produto'
 import { linhasComProduto, montarGaveta } from '@/lib/visao'
+
+const m = vi.hoisted(() => ({ cotar: vi.fn() }))
+// a acao do servidor e falsa aqui: no Vitest uma acao e uma funcao comum
+vi.mock('@/app/sacola/acoes', () => ({ cotarEntrega: m.cotar }))
+beforeEach(() => m.cotar.mockReset())
 
 const pagina = async (slug: string) => render(await PaginaDoProduto({ params: Promise.resolve({ produto: slug }) }))
 
@@ -88,15 +94,31 @@ describe('a página do Prestígio', () => {
     expect(JSON.parse(localStorage.getItem('amo:sacola')!)).toEqual({ prestigio: 2 })
   })
 
-  it('a entrega pede o CEP inteiro e o número', async () => {
+  it('a entrega cota no servidor: o valor e o tempo da resposta, e os erros pelos textos do fechamento', async () => {
+    const endereco = { cep: '04567000', logradouro: 'Rua', numero: '120', complemento: '', bairro: 'Bairro', cidade: 'São Paulo', uf: 'SP' }
+    const expiraEm = new Date(Date.now() + 15 * 60_000).toISOString()
+    m.cotar
+      .mockResolvedValueOnce({ ok: false, erro: 'campos_invalidos', campos: { cep: 'Confira o CEP: ele tem 8 números.' } })
+      .mockResolvedValueOnce({ ok: false, erro: 'fora_da_area' })
+      .mockResolvedValueOnce({ ok: true, cotacao: { id: 'c1', valorCentavos: 1290, minutos: 45, expiraEm, exemplo: true, endereco } })
     await pagina('prestigio')
     await userEvent.type(screen.getByPlaceholderText('CEP'), '0456')
     await userEvent.click(screen.getByRole('button', { name: 'Calcular' }))
     expect(await screen.findByText('Confira o CEP: ele tem 8 números.')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('CEP')).toHaveAttribute('aria-invalid', 'true')
+    expect(m.cotar).toHaveBeenLastCalledWith({ cep: '0456', numero: '' })
+
     await userEvent.type(screen.getByPlaceholderText('CEP'), '7000')
     await userEvent.type(screen.getByPlaceholderText('Número'), '120')
     await userEvent.click(screen.getByRole('button', { name: 'Calcular' }))
-    expect(await screen.findByText('Uber, entrega hoje', {}, { timeout: 2000 })).toBeInTheDocument()
+    expect(await screen.findByText(MENSAGENS_DO_FECHAMENTO.fora_da_area)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('CEP')).not.toHaveAttribute('aria-invalid')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Calcular' }))
+    expect(await screen.findByText('Uber, entrega hoje')).toBeInTheDocument()
+    expect(screen.getByText('Chega em até 45 min depois do pedido')).toBeInTheDocument()
+    expect(screen.getByText(formatarPreco(1290))).toBeInTheDocument()
+    expect(m.cotar).toHaveBeenLastCalledWith({ cep: '04567-000', numero: '120' })
   })
 
   it('passa no axe', async () => {
@@ -155,13 +177,6 @@ describe('as regras da entrega e das notas', () => {
     expect(mascararCep('04567000')).toBe('04567-000')
     expect(mascararCep('0456')).toBe('0456')
     expect(validarEndereco('04567-000', '')).toBe('Falta o número da casa ou do prédio.')
-  })
-
-  it('fora da Grande São Paulo, o exemplo diz que o Uber não chega', async () => {
-    expect(await cotarEntregaDeExemplo('30140-071', '10')).toEqual({
-      tipo: 'erro',
-      mensagem: 'O Uber ainda não chega neste CEP. Hoje a entrega é só na Grande São Paulo.',
-    })
   })
 
   it('o resumo conta por nota e tira a média com uma casa', () => {

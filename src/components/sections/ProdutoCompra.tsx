@@ -1,7 +1,9 @@
 'use client'
 
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
-import { cotarEntregaDeExemplo, mascararCep, type ResultadoEntrega } from '@/lib/entrega'
+import { cotarEntrega } from '@/app/sacola/acoes'
+import { mascararCep } from '@/lib/entrega'
+import { MENSAGENS_DO_FECHAMENTO, type RespostaDaCotacao } from '@/lib/fechamento/tipos'
 import { Quantidade } from '@/components/ui/Quantidade'
 import { formatarPreco } from '@/lib/produto'
 import { abrirGavetaDaSacola, somarNaSacola, textoPotes } from '@/lib/sacola'
@@ -60,22 +62,32 @@ export function ProdutoCompra({ slug, nome, preco }: Props) {
   )
 }
 
-/** O CEP e o numero viram o valor e o prazo do Uber. */
+/** O CEP e o numero viram o valor e o prazo do Uber, cotados no servidor. */
 function Entrega() {
   const id = useId()
   const [cep, setCep] = useState('')
   const [numero, setNumero] = useState('')
   const [calculando, setCalculando] = useState(false)
-  const [resultado, setResultado] = useState<ResultadoEntrega | null>(null)
+  const [resultado, setResultado] = useState<RespostaDaCotacao | null>(null)
 
   async function calcular(e: FormEvent) {
     e.preventDefault()
+    if (calculando) return
     setCalculando(true)
-    setResultado(await cotarEntregaDeExemplo(cep, numero))
+    let r: RespostaDaCotacao
+    try {
+      r = await cotarEntrega({ cep, numero })
+    } catch {
+      r = { ok: false, erro: 'tente_de_novo' }
+    }
+    setResultado(r)
     setCalculando(false)
   }
 
-  const erro = resultado?.tipo === 'erro' ? resultado.mensagem : null
+  const falha = resultado && !resultado.ok ? resultado : null
+  // o erro de um campo diz o que falta nele; os outros, o texto do codigo
+  const doCampo = [falha?.campos?.cep, falha?.campos?.numero].filter(Boolean).join(' ')
+  const erro = falha ? doCampo || MENSAGENS_DO_FECHAMENTO[falha.erro] : null
   return (
     <form className="entrega" onSubmit={calcular} noValidate aria-busy={calculando}>
       <p className="entrega__titulo" id={`${id}-t`}>
@@ -91,7 +103,7 @@ function Entrega() {
             placeholder="CEP"
             value={cep}
             onChange={(e) => setCep(mascararCep(e.target.value))}
-            aria-invalid={erro?.startsWith('Confira') || undefined}
+            aria-invalid={falha?.campos?.cep ? true : undefined}
             aria-describedby={`${id}-r`}
           />
         </label>
@@ -103,7 +115,7 @@ function Entrega() {
             placeholder="Número"
             value={numero}
             onChange={(e) => setNumero(e.target.value.slice(0, 10))}
-            aria-invalid={erro?.startsWith('Falta') || undefined}
+            aria-invalid={falha?.campos?.numero ? true : undefined}
             aria-describedby={`${id}-r`}
           />
         </label>
@@ -112,13 +124,13 @@ function Entrega() {
         </button>
       </div>
       <div id={`${id}-r`} className="entrega__resultado" aria-live="polite">
-        {resultado?.tipo === 'cotado' ? (
+        {resultado?.ok ? (
           <p className="entrega__opcao">
             <span>
               Uber, entrega hoje
               <small>Chega em até {resultado.cotacao.minutos} min depois do pedido</small>
             </span>
-            <b>{formatarPreco(resultado.cotacao.valor)}</b>
+            <b>{formatarPreco(resultado.cotacao.valorCentavos)}</b>
           </p>
         ) : erro ? (
           <p className="entrega__erro">{erro}</p>

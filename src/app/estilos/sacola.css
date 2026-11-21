@@ -160,6 +160,9 @@
   }
   .resumo__voltar:focus-visible { color: var(--color-cobre-texto); }
   .resumo__nota { margin: 10px 0 0; font-size: 13px; line-height: 1.6; color: var(--color-suave); }
+  /* a loja agora: ate que horas recebe pedidos, ou quando abre e os horarios */
+  .resumo__loja { margin: 14px 0 0; font-size: 13px; line-height: 1.6; color: var(--color-suave); }
+  .resumo__loja span { display: block; }
 
   /* o pedido feito */
   .feito { max-width: 620px; }
@@ -196,6 +199,10 @@
       border-top: 1px solid var(--fio); background: var(--color-creme); box-shadow: 0 -12px 30px -22px rgb(43 27 22 / .5);
     }
     .resumo__rotulo, .resumo__contas div:not(.resumo__total), .resumo__voltar, .resumo__nota { display: none; }
+    /* na barra so fica a loja fechada, numa linha em cima do total e do botao */
+    .resumo__loja { display: none; }
+    .resumo__loja--fechada { display: block; grid-column: 1 / -1; order: -1; margin: 0; font-size: 12px; }
+    .resumo__loja--fechada span + span { display: none; }
     .resumo__contas { margin: 0; }
     .resumo__total { margin: 0; padding: 0 !important; border: 0; display: grid !important; gap: 0 !important; }
     .resumo__total dt { font-size: 12px; color: var(--color-suave); font-weight: 400; }

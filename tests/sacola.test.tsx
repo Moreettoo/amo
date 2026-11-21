@@ -1,10 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { act, render, screen, within } from '@testing-library/react'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
 import PaginaSacola from '@/app/sacola/page'
 import PaginaDoProduto from '@/app/catalogo/[produto]/page'
+import { CHAVE_DO_PROGRESSO } from '@/components/sacola/progresso'
 import { carregarCatalogo } from '@/lib/dados/catalogo'
+import { MENSAGENS_DO_FECHAMENTO, type Cotacao } from '@/lib/fechamento/tipos'
+import { resumoDosHorarios, textoDaLoja, type SituacaoDaLoja } from '@/lib/loja'
 import { mascararCelular, validarDados } from '@/lib/pedido'
 import { formatarPreco } from '@/lib/produto'
 import {
@@ -17,13 +20,54 @@ import {
   somarLinhas,
 } from '@/lib/sacola'
 
+const m = vi.hoisted(() => ({
+  usuario: null as { id: string; email: string; nome: string; celular: string } | null,
+  enderecos: [] as Record<string, unknown>[],
+  horarios: [2, 3, 4, 5, 6].map((dia) => ({ dia, abre: '09:00', fecha: '18:00' })),
+  situacao: { aberta: true, fecha: '18:00' } as SituacaoDaLoja,
+  cotar: vi.fn(),
+}))
+// as acoes do servidor sao falsas aqui: no Vitest uma acao e uma funcao comum
+vi.mock('@/app/sacola/acoes', () => ({ cotarEntrega: m.cotar }))
+vi.mock('@/lib/auth', async (original) => ({ ...(await original<typeof import('@/lib/auth')>()), obterUsuario: async () => m.usuario }))
+vi.mock('@/lib/dados/enderecos', () => ({ lerEnderecos: async () => m.enderecos }))
+vi.mock('@/lib/dados/loja', () => ({ lerLoja: async () => ({ horarios: m.horarios, pausada: false }) }))
+vi.mock('@/lib/loja', async (original) => ({ ...(await original<typeof import('@/lib/loja')>()), situacaoDaLoja: () => m.situacao }))
+vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-nonce': 'nonce-de-teste' }) }))
+
+const cotacaoDe = (venceEmMs = 15 * 60_000): Cotacao => ({
+  id: 'b1f0c9a2-4d3e-4f5a-8b6c-7d8e9f0a1b2c',
+  valorCentavos: 1290,
+  minutos: 45,
+  expiraEm: new Date(Date.now() + venceEmMs).toISOString(),
+  exemplo: true,
+  endereco: {
+    cep: '04567000',
+    logradouro: 'Rua Gomes de Carvalho',
+    numero: '10',
+    complemento: '',
+    bairro: 'Vila Olímpia',
+    cidade: 'São Paulo',
+    uf: 'SP',
+  },
+})
+const linhaDaEntrega = (sufixo = ' (valor de exemplo)') => `Rua Gomes de Carvalho, 10 · Vila Olímpia · Uber, ${formatarPreco(1290)}${sufixo}`
+
 const loja = montarLoja(await carregarCatalogo())
 const guardada = () => JSON.parse(localStorage.getItem(CHAVE_SACOLA) ?? '{}')
 const guardar = (s: Record<string, number>) => localStorage.setItem(CHAVE_SACOLA, JSON.stringify(s))
 
 const principal = () => screen.getByRole('main')
 
-beforeEach(() => localStorage.clear())
+beforeEach(() => {
+  localStorage.clear()
+  sessionStorage.clear()
+  m.usuario = null
+  m.enderecos = []
+  m.situacao = { aberta: true, fecha: '18:00' }
+  m.cotar.mockReset()
+  vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', '1x00000000000000000000AA')
+})
 
 describe('as regras da sacola', () => {
   it('produto sem preco nao entra na loja, e a sacola guardada ignora o sabor', async () => {
@@ -128,17 +172,19 @@ describe('a página /sacola', () => {
     render(await PaginaSacola())
     const botao = () => screen.getByRole('button', { name: /^(Continuar|Calcular|Fazer o pedido)/ })
 
+    m.cotar.mockResolvedValueOnce({ ok: false, erro: 'fora_da_area' }).mockResolvedValueOnce({ ok: true, cotacao: cotacaoDe() })
     await user.click(await screen.findByRole('button', { name: 'Continuar para a entrega' }))
     await user.type(screen.getByLabelText('CEP'), '30140071')
     await user.type(screen.getByLabelText('Número'), '10')
     await user.click(botao())
-    expect(await screen.findByText(/O Uber ainda não chega/, {}, { timeout: 2000 })).toBeInTheDocument()
+    expect(await screen.findByText(MENSAGENS_DO_FECHAMENTO.fora_da_area)).toBeInTheDocument()
 
     await user.clear(screen.getByLabelText('CEP'))
     await user.type(screen.getByLabelText('CEP'), '04567000')
     await user.click(botao())
-    expect(await screen.findByLabelText('Nome', {}, { timeout: 2000 })).toBeInTheDocument()
-    expect(screen.getByText(/CEP 04567-000, 10 · Uber, R\$ [\d,]+ \(valor de exemplo\)/)).toBeInTheDocument()
+    expect(await screen.findByLabelText('Nome')).toBeInTheDocument()
+    expect(m.cotar).toHaveBeenLastCalledWith({ cep: '04567-000', numero: '10', complemento: '' })
+    expect(screen.getByText(linhaDaEntrega())).toBeInTheDocument()
 
     await user.click(botao())
     expect(await screen.findByText(/Diga o seu nome/)).toBeInTheDocument()
@@ -155,6 +201,7 @@ describe('a página /sacola', () => {
     expect(screen.getByText(/pedido de exemplo: nada foi cobrado/)).toBeInTheDocument()
     expect(screen.getByText(/Total, no cartão/)).toBeInTheDocument()
     expect(localStorage.getItem(CHAVE_SACOLA)).toBeNull()
+    expect(sessionStorage.getItem(CHAVE_DO_PROGRESSO)).toBeNull()
   }, 15000)
 
   it('outra aba mexeu na sacola: a página acompanha', async () => {
@@ -170,8 +217,104 @@ describe('a página /sacola', () => {
 
   it('passa no axe', async () => {
     guardar({ prestigio: 2, pacoca: 1 })
+    m.situacao = { aberta: false, pausada: false, abre: { dia: 2, hora: '09:00', emDias: 1 } }
     const { container } = render(await PaginaSacola())
     await screen.findByRole('list', { name: 'Etapas do pedido' })
     expect(await axe(container)).toHaveNoViolations()
+  })
+})
+
+describe('a sacola fala com o servidor', () => {
+  const resumo = () => screen.getByRole('complementary', { name: 'Resumo' })
+  const irParaAEntrega = async () => {
+    const user = userEvent.setup()
+    render(await PaginaSacola())
+    await user.click(await screen.findByRole('button', { name: 'Continuar para a entrega' }))
+    return user
+  }
+
+  it('a etapa 2 cota no servidor; a linha da etapa e o resumo da página mostram a entrega', async () => {
+    guardar({ prestigio: 2 })
+    m.cotar.mockResolvedValue({ ok: true, cotacao: cotacaoDe() })
+    const user = await irParaAEntrega()
+    await user.type(screen.getByLabelText('CEP'), '04567000')
+    await user.type(screen.getByLabelText('Número'), '10')
+    await user.type(screen.getByLabelText('Complemento (opcional)'), 'apto 12')
+    await user.click(screen.getByRole('button', { name: 'Calcular e continuar' }))
+    expect(await screen.findByLabelText('Nome')).toBeInTheDocument()
+    expect(m.cotar).toHaveBeenCalledWith({ cep: '04567-000', numero: '10', complemento: 'apto 12' })
+    expect(screen.getByText(linhaDaEntrega())).toBeInTheDocument()
+    expect(within(resumo()).getByText('Entrega (valor de exemplo)')).toBeInTheDocument()
+    expect(within(resumo()).getByText(formatarPreco(1290))).toBeInTheDocument()
+    expect(within(resumo()).getByText(formatarPreco(2 * 1890 + 1290), { selector: '.resumo__total dd' })).toBeInTheDocument()
+  })
+
+  it('erro com campos: a frase embaixo do campo, com aria-invalid; sem campos: a frase do código, em região viva', async () => {
+    guardar({ prestigio: 1 })
+    m.cotar
+      .mockResolvedValueOnce({ ok: false, erro: 'campos_invalidos', campos: { numero: 'Use só letras e números no número, até 10.' } })
+      .mockResolvedValueOnce({ ok: false, erro: 'muitas_tentativas' })
+    const user = await irParaAEntrega()
+    await user.type(screen.getByLabelText('CEP'), '04567000')
+    await user.type(screen.getByLabelText('Número'), '1@')
+    await user.click(screen.getByRole('button', { name: 'Calcular e continuar' }))
+    const numero = screen.getByLabelText('Número')
+    await waitFor(() => expect(numero).toHaveAttribute('aria-invalid', 'true'))
+    expect(numero).toHaveAccessibleDescription(expect.stringContaining('Use só letras e números no número, até 10.'))
+    expect(screen.getByLabelText('CEP')).not.toHaveAttribute('aria-invalid')
+
+    await user.click(screen.getByRole('button', { name: 'Calcular e continuar' }))
+    const linha = await screen.findByText(MENSAGENS_DO_FECHAMENTO.muitas_tentativas)
+    expect(linha.closest('[aria-live]')).not.toBeNull()
+    expect(screen.getByLabelText('Número')).not.toHaveAttribute('aria-invalid')
+  })
+
+  it('logada com endereço principal: CEP, número e complemento já vêm preenchidos', async () => {
+    guardar({ prestigio: 1 })
+    m.usuario = { id: 'usuario-1', email: 'mariana@exemplo.com.br', nome: 'Mariana Costa', celular: '11987654321' }
+    const comum = { logradouro: 'Rua', bairro: 'Bairro', cidade: 'São Paulo', uf: 'SP' }
+    m.enderecos = [
+      { id: 'e1', apelido: 'Trabalho', cep: '01310100', numero: '1000', complemento: '', principal: false, ...comum },
+      { id: 'e2', apelido: 'Casa', cep: '04567000', numero: '10', complemento: 'apto 12', principal: true, ...comum },
+    ]
+    await irParaAEntrega()
+    expect(screen.getByLabelText('CEP')).toHaveValue('04567-000')
+    expect(screen.getByLabelText('Número')).toHaveValue('10')
+    expect(screen.getByLabelText('Complemento (opcional)')).toHaveValue('apto 12')
+  })
+
+  it('loja fechada: o resumo diz quando abre e os horários desde a etapa 1; aberta, até que horas', async () => {
+    guardar({ prestigio: 1 })
+    m.situacao = { aberta: false, pausada: false, abre: { dia: 2, hora: '09:00', emDias: 1 } }
+    const { unmount } = render(await PaginaSacola())
+    await screen.findByRole('button', { name: 'Continuar para a entrega' })
+    expect(within(resumo()).getByText(textoDaLoja(m.situacao))).toBeInTheDocument()
+    expect(within(resumo()).getByText(resumoDosHorarios(m.horarios))).toBeInTheDocument()
+    unmount()
+
+    m.situacao = { aberta: true, fecha: '18:00' }
+    render(await PaginaSacola())
+    await screen.findByRole('button', { name: 'Continuar para a entrega' })
+    expect(within(resumo()).getByText('Pedidos até as 18h.')).toBeInTheDocument()
+    expect(within(resumo()).queryByText(resumoDosHorarios(m.horarios))).toBeNull()
+  })
+
+  it('recarregar com o progresso guardado: volta à etapa 3 com a entrega; com a cotação vencida, à 2 com o endereço', async () => {
+    guardar({ prestigio: 1 })
+    const endereco = { cep: '04567-000', numero: '10', complemento: 'apto 12' }
+    sessionStorage.setItem(CHAVE_DO_PROGRESSO, JSON.stringify({ etapa: 3, endereco, cotacao: { ...cotacaoDe(), exemplo: false } }))
+    const { unmount } = render(await PaginaSacola())
+    expect(await screen.findByLabelText('Nome')).toBeInTheDocument()
+    expect(screen.getByText(linhaDaEntrega(''))).toBeInTheDocument()
+    expect(within(resumo()).getByText('Entrega')).toBeInTheDocument()
+    expect(m.cotar).not.toHaveBeenCalled()
+    unmount()
+
+    sessionStorage.setItem(CHAVE_DO_PROGRESSO, JSON.stringify({ etapa: 3, endereco, cotacao: cotacaoDe(-1000) }))
+    render(await PaginaSacola())
+    expect(await screen.findByLabelText('CEP')).toHaveValue('04567-000')
+    expect(screen.getByLabelText('Número')).toHaveValue('10')
+    expect(screen.getByLabelText('Complemento (opcional)')).toHaveValue('apto 12')
+    expect(within(resumo()).getByText('informe o CEP')).toBeInTheDocument()
   })
 })
