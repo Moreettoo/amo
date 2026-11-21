@@ -279,6 +279,20 @@ describe('trocarSenha', () => {
   })
 })
 
+describe('o log do servidor nas trocas', () => {
+  it.each([
+    ['trocarSenha', () => trocarSenha(null, form(senhas))],
+    ['trocarEmail', () => trocarEmail(null, form({ email: 'outra@exemplo.com' }))],
+  ])('%s registra a falha do Supabase com lugar, codigo e status, sem a mensagem crua', async (onde, acao) => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    m.updateUser.mockResolvedValueOnce({ data: null, error: { code: 'unexpected_failure', status: 500, name: 'AuthApiError', message: 'maria@exemplo.com segredo' } })
+    await acao()
+    expect(log).toHaveBeenCalledWith('Falha do Supabase', expect.objectContaining({ onde, code: 'unexpected_failure', status: 500 }))
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/segredo|maria@exemplo/)
+    log.mockRestore()
+  })
+})
+
 describe('trocarEmail', () => {
   it('e-mail invalido marca o campo, sem limite nem Supabase', async () => {
     expect(await trocarEmail(null, form({ email: 'maria' }))).toEqual({ ok: false, erro: 'campos_invalidos', campos: { email: expect.any(String) } })

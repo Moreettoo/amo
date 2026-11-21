@@ -182,6 +182,14 @@ produção.
    produção o recusa. Por isso esses testes nunca rodam contra a produção.
    Confirmar o código e trocar a senha com o código não pedem token.
 5. **Senha:** mínimo 8; proteção contra senha vazada (plano Pro).
+   "Secure password change" (reautenticação) **desligado**: com ele, quem
+   está logada há mais de 24 horas não troca a senha em Minha conta (o
+   Supabase devolve `reauthentication_needed`, e a tela pede para sair e
+   entrar de novo). Ele não protege nada a mais: a troca já confere a senha
+   atual num login à parte (`senhaConfere`). O "Require current password"
+   do item 1 não foi cumprido pelo projeto de desenvolvimento no teste de
+   2026-11-20 (a troca passou com a senha atual errada); por isso o código
+   confere a senha por conta própria. Na produção, conferir os dois.
 6. **URLs:** Site URL e a lista de redirecionamento só com
    `<site>/auth/callback`.
 7. **SMTP próprio** antes de ir ao ar. O envio embutido só entrega a quem é

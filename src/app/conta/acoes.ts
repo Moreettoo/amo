@@ -9,7 +9,7 @@ import { conferirEmail, conferirEndereco, conferirNumeroDoPedido, conferirPerfil
 import type { AvisoDaConta, CodigoDeErro } from '@/lib/conta/mensagens'
 import { buscarCep, type EnderecoDoCep } from '@/lib/dados/cep'
 import { alterarEndereco, apagarEndereco, criarEndereco, tornarEnderecoPrincipal } from '@/lib/dados/enderecos'
-import { ErroDeRegra } from '@/lib/dados/erros'
+import { ErroDeRegra, registrarFalha } from '@/lib/dados/erros'
 import { consumirLimite } from '@/lib/dados/limites'
 import { cancelarPedidoDaCliente } from '@/lib/dados/pedidos'
 import { gravarMarketing, gravarPerfil } from '@/lib/dados/perfil'
@@ -168,7 +168,10 @@ export async function trocarSenha(_: Resposta | null, form: FormData): Promise<R
 
     const banco = await criarClienteServidor()
     const { error } = await banco.auth.updateUser({ password: nova, current_password: atual })
-    if (error) return falha(ERRO_DA_TROCA_DE_SENHA(error as { code?: string; reasons?: string[] }))
+    if (error) {
+      registrarFalha('trocarSenha', error)
+      return falha(ERRO_DA_TROCA_DE_SENHA(error as { code?: string; reasons?: string[] }))
+    }
     await banco.auth.signOut({ scope: 'others' })
     return feito('senha_trocada')
   })
@@ -189,6 +192,7 @@ export async function trocarEmail(_: Resposta | null, form: FormData): Promise<R
     if (!(await consumirLimite(`credenciais:${usuario.id}`, 5, 3600))) return falha('muitas_tentativas')
 
     const { error } = await (await criarClienteServidor()).auth.updateUser({ email })
+    if (error) registrarFalha('trocarEmail', error)
     switch (error?.code) {
       case undefined:
       case 'email_exists':
