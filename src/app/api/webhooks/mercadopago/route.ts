@@ -9,6 +9,8 @@ const TIPOS = new Set(['order', 'topic_chargebacks_wh'])
 const DATA_ID = /^[A-Za-z0-9_-]{1,64}$/
 const REQUEST_ID = /^[A-Za-z0-9_.:-]{1,200}$/
 
+const TS = /(?:^|[,\s])ts=(\d+)(?:$|[,\s])/
+
 const vazio = (status: number) => new Response(null, { status })
 
 /**
@@ -42,7 +44,7 @@ export async function POST(request: Request): Promise<Response> {
 
   let evento: number
   try {
-    const eventoId = requestId && REQUEST_ID.test(requestId) ? requestId : `${dataId}:${Date.now()}`
+    const eventoId = requestId && REQUEST_ID.test(requestId) ? requestId : `${dataId}:${request.headers.get('x-signature')?.match(TS)?.[1] ?? 'sem-ts'}`
     const r = await registrarEventoWebhook({ eventoId, tipo, recursoId: dataId })
     if (r.situacao === 'ja_tratado') return vazio(200)
     evento = r.evento

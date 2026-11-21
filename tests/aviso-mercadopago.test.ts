@@ -7,6 +7,7 @@ const m = vi.hoisted(() => ({
   registrarEventoWebhook: vi.fn(),
   concluirEventoWebhook: vi.fn(),
   aplicarRespostaDoMp: vi.fn(),
+  variavel: vi.fn(),
 }))
 
 vi.mock('@/lib/mercadopago/assinatura', () => ({ conferirAssinatura: m.conferirAssinatura }))
@@ -16,7 +17,7 @@ vi.mock('@/lib/dados/pagamentos', () => ({
   concluirEventoWebhook: m.concluirEventoWebhook,
 }))
 vi.mock('@/lib/mercadopago/sincronizar', () => ({ aplicarRespostaDoMp: m.aplicarRespostaDoMp }))
-vi.mock('@/lib/dados/ambiente', () => ({ variavel: () => 'segredo' }))
+vi.mock('@/lib/dados/ambiente', () => ({ variavel: m.variavel }))
 vi.mock('@/lib/dados/erros', () => ({ registrarFalha: vi.fn() }))
 
 import { POST } from '@/app/api/webhooks/mercadopago/route'
@@ -34,6 +35,7 @@ function aviso(query = 'type=order&data.id=ORD1', corpo: unknown = {}, cab: Reco
 
 beforeEach(() => {
   vi.resetAllMocks()
+  m.variavel.mockReturnValue('segredo')
   m.conferirAssinatura.mockReturnValue(true)
   m.registrarEventoWebhook.mockResolvedValue({ evento: 7, situacao: 'novo' })
   m.lerPedidoMp.mockResolvedValue({ ok: true, pedido })
@@ -83,9 +85,30 @@ describe('aviso do Mercado Pago', () => {
     expect(m.concluirEventoWebhook).toHaveBeenCalledWith(7, null)
   })
 
-  it('x-request-id fora do padrao: usa data.id:ts', async () => {
-    await aviso('type=order&data.id=ORD1', {}, { 'x-request-id': 'a b' })
-    expect(m.registrarEventoWebhook.mock.calls[0][0].eventoId).toMatch(/^ORD1:\d+$/)
+  it('x-request-id fora do padrao: usa data.id:ts da assinatura, igual em duas entregas', async () => {
+    const cab = { 'x-request-id': 'a b', 'x-signature': 'ts=1700000000,v1=aa' }
+    await aviso('type=order&data.id=ORD1', {}, cab)
+    await aviso('type=order&data.id=ORD1', {}, cab)
+    expect(m.registrarEventoWebhook.mock.calls[0][0].eventoId).toBe('ORD1:1700000000')
+    expect(m.registrarEventoWebhook.mock.calls[1][0].eventoId).toBe('ORD1:1700000000')
+  })
+
+  it('sem ts na assinatura: fallback deterministico', async () => {
+    await aviso('type=order&data.id=ORD1', {}, { 'x-request-id': '', 'x-signature': 'v1=aa' })
+    expect(m.registrarEventoWebhook.mock.calls[0][0].eventoId).toBe('ORD1:sem-ts')
+  })
+
+  it('segredo ausente: 500 sem registrar', async () => {
+    m.variavel.mockImplementation(() => {
+      throw new Error('falta')
+    })
+    expect((await aviso()).status).toBe(500)
+    expect(m.registrarEventoWebhook).not.toHaveBeenCalled()
+  })
+
+  it('concluir lancando: ainda responde', async () => {
+    m.concluirEventoWebhook.mockRejectedValue(new Error('x'))
+    expect((await aviso()).status).toBe(200)
   })
 
   it('aceita topic_chargebacks_wh', async () => {
