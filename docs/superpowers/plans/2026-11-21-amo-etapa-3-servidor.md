@@ -115,9 +115,9 @@ git commit -m "feat: o cliente do catalogo e o do visitante, o ambiente do Merca
 - Consumes: `criarClienteDoVisitante()` (Task 1); `falhaDoBanco(onde, erro, status)`.
 - Produces:
   - `type Horario = { dia: number; abre: string; fecha: string }`: `dia` de 0 (domingo) a 6; `abre` e `fecha` como o Postgres devolve `time` (`'09:00:00'`), na hora de São Paulo.
-  - `type SituacaoDaLoja = { aberta: true; fecha: string } | { aberta: false; pausada: true } | { aberta: false; pausada: false; abre: { dia: number; hora: string } | null }`
+  - `type SituacaoDaLoja = { aberta: true; fecha: string } | { aberta: false; pausada: true } | { aberta: false; pausada: false; abre: { dia: number; hora: string; emDias: number } | null }`; `emDias` é quantos dias faltam (0 hoje, 1 amanhã, até 7 no mesmo dia da semana seguinte), e é dele que `textoDaLoja` tira "hoje", "amanhã" ou o nome do dia (emenda de 2026-11-21, na revisão da Task 2).
   - `situacaoDaLoja(horarios: readonly Horario[], pausada: boolean, agora: Date): SituacaoDaLoja`, com a regra de `privado.loja_aberta`: aberta se não está pausada e existe horário do dia da semana de São Paulo com `abre <= agora < fecha`. Fechada fora do horário: o próximo `abre` a partir de agora (hoje, se ainda não abriu; senão o primeiro dos 7 dias seguintes com horário), ou `null` sem horário nenhum. A hora de São Paulo sai de `Intl.DateTimeFormat` com `timeZone: 'America/Sao_Paulo'`, sem biblioteca.
-  - `textoDaLoja(s: SituacaoDaLoja, agora: Date): string` e `resumoDosHorarios(horarios: readonly Horario[]): string`, com os textos dos testes.
+  - `textoDaLoja(s: SituacaoDaLoja): string` (sem `agora`: o `emDias` já diz o dia; emenda de 2026-11-21) e `resumoDosHorarios(horarios: readonly Horario[]): string`, com os textos dos testes.
   - `lerLoja(): Promise<{ horarios: Horario[]; pausada: boolean }>` em `src/lib/dados/loja.ts`: `horarios` (`dia_da_semana, abre, fecha`, por dia) e `loja.vendas_pausadas`; sem a linha da loja, `pausada: true` (fecha na dúvida, como o banco).
 
 - [ ] **Step 1: Escrever os testes que falham**
