@@ -1377,3 +1377,39 @@ Conferir: `/conta` sem sessão leva a `/entrar?volta=/conta` e volta para a cont
 git add scripts/testar-porta.mjs scripts/testar-exclusao.mjs supabase/README.md docs/superpowers/specs
 git commit -m "test: a porta com token de cliente e a exclusao de conta, de ponta a ponta"
 ```
+
+---
+
+## Adiado na revisão final (2026-11-21)
+
+Pequenos, achados nas revisões finais da Parte A e da Parte B e no ensaio. Nenhum quebra o que a etapa 2 entrega; cada um entra quando a etapa que mexe na peça chegar.
+
+**Para a etapa 3 (fechamento):**
+- A marca `APP_USR-` da varredura vai pegar a chave pública de produção do Mercado Pago; trocar por um formato do access token.
+- `criarClientePublico` põe cache de 5 min em toda chamada; renomear para cliente do catálogo antes de ler loja e horários.
+- O `.env.example` não tem `UBER_DIRECT_*` nem `COZINHA_ENDERECO`, que o contrato lista.
+
+**Banco e dados:**
+- "sem código" não distingue banco fora do ar; somar o status HTTP.
+- Ordenar o catálogo por ordem e slug, para ordem repetida no painel não trocar de lugar entre renovações; `02_catalogo` fixa 7 selos.
+- Passos vazios no modo de aproveitar passam na validação.
+- Depois da migration `domingo_fechado` não rodou `90_permissoes` nem os conselheiros (ela só apaga dado).
+- `banco.ts` sem `import 'server-only'` (só tipos).
+- Sem `"engines": { "node": ">=22" }` no `package.json` (supabase-js 2.119 pede Node 22).
+
+**Minha conta:**
+- Caracteres de controle C1 (U+0080 a U+009F, NEL) passam na validação e caem no check do banco como "tente de novo" (`regras.ts`, `cep.ts`).
+- Sem JavaScript, "Remover" e "Cancelar pedido" aparecem e não fazem nada (falta `so-js`).
+- Se a cliente digita na rua enquanto a busca do CEP volta, o que ela digitou é sobrescrito.
+- Pedir a troca para o próprio e-mail atual mostra "Enviamos um link..." sem ter enviado nada.
+- A sessão que `senhaConfere` abre fica viva até expirar quando o `updateUser` falha (no máximo umas 5 por hora).
+- O 5º endereço perde o "Endereço guardado." para o leitor de tela (`NovoEndereco` desmonta; a nota de 5 pode ser `role="status"`).
+- A caixa de novidades fica no estado novo quando salvar falha.
+- O 404 de `/conta/pedidos/[numero]` fica com o título "Pedido · AMO" e, no dev, o aviso "Encountered a script tag while rendering React component".
+- O e-mail da lateral quebra no hífen a 1440 (reticências com o e-mail no `title`, ou deixar).
+- A frase ao lado de Endereços podia dizer a conta ("2 guardados, de até 5.").
+
+**Outros:**
+- O aviso de LCP do logo do rodapé nas telas curtas (explicado em `Footer.tsx`).
+- `scripts/testar-porta.mjs` pode deixar usuário de teste se `generateLink` ou `verifyOtp` lançar.
+- O sidecar `.impeccable/design.json` ainda não tem a seção "As duas portas".
