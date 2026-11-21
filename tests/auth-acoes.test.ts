@@ -283,6 +283,12 @@ describe('excluirConta', () => {
     expect(senhaConfere).not.toHaveBeenCalled()
     expect(deleteUser).not.toHaveBeenCalled()
   })
+  it('a consulta sem linha nenhuma responde tente de novo, sem conferir a senha', async () => {
+    rpc.mockResolvedValue({ data: [], error: null, status: 200 })
+    expect(await chamar(acoes.excluirConta, EXCLUIR)).toEqual({ ok: false, erro: 'tente_de_novo' })
+    expect(senhaConfere).not.toHaveBeenCalled()
+    expect(deleteUser).not.toHaveBeenCalled()
+  })
   // senhaConfere devolve true ou o codigo da tela (src/lib/auth/senha.ts), e o codigo segue como veio
   it.each(['credenciais', 'captcha', 'muitas_tentativas'])('senha nao conferida (%s) nao apaga', async (codigo) => {
     senhaConfere.mockResolvedValue(codigo)
@@ -341,6 +347,13 @@ describe('o log do servidor', () => {
     rpc.mockResolvedValue({ data: null, error: { code: 'PGRST301', message: 'texto cru' } })
     expect(await chamar(acoes.excluirConta, EXCLUIR)).toMatchObject({ ok: false, erro: 'tente_de_novo' })
     expect(linhas()).toEqual([['Falha do Supabase', { onde: 'pode_excluir_conta', code: 'PGRST301', status: null, name: null }]])
+  })
+  // a mesma leitura de podeExcluirConta (src/lib/dados/perfil.ts), e nao uma copia que perde o status (revisao final de 2026-11-21)
+  it('a consulta de exclusao que falha sem codigo diz o status HTTP no log', async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: '', message: 'texto cru' }, status: 503 })
+    expect(await chamar(acoes.excluirConta, EXCLUIR)).toMatchObject({ ok: false, erro: 'tente_de_novo' })
+    expect(linhas()).toEqual([['Falha do Supabase', { onde: 'pode_excluir_conta', code: null, status: 503, name: null }]])
+    expect(senhaConfere).not.toHaveBeenCalled()
   })
   it('sair com o Supabase recusando vai ao log', async () => {
     auth.signOut.mockResolvedValue({ data: {}, error: { code: 'unexpected_failure', status: 500 } })

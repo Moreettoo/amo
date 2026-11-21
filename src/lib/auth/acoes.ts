@@ -14,8 +14,9 @@ import { PISO_DO_ENVIO, PISO_DO_LOGIN, comPiso } from '@/lib/auth/tempo'
 import { VERSAO_DOS_TERMOS } from '@/lib/auth/termos'
 import { voltaSegura } from '@/lib/auth/volta'
 import { conferirCodigo, conferirEmail, conferirPerfil, conferirSenha, conferirSenhaAtual } from '@/lib/conta/regras'
-import { falhaDoBanco, registrarFalha } from '@/lib/dados/erros'
+import { registrarFalha } from '@/lib/dados/erros'
 import { consumirLimite } from '@/lib/dados/limites'
+import { podeExcluirConta } from '@/lib/dados/perfil'
 
 /**
  * As acoes da conta. Toda acao, nesta ordem: sessao (quando e de quem esta
@@ -243,11 +244,8 @@ export async function excluirConta(_: RespostaDaConta | null, form: FormData): P
   }
   if (!(await dentroDosLimites([[`excluir:${usuario.id}`, 3, 3600]]))) return falha('muitas_tentativas')
   try {
-    const banco = await criarClienteServidor()
-    const { data, error } = await banco.rpc('pode_excluir_conta')
-    if (error) throw falhaDoBanco('pode_excluir_conta', error)
-    if (!data?.[0]) return falha('tente_de_novo')
-    if (!data[0].pode) return falha('pedido_em_aberto')
+    // a leitura da camada de dados: a falha do banco vai ao log com o status, e a resposta sem linha tambem cai no catch
+    if (!(await podeExcluirConta()).pode) return falha('pedido_em_aberto')
     const conferida = await senhaConfere(usuario.email, senha, tokenDoCaptcha(form))
     if (conferida !== true) return falha(conferida)
     const apagada = await criarClienteAdmin().auth.admin.deleteUser(usuario.id)
