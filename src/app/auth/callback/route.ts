@@ -18,12 +18,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (tipo !== 'email_change' || !FORMATO_DO_HASH.test(hash)) return invalido()
   try {
     const banco = await criarClienteServidor()
-    const { error } = await banco.auth.verifyOtp({ token_hash: hash, type: 'email_change' })
+    const { data, error } = await banco.auth.verifyOtp({ token_hash: hash, type: 'email_change' })
     if (error) return invalido()
-    // com "Secure email change" o primeiro dos dois links so confirma um lado:
-    // enquanto o Supabase guarda o e-mail novo a espera, falta o outro link
-    const { data } = await banco.auth.getUser()
-    return ir(`${ACESSO}?aviso=${data.user?.new_email ? 'falta-o-outro-email' : 'email-trocado'}`)
+    // com "Secure email change" o primeiro dos dois links so confirma um lado e
+    // o verify nao abre sessao; o ultimo troca o e-mail e abre. O sinal vem do
+    // verify, nao do cookie: o link aberto noutro navegador chega sem sessao
+    return ir(`${ACESSO}?aviso=${data.session ? 'email-trocado' : 'falta-o-outro-email'}`)
   } catch {
     return invalido()
   }

@@ -17,14 +17,20 @@ const m = vi.hoisted(() => ({
   lidos: [] as string[],
   enderecos: [] as unknown[],
   pode: { pode: true, motivo: null } as { pode: boolean; motivo: string | null },
+  semSessao: false,
 }))
 
-vi.mock('@/lib/auth', () => ({
-  exigirUsuario: async (rota: string) => {
-    m.rotas.push(rota)
-    return { id: 'usuario-1', email: 'mariana@exemplo.com.br', nome: 'Mariana Costa', celular: '11987654321' }
-  },
-}))
+// sem sessao, como o de verdade: entrar e voltar a rota, pela mesma conferencia do volta
+vi.mock('@/lib/auth', async () => {
+  const { voltaSegura } = await import('@/lib/auth/volta')
+  return {
+    exigirUsuario: async (rota: string) => {
+      m.rotas.push(rota)
+      if (m.semSessao) throw new Error(`REDIRECIONOU /entrar?volta=${encodeURIComponent(voltaSegura(rota))}`)
+      return { id: 'usuario-1', email: 'mariana@exemplo.com.br', nome: 'Mariana Costa', celular: '11987654321' }
+    },
+  }
+})
 vi.mock('@/lib/dados/perfil', () => ({ lerPerfil: async () => m.perfil, podeExcluirConta: async () => m.pode }))
 vi.mock('@/lib/dados/pedidos', () => ({
   lerPedidos: async () => m.pedidos,
@@ -138,6 +144,7 @@ beforeEach(() => {
   m.pedido = completo()
   m.enderecos = [endereco(1, true), endereco(2)]
   m.pode = { pode: true, motivo: null }
+  m.semSessao = false
   vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', '1x00000000000000000000AA')
 })
 
@@ -410,6 +417,20 @@ describe('/conta/perfil/email-e-senha', () => {
   it('aviso desconhecido na URL nao mostra nada', async () => {
     render(await EmailESenha.default(comBusca({ aviso: '<script>' })))
     expect(within(principal()).queryByRole('status')).toBeNull()
+  })
+
+  // o link aberto num navegador sem sessao (o celular, o app de e-mail): o
+  // aviso vai junto para entrar e volta com ela depois do login
+  it.each(['email-trocado', 'falta-o-outro-email', 'link-invalido'])('sem sessao, o aviso %s vai no volta para entrar', async (aviso) => {
+    m.semSessao = true
+    await expect(EmailESenha.default(comBusca({ aviso }))).rejects.toThrow(
+      `REDIRECIONOU /entrar?volta=${encodeURIComponent(`/conta/perfil/email-e-senha?aviso=${aviso}`)}`,
+    )
+  })
+
+  it('sem sessao, aviso desconhecido nao entra no volta', async () => {
+    m.semSessao = true
+    await expect(EmailESenha.default(comBusca({ aviso: '//mal.com' }))).rejects.toThrow(/^REDIRECIONOU \/entrar\?volta=%2Fconta%2Fperfil%2Femail-e-senha$/)
   })
 
   it('as duas trocas, com o e-mail atual a vista', async () => {

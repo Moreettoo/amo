@@ -132,7 +132,12 @@ describe('entrar', () => {
     expect(consumirLimite).toHaveBeenCalledWith('entrar:ip:1.2.3.4', 10, 900)
     expect(consumirLimite).toHaveBeenCalledWith('entrar:email:maria@exemplo.com', 10, 900)
   })
-  it.each([['/sacola', '/sacola'], ['//mal.com', '/conta']])('sucesso com volta %j vai para %s', async (volta, destino) => {
+  it.each([
+    ['/sacola', '/sacola'],
+    ['//mal.com', '/conta'],
+    // o aviso do link de troca de e-mail volta com ela depois do login
+    ['/conta/perfil/email-e-senha?aviso=link-invalido', '/conta/perfil/email-e-senha?aviso=link-invalido'],
+  ])('sucesso com volta %j vai para %s', async (volta, destino) => {
     expect(await chamar(acoes.entrar, { ...ENTRAR, volta })).toEqual({ lancou: `REDIRECIONOU ${destino}` })
   })
   it.each([['invalid_credentials', 'credenciais'], ['captcha_failed', 'captcha'], ['over_request_rate_limit', 'muitas_tentativas']])(
