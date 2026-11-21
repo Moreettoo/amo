@@ -8,6 +8,7 @@ const m = vi.hoisted(() => ({
   concluirEventoWebhook: vi.fn(),
   aplicarRespostaDoMp: vi.fn(),
   variavel: vi.fn(),
+  registrarFalha: vi.fn(),
 }))
 
 vi.mock('@/lib/mercadopago/assinatura', () => ({ conferirAssinatura: m.conferirAssinatura }))
@@ -18,9 +19,13 @@ vi.mock('@/lib/dados/pagamentos', () => ({
 }))
 vi.mock('@/lib/mercadopago/sincronizar', () => ({ aplicarRespostaDoMp: m.aplicarRespostaDoMp }))
 vi.mock('@/lib/dados/ambiente', () => ({ variavel: m.variavel }))
-vi.mock('@/lib/dados/erros', () => ({ registrarFalha: vi.fn() }))
+vi.mock('@/lib/dados/erros', async (original) => ({
+  ...(await original<typeof import('@/lib/dados/erros')>()),
+  registrarFalha: m.registrarFalha,
+}))
 
 import { POST } from '@/app/api/webhooks/mercadopago/route'
+import { ErroDeRegra } from '@/lib/dados/erros'
 
 const pedido = { id: 'ORD1', referencia: 'tent-1' }
 function aviso(query = 'type=order&data.id=ORD1', corpo: unknown = {}, cab: Record<string, string> = {}) {
@@ -127,6 +132,22 @@ describe('aviso do Mercado Pago', () => {
     m.aplicarRespostaDoMp.mockRejectedValue(new Error('segredo do banco'))
     expect((await aviso()).status).toBe(500)
     expect(m.concluirEventoWebhook).toHaveBeenCalledWith(7, 'aplicar_falhou')
+    expect(m.registrarFalha).toHaveBeenCalledWith('mercadopago.aviso', { code: 'aviso_falhou' })
+  })
+
+  it('ErroDeRegra de aplicar_pagamento: o codigo real vai ao log e ao aviso', async () => {
+    m.aplicarRespostaDoMp.mockRejectedValue(new ErroDeRegra('passagem_invalida'))
+    expect((await aviso()).status).toBe(500)
+    expect(m.concluirEventoWebhook).toHaveBeenCalledWith(7, 'passagem_invalida')
+    expect(m.registrarFalha).toHaveBeenCalledWith('mercadopago.aviso', { code: 'passagem_invalida' })
+  })
+
+  it('GET com 404 (ex.: id de contestacao) e deterministico: conclui mp_404, registra e responde 200', async () => {
+    m.lerPedidoMp.mockResolvedValue({ ok: false, status: 404, codigo: 'order_not_found' })
+    expect((await aviso('type=topic_chargebacks_wh&data.id=123456')).status).toBe(200)
+    expect(m.concluirEventoWebhook).toHaveBeenCalledWith(7, 'mp_404')
+    expect(m.registrarFalha).toHaveBeenCalledWith('mercadopago.aviso', { code: 'mp_404', status: 404 })
+    expect(m.aplicarRespostaDoMp).not.toHaveBeenCalled()
   })
 
   it('aplicar recusando (null): conclui com erro registrado e responde 200', async () => {

@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { mercadoPagoEmTeste, variavel } from '@/lib/dados/ambiente'
-import { falhaDoBanco, registrarFalha } from '@/lib/dados/erros'
+import { ErroDeRegra, falhaDoBanco, registrarFalha } from '@/lib/dados/erros'
 import { criarClienteDoCatalogo, criarClienteDoVisitante } from '@/lib/dados/publico'
 
 afterEach(() => {
@@ -86,6 +86,11 @@ describe('registrarFalha', () => {
     const log = espiarLog()
     registrarFalha('sair', 'texto cru com maria@exemplo.com')
     expect(log).toHaveBeenCalledWith('Falha do Supabase', { onde: 'sair', code: null, status: null, name: null })
+  })
+  it('ErroDeRegra: o codigo dele (curto e seguro) vai como code', () => {
+    const log = espiarLog()
+    registrarFalha('pagar_com_pix', new ErroDeRegra('passagem_invalida'))
+    expect(log).toHaveBeenCalledWith('Falha do Supabase', { onde: 'pagar_com_pix', code: 'passagem_invalida', status: null, name: 'ErroDeRegra' })
   })
 })
 

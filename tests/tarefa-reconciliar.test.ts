@@ -23,7 +23,10 @@ vi.mock('@/lib/mercadopago/sincronizar', () => ({
   cancelarNoMp: m.cancelarNoMp,
 }))
 vi.mock('@/lib/dados/ambiente', () => ({ variavel: m.variavel }))
-vi.mock('@/lib/dados/erros', () => ({ registrarFalha: m.registrarFalha }))
+vi.mock('@/lib/dados/erros', async (original) => ({
+  ...(await original<typeof import('@/lib/dados/erros')>()),
+  registrarFalha: m.registrarFalha,
+}))
 
 import { POST } from '@/app/api/tarefas/reconciliar/route'
 

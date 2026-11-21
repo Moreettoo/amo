@@ -1,5 +1,5 @@
 import { variavel } from '@/lib/dados/ambiente'
-import { registrarFalha } from '@/lib/dados/erros'
+import { ErroDeRegra, registrarFalha } from '@/lib/dados/erros'
 import { concluirEventoWebhook, registrarEventoWebhook } from '@/lib/dados/pagamentos'
 import { conferirAssinatura } from '@/lib/mercadopago/assinatura'
 import { lerPedidoMp } from '@/lib/mercadopago/cliente'
@@ -64,6 +64,12 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const lido = await lerPedidoMp(dataId)
     if (!lido.ok) {
+      // 404 e deterministico (ex.: o id de uma contestacao, que nao e pedido): reenviar daria 404 para sempre.
+      if (lido.status === 404) {
+        registrarFalha('mercadopago.aviso', { code: 'mp_404', status: 404 })
+        await concluir('mp_404')
+        return vazio(200)
+      }
       await concluir(`mp_${lido.status}`)
       return vazio(500)
     }
@@ -76,9 +82,11 @@ export async function POST(request: Request): Promise<Response> {
     // Recusa e deterministica (traducao ou referencia): tentar de novo recusaria de novo.
     await concluir(aplicado ? null : 'aplicar_recusou')
     return vazio(200)
-  } catch {
-    registrarFalha('mercadopago.aviso', { code: 'aviso_falhou' })
-    await concluir('aplicar_falhou')
+  } catch (erro) {
+    // Um ErroDeRegra de aplicar_pagamento leva o codigo dele (curto e seguro) ao log e ao aviso.
+    const codigo = erro instanceof ErroDeRegra ? erro.codigo : null
+    registrarFalha('mercadopago.aviso', { code: codigo ?? 'aviso_falhou' })
+    await concluir(codigo ?? 'aplicar_falhou')
     return vazio(500)
   }
 }

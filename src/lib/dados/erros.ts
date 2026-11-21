@@ -9,13 +9,15 @@ const curto = (valor: unknown) => (typeof valor === 'string' && CURTO.test(valor
  * (pode trazer o e-mail da cliente, um valor ou um detalhe do banco), nem
  * campo nenhum alem desses quatro; texto fora do formato curto de um codigo
  * vira null. E a unica peca que escreve falha do Supabase no log: quem
- * traduz o erro para a tela (falhaDoBanco, traduzirErroDoAuth) a chama.
+ * traduz o erro para a tela (falhaDoBanco, traduzirErroDoAuth) a chama. De
+ * um ErroDeRegra, o code e o codigo dele (curto e seguro: veio no formato
+ * de codigo).
  */
 export function registrarFalha(onde: string, erro: unknown): void {
   const { code, status, name } = (typeof erro === 'object' && erro !== null ? erro : {}) as Record<string, unknown>
   console.error('Falha do Supabase', {
     onde: curto(onde),
-    code: curto(code),
+    code: curto(erro instanceof ErroDeRegra ? erro.codigo : code),
     status: typeof status === 'number' && Number.isInteger(status) ? status : null,
     name: curto(name),
   })
