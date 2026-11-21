@@ -13,7 +13,18 @@ import { Campo, CampoSenha, Envio, ErroGeral, Marcar, erroDe } from '@/component
 import { Turnstile } from '@/components/conta/Turnstile'
 
 type Aba = 'entrar' | 'cadastro'
-type Props = { aba: Aba; volta: string; chaveDoTurnstile: string; nonce: string }
+type Props = {
+  aba: Aba
+  volta: string
+  chaveDoTurnstile: string
+  nonce: string
+  /**
+   * As abas sao a pagina aberta (/entrar e /cadastro): a atual leva
+   * aria-current="page". Dentro de outra pagina (a sacola) elas so trocam o
+   * formulario no lugar, e a atual se marca so no desenho.
+   */
+  abasDaPagina?: boolean
+}
 type Verificacao = { chave: string; nonce: string }
 
 /**
@@ -21,7 +32,7 @@ type Verificacao = { chave: string; nonce: string }
  * no fio embaixo da aba atual. Com JavaScript a troca de aba nao recarrega e
  * leva o e-mail digitado; sem ele, as abas sao links para /entrar e /cadastro.
  */
-export function PortaDaConta({ aba: inicial, volta, chaveDoTurnstile, nonce }: Props) {
+export function PortaDaConta({ aba: inicial, volta, chaveDoTurnstile, nonce, abasDaPagina = true }: Props) {
   const [aba, setAba] = useState<Aba>(inicial)
   const [email, setEmail] = useState('')
   const [codigoPara, setCodigoPara] = useState<string | null>(null)
@@ -29,6 +40,8 @@ export function PortaDaConta({ aba: inicial, volta, chaveDoTurnstile, nonce }: P
   const [enviarCodigo, setEnviarCodigo] = useState(false)
   const verificacao = { chave: chaveDoTurnstile, nonce }
   const destino = (a: Aba) => `/${a}?volta=${encodeURIComponent(volta)}`
+  const marca = (a: Aba) =>
+    aba === a ? { className: 'porta__aba--atual', 'aria-current': abasDaPagina ? ('page' as const) : undefined } : {}
 
   const trocar = (a: Aba) => (e: MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault()
@@ -48,10 +61,10 @@ export function PortaDaConta({ aba: inicial, volta, chaveDoTurnstile, nonce }: P
   return (
     <div className="porta">
       <nav className="porta__abas" aria-label="Entrar ou criar conta" style={{ '--lado': aba === 'entrar' ? 0 : 1 } as CSSProperties}>
-        <a href={destino('entrar')} aria-current={aba === 'entrar' ? 'page' : undefined} onClick={trocar('entrar')}>
+        <a href={destino('entrar')} {...marca('entrar')} onClick={trocar('entrar')}>
           Entrar
         </a>
-        <a href={destino('cadastro')} aria-current={aba === 'cadastro' ? 'page' : undefined} onClick={trocar('cadastro')}>
+        <a href={destino('cadastro')} {...marca('cadastro')} onClick={trocar('cadastro')}>
           Criar conta
         </a>
         <span className="porta__trilho" aria-hidden="true">

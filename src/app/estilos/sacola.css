@@ -99,7 +99,10 @@
   .etapa__alterar:focus-visible { color: var(--color-expresso); text-decoration-color: var(--color-cobre); }
   .etapa__resumo, .etapa__dica { margin: 4px 0 0; font-size: 14px; line-height: 1.55; color: var(--color-suave); }
   .etapa__resumo { color: var(--color-expresso); font-variant-numeric: tabular-nums; }
-  .etapa__aviso { margin: 14px 0 0; font-size: 13px; color: var(--color-suave); }
+  /* a frase do erro que trouxe a cliente a etapa: regiao viva sempre no lugar,
+     sem altura enquanto vazia */
+  .etapa__erro { margin: 12px 0 0; font-size: 14px; line-height: 1.5; color: var(--color-cobre-texto); }
+  .etapa__erro:empty { margin: 0; }
 
   /* os potes */
   .potes { margin: 8px 0 0; padding: 0; list-style: none; }
@@ -185,10 +188,37 @@
   /* o pedido feito */
   .feito { max-width: 620px; }
   .sacola-pagina__titulo:focus { outline: none; }
-  .feito__pix { margin: 10px 0 0; font-size: 14px; color: var(--color-suave); }
-  .feito__texto { margin: 14px 0 0; max-width: 52ch; font-size: 16px; line-height: 1.65; color: var(--color-suave); }
+  .feito__estado { margin: 16px 0 0; font-size: 17px; line-height: 1.6; color: var(--color-expresso); }
+  .feito__estado:empty { margin: 0; }
+  .feito__acompanhar { display: inline-block; margin-top: 6px; }
+  .feito__gerando { margin: 22px 0 0; padding-top: 22px; border-top: 1px solid var(--fio); font-size: 15px; line-height: 1.6; color: var(--color-suave); }
   .feito__contas { margin-top: 22px; padding-top: 8px; border-top: 1px solid var(--fio); }
-  .feito .btn-retro { margin-top: 26px; }
+  .feito > .btn-retro { margin-top: 26px; }
+
+  /* o Pix: o QR sobre o papel (o branco do PNG se mistura ao creme), o fio de
+     1 px em cima, sem caixa nem sombra; ao lado, o que fazer e o copia e cola */
+  .pix {
+    display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 0 28px; align-items: start;
+    margin-top: 22px; padding-top: 22px; border-top: 1px solid var(--fio);
+  }
+  .pix__aviso { grid-column: 1 / -1; margin: 0 0 14px; font-size: 16px; line-height: 1.6; color: var(--color-expresso); }
+  .pix__aviso:empty { margin: 0; }
+  .pix__qr { display: block; width: 220px; height: 220px; mix-blend-mode: multiply; }
+  .pix__lado { display: grid; gap: 12px; min-width: 0; }
+  .pix__instrucao { margin: 0; max-width: 40ch; font-size: 15px; line-height: 1.6; color: var(--color-expresso); }
+  .pix__campo { display: grid; gap: 6px; font-size: 13px; color: var(--color-suave); }
+  .pix__campo input { text-overflow: ellipsis; }
+  .pix__copiado { min-height: 1.5em; margin: -4px 0 0; font-size: 13px; line-height: 1.5; color: var(--color-suave); }
+  .pix__validade { margin: 0; font-size: 13px; line-height: 1.5; color: var(--color-suave); font-variant-numeric: tabular-nums; }
+  .pix__outro { grid-column: 1 / -1; justify-self: start; width: auto; }
+  .pix__outro[disabled] { cursor: default; opacity: .75; }
+  /* a espera do pagamento, dita em texto: nada gira */
+  .espera { margin: 16px 0 0; font-size: 14px; line-height: 1.6; color: var(--color-suave); }
+  .espera a {
+    color: var(--color-expresso); text-decoration: underline; text-decoration-thickness: 1px;
+    text-underline-offset: 4px; text-decoration-color: var(--fio); transition: text-decoration-color .2s ease;
+  }
+  .espera a:focus-visible { text-decoration-color: var(--color-cobre); }
 
   @media (hover: hover) {
     .botao-sacola:hover { color: var(--color-cobre-texto); }
@@ -198,6 +228,15 @@
     .sacola-gaveta__nome a:hover, .pote__nome a:hover { color: var(--color-cobre-texto); }
     .sacola-gaveta__continuar:hover, .resumo__voltar:hover { color: var(--color-cobre-texto); }
     .pagamento__opcao:hover { border-color: var(--color-expresso); }
+    .espera a:hover { text-decoration-color: var(--color-cobre); }
+    /* o botao desligado nao inverte: nada ali responde ao clique */
+    .pix__outro[disabled]:hover { background: transparent; color: var(--color-expresso); }
+  }
+
+  /* no celular estreito o QR fica em cima e o copia e cola embaixo dele */
+  @media (max-width: 560px) {
+    .pix { grid-template-columns: minmax(0, 1fr); }
+    .pix__lado { margin-top: 18px; }
   }
 
   @media (max-width: 820px) {

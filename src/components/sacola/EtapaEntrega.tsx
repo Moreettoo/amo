@@ -19,6 +19,8 @@ type Props = {
   ocupado: boolean
   setOcupado: (b: boolean) => void
   aoCotar: (c: Cotacao) => void
+  /** a frase que trouxe a cliente de volta a esta etapa (a entrega venceu ao pagar) */
+  aviso?: CodigoDoFechamento | null
 }
 
 /** A cotacao que vence antes disso e pedida de novo. */
@@ -29,7 +31,7 @@ const FOLGA_MS = 60_000
  * O erro de um campo fica embaixo dele; o erro geral, na linha de erro da
  * etapa, que e uma regiao viva.
  */
-export function EtapaEntrega({ id, endereco, aoMudarEndereco, cotacao, ocupado, setOcupado, aoCotar }: Props) {
+export function EtapaEntrega({ id, endereco, aoMudarEndereco, cotacao, ocupado, setOcupado, aoCotar, aviso = null }: Props) {
   const [erro, setErro] = useState<Erro | null>(null)
   const formulario = useRef<HTMLFormElement>(null)
 
@@ -98,7 +100,7 @@ export function EtapaEntrega({ id, endereco, aoMudarEndereco, cotacao, ocupado, 
       {campo('numero', 'Número', 'campo--numero', (v) => v.slice(0, 10), { autoComplete: 'address-line2', required: true })}
       {campo('complemento', 'Complemento (opcional)', 'campo--largo', (v) => v.slice(0, 60), { autoComplete: 'address-line3' })}
       <p id={`${id}-erro`} className="campos__erro" aria-live="polite">
-        {erro ? MENSAGENS_DO_FECHAMENTO[erro.codigo] : ''}
+        {erro ? MENSAGENS_DO_FECHAMENTO[erro.codigo] : aviso ? MENSAGENS_DO_FECHAMENTO[aviso] : ''}
       </p>
     </form>
   )

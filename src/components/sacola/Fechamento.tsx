@@ -1,17 +1,29 @@
 'use client'
 
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import { fecharPedido, pagarComPix } from '@/app/sacola/acoes'
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
 import { useSacola } from '@/components/ui/useSacola'
 import { mascararCep } from '@/lib/entrega'
-import type { Cotacao } from '@/lib/fechamento/tipos'
-import { enviarPedidoDeExemplo, mascararCelular, NOMES_DO_PAGAMENTO, type Pagamento } from '@/lib/pedido'
+import {
+  MENSAGENS_DO_FECHAMENTO,
+  type CodigoDoFechamento,
+  type Cotacao,
+  type RespostaDoPagamento,
+  type RespostaDoPedido,
+  type SituacaoDoPedido,
+} from '@/lib/fechamento/tipos'
+import { mascararCelular, type Pagamento } from '@/lib/pedido'
 import { formatarPreco } from '@/lib/produto'
 import { contarPotes, esvaziarSacola, somarLinhas, textoPotes, type ItemDaLoja, type LinhaDaSacola } from '@/lib/sacola'
 import { CAMINHO_CATALOGO } from '@/lib/visao'
 import { EtapaDados } from './EtapaDados'
 import { EtapaEntrega } from './EtapaEntrega'
-import { Fio, ListaDePotes, Titulo } from './pecas'
+import { EtapaPagamento } from './EtapaPagamento'
+import { aprovado } from './espera'
+import { PedidoFeito } from './PedidoFeito'
+import { deExemplo, Fio, ListaDePotes, ruaENumero, Titulo } from './pecas'
 import { apagarProgresso, gravarProgresso, lerProgresso, type EnderecoDigitado, type Etapa } from './progresso'
 
 /** O que a pagina le no servidor para o fechamento. */
@@ -36,11 +48,26 @@ const DICAS: Record<Etapa, string> = {
   4: 'Pix ou cartão.',
 }
 
-type Feito = { numero: string; linhas: LinhaDaSacola[]; cotacao: Cotacao; cliente: ContaDaSacola; pagamento: Pagamento }
+/** O pedido fechado, pago ou esperando o Pix: a situacao que o servidor devolveu e o que foi pedido. */
+type Feito = { situacao: SituacaoDoPedido; linhas: LinhaDaSacola[]; entrega: Cotacao; total: number }
 
-/** A Regra do Exemplo Dito: enquanto a cotacao for de exemplo, o valor diz isso. */
-const deExemplo = (c: Cotacao) => (c.exemplo ? ' (valor de exemplo)' : '')
-const ruaENumero = (c: Cotacao) => `${c.endereco.logradouro}, ${c.endereco.numero}`
+/** A frase de um erro, na etapa em que a cliente resolve. */
+type Aviso = { etapa: Etapa; codigo: CodigoDoFechamento }
+/** Em que parte do pagamento o botao esta: fechando o pedido (ate uns 30 s) ou gerando o Pix. */
+type Fase = 'fechando' | 'gerando'
+
+/** Onde cada erro do pagamento se resolve; o resto fica na etapa 4, com a frase. */
+const ETAPA_DO_ERRO: Partial<Record<CodigoDoFechamento, Etapa>> = {
+  cotacao_vencida: 2,
+  produto_indisponivel: 1,
+  sem_sessao: 3,
+  email_nao_confirmado: 3,
+}
+/** O que mudou no servidor e volta com a pagina (router.refresh): os precos, o cardapio, a loja, a sessao. */
+const PEDEM_A_PAGINA = new Set<CodigoDoFechamento>(['total_mudou', 'loja_fechada', 'produto_indisponivel', 'sem_sessao', 'email_nao_confirmado'])
+/** Do codigo novo, estes pedem o pedido de novo (ou a conta): a cliente volta as etapas. */
+const VOLTAM_AS_ETAPAS = new Set<CodigoDoFechamento>(['pedido_invalido', 'tentativas_esgotadas', 'sem_sessao', 'email_nao_confirmado'])
+
 /** "Rua Gomes de Carvalho, 10 · Vila Olimpia · Uber, R$ 12,90 (valor de exemplo)" */
 const linhaDaEntrega = (c: Cotacao) => `${ruaENumero(c)} · ${c.endereco.bairro} · Uber, ${formatarPreco(c.valorCentavos)}${deExemplo(c)}`
 
@@ -53,9 +80,13 @@ const SEM_ENDERECO: EnderecoDigitado = { cep: '', numero: '', complemento: '' }
  * resumo fica ao lado (no celular, preso embaixo) e o botao dele envia a
  * etapa atual: um botao so, ligado ao formulario pelo atributo form.
  * A etapa, o endereco e a cotacao ficam guardados na aba (progresso.ts).
+ * Pagar com Pix fecha o pedido (fecharPedido) e gera o Pix (pagarComPix);
+ * cada erro leva a etapa em que a cliente resolve. A sacola so esvazia com
+ * o pagamento aprovado.
  */
 export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados: DadosDaSacola }) {
   const id = useId()
+  const router = useRouter()
   const linhas = useSacola(loja)
   // o progresso da aba so existe no navegador; no servidor (e enquanto a
   // sacola e lida) a pagina mostra a area reservada, sem as etapas
@@ -74,19 +105,114 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   const [pagamento, setPagamento] = useState<Pagamento>('pix')
   const [ocupado, setOcupado] = useState(false)
   const [feito, setFeito] = useState<Feito | null>(null)
+  const [aviso, setAviso] = useState<Aviso | null>(null)
+  const [fase, setFase] = useState<Fase | null>(null)
+  // o banco disse loja_fechada: o botao desliga ja, antes de a pagina voltar com a loja
+  const [lojaFechou, setLojaFechou] = useState(false)
+  const [gerando, setGerando] = useState(false)
+  const [erroDoCodigo, setErroDoCodigo] = useState<CodigoDoFechamento | null>(null)
+  // o pagamento em curso (o clique duplo nao fecha dois pedidos) e o numero da
+  // chamada: a resposta de uma chamada que ficou para tras e ignorada
+  const pagando = useRef(false)
+  const chamada = useRef(0)
+  // a conta que a etapa 3 conhecia: de nenhuma para uma, a cliente acabou de entrar
+  const contaVista = useRef(guardado ? guardado.conta : dados.conta)
+  const prontas = linhas !== null && linhas.length > 0
 
   useEffect(() => {
     if (!feito) gravarProgresso({ etapa, endereco, cotacao, conta: dados.conta })
   }, [feito, etapa, endereco, cotacao, dados.conta])
 
+  useEffect(() => {
+    const chamadas = chamada
+    // a pagina que sai leva junto a resposta que ainda nao chegou
+    return () => {
+      chamadas.current++
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!prontas) return
+    const antes = contaVista.current
+    contaVista.current = dados.conta
+    // entrou pela porta da etapa 3 e voltou logada: o leitor de tela ouve onde ela esta
+    if (antes === null && dados.conta !== null && etapa === 3) document.getElementById(`${id}-t3`)?.focus()
+  }, [prontas, dados.conta, etapa, id])
+
   const formulario = (e: Etapa) => `${id}-etapa-${e}`
   const ir = (e: Etapa) => {
+    if (pagando.current) {
+      // saiu da etapa 4 com o pagamento em curso: a resposta que vier fica para tras
+      chamada.current++
+      pagando.current = false
+      setOcupado(false)
+      setFase(null)
+    }
+    setAviso(null)
     setEtapa(e)
     // o foco vai para o titulo da etapa nova, para o leitor de tela seguir
     requestAnimationFrame(() => document.getElementById(`${id}-t${e}`)?.focus())
   }
 
-  if (feito) return <PedidoFeito feito={feito} />
+  /** O erro leva a etapa em que a cliente resolve, com a frase na linha de erro dela. */
+  function tratarErro(codigo: CodigoDoFechamento) {
+    const destino = ETAPA_DO_ERRO[codigo] ?? 4
+    if (codigo === 'cotacao_vencida') setCotacao(null)
+    if (codigo === 'loja_fechada') setLojaFechou(true)
+    if (PEDEM_A_PAGINA.has(codigo)) router.refresh()
+    // vindo do pedido feito, o titulo dele sai da tela: o foco vai a etapa tambem
+    if (destino !== etapa || feito) ir(destino)
+    // a frase entra depois que a etapa aparece, para a regiao viva dizer
+    requestAnimationFrame(() => setAviso({ etapa: destino, codigo }))
+  }
+
+  /** O que o servidor disse do pedido: pago esvazia a sacola; cancelado volta as etapas. */
+  function chegou(s: SituacaoDoPedido) {
+    if (s.estado === 'cancelado') {
+      setFeito(null)
+      return tratarErro('pedido_invalido')
+    }
+    if (aprovado(s)) {
+      esvaziarSacola()
+      apagarProgresso()
+    }
+    setFeito((f) => (f && f.situacao.numero === s.numero ? { ...f, situacao: s } : f))
+  }
+
+  /** O codigo venceu, ou foi trocado: pede outro para o mesmo pedido. */
+  async function gerarOutro() {
+    if (!feito || gerando) return
+    const { numero } = feito.situacao
+    const minha = chamada.current
+    setGerando(true)
+    setErroDoCodigo(null)
+    let r: RespostaDoPagamento
+    try {
+      r = await pagarComPix({ numero })
+    } catch {
+      r = { ok: false, erro: 'tente_de_novo' }
+    }
+    if (minha !== chamada.current) return
+    setGerando(false)
+    if (r.ok) return chegou(r.situacao)
+    if (!VOLTAM_AS_ETAPAS.has(r.erro)) return setErroDoCodigo(r.erro)
+    setFeito(null)
+    tratarErro(r.erro)
+  }
+
+  if (feito)
+    return (
+      <PedidoFeito
+        situacao={feito.situacao}
+        linhas={feito.linhas}
+        entrega={feito.entrega}
+        total={feito.total}
+        aoGerarOutro={() => void gerarOutro()}
+        aoMudar={chegou}
+        gerando={gerando}
+        erro={erroDoCodigo}
+      />
+    )
   if (linhas === null)
     return (
       <>
@@ -111,14 +237,61 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   const subtotal = somarLinhas(linhas)
   const total = subtotal + (cotacao?.valorCentavos ?? 0)
   const potes = contarPotes(linhas)
+  const fechada = !dados.loja.aberta || lojaFechou
 
-  async function fazerPedido() {
-    if (!linhas || !cotacao || !dados.usuario) return
+  /**
+   * Pagar com Pix: fecha o pedido com os potes, a cotacao e o total que a tela
+   * mostra (o banco recusa com total_mudou se os precos mudaram) e gera o Pix
+   * do numero que voltou. fecharPedido espera o Mercado Pago cancelar as
+   * tentativas antigas e pode levar uns 30 s: o botao fica ocupado ate o fim.
+   */
+  async function pagar() {
+    if (pagando.current || !linhas || !cotacao || !dados.usuario || fechada) return
+    pagando.current = true
+    const minha = ++chamada.current
+    const pedidas = linhas
+    const entrega = cotacao
+    const fim = (erro: CodigoDoFechamento | null) => {
+      pagando.current = false
+      setOcupado(false)
+      setFase(null)
+      if (erro) tratarErro(erro)
+    }
     setOcupado(true)
-    const { numero } = await enviarPedidoDeExemplo({ guardarEndereco })
-    setFeito({ numero, linhas, cotacao, cliente: dados.usuario, pagamento })
-    apagarProgresso()
-    esvaziarSacola()
+    setFase('fechando')
+    setAviso(null)
+
+    let pedido: RespostaDoPedido
+    try {
+      pedido = await fecharPedido({
+        itens: pedidas.map((l) => ({ produto: l.slug, quantos: l.quantos })),
+        cotacao: entrega.id,
+        totalVisto: somarLinhas(pedidas) + entrega.valorCentavos,
+        guardarEndereco,
+      })
+    } catch {
+      pedido = { ok: false, erro: 'tente_de_novo' }
+    }
+    if (minha !== chamada.current) return
+    if (!pedido.ok) return fim(pedido.erro)
+
+    setFase('gerando')
+    let pix: RespostaDoPagamento
+    try {
+      pix = await pagarComPix({ numero: pedido.pedido.numero })
+    } catch {
+      pix = { ok: false, erro: 'tente_de_novo' }
+    }
+    if (minha !== chamada.current) return
+    if (!pix.ok) return fim(pix.erro)
+    fim(null)
+    if (pix.situacao.estado === 'cancelado') return tratarErro('pedido_invalido')
+    setErroDoCodigo(null)
+    setFeito({ situacao: pix.situacao, linhas: pedidas, entrega, total: pedido.pedido.totalCentavos })
+    if (aprovado(pix.situacao)) {
+      esvaziarSacola()
+      apagarProgresso()
+    }
     window.scrollTo({ top: 0 })
   }
 
@@ -127,8 +300,18 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
     2: ocupado ? 'Calculando a entrega' : 'Calcular e continuar',
     // deslogada, a etapa 3 e a porta, que tem os proprios botoes
     3: dados.usuario ? 'Continuar para o pagamento' : 'Entre para continuar',
-    4: ocupado ? 'Enviando o pedido' : `Fazer o pedido · ${formatarPreco(total)}`,
+    4:
+      fase === 'fechando'
+        ? 'Fechando o pedido, só um instante'
+        : fase === 'gerando'
+          ? 'Gerando o código Pix'
+          : fechada
+            ? 'Cozinha fechada agora'
+            : `Pagar com Pix · ${formatarPreco(total)}`,
   }
+  /** A frase de erro da etapa, quando o erro a trouxe ate ela. */
+  const avisoDa = (e: Etapa) => (aviso?.etapa === e ? aviso.codigo : null)
+  const avisoDosPotes = avisoDa(1)
 
   const resumos: Record<Etapa, ReactNode> = {
     1: textoPotes(potes),
@@ -173,6 +356,9 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
               {atual && e === 1 ? (
                 <form id={formulario(1)} onSubmit={(ev) => (ev.preventDefault(), ir(2))}>
                   <ListaDePotes linhas={linhas} />
+                  <p className="etapa__erro" aria-live="polite">
+                    {avisoDosPotes ? MENSAGENS_DO_FECHAMENTO[avisoDosPotes] : ''}
+                  </p>
                 </form>
               ) : null}
               {atual && e === 2 ? (
@@ -183,6 +369,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
                     setEndereco(novo)
                     // o endereco mudou: a cotacao era do outro
                     setCotacao(null)
+                    setAviso(null)
                   }}
                   cotacao={cotacao}
                   ocupado={ocupado}
@@ -191,6 +378,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
                     setCotacao(c)
                     ir(3)
                   }}
+                  aviso={avisoDa(2)}
                 />
               ) : null}
               {atual && e === 3 ? (
@@ -201,35 +389,17 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
                   guardar={guardarEndereco}
                   aoMudarGuardar={setGuardarEndereco}
                   aoContinuar={() => ir(4)}
+                  aviso={avisoDa(3)}
                 />
               ) : null}
               {atual && e === 4 ? (
-                <form
+                <EtapaPagamento
                   id={formulario(4)}
-                  onSubmit={(ev) => {
-                    ev.preventDefault()
-                    if (!ocupado) void fazerPedido()
-                  }}
-                >
-                  <fieldset className="pagamento">
-                    <legend className="sr-only">Como pagar</legend>
-                    {(['pix', 'cartao'] as const).map((p) => (
-                      <label key={p} className="pagamento__opcao">
-                        <input
-                          type="radio"
-                          name="pagamento"
-                          value={p}
-                          checked={pagamento === p}
-                          onChange={() => setPagamento(p)}
-                        />
-                        <span>
-                          {NOMES_DO_PAGAMENTO[p]}
-                        </span>
-                      </label>
-                    ))}
-                  </fieldset>
-                  <p className="etapa__aviso">Pagamento de exemplo: por enquanto nenhum valor é cobrado.</p>
-                </form>
+                  forma={pagamento}
+                  aoMudarForma={setPagamento}
+                  aviso={avisoDa(4)}
+                  aoPagar={() => void pagar()}
+                />
               ) : null}
             </li>
           )
@@ -264,7 +434,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
           type="submit"
           form={formulario(etapa)}
           className="btn-retro btn-retro--escuro resumo__botao"
-          disabled={ocupado || (etapa === 3 && !dados.usuario)}
+          disabled={ocupado || (etapa === 3 && !dados.usuario) || (etapa === 4 && fechada)}
           aria-busy={ocupado}
         >
           {rotuloDoBotao[etapa]}
@@ -276,48 +446,5 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
       </aside>
     </div>
     </>
-  )
-}
-
-function PedidoFeito({ feito }: { feito: Feito }) {
-  const subtotal = somarLinhas(feito.linhas)
-  const { complemento } = feito.cotacao.endereco
-  return (
-    <section className="feito" aria-labelledby="pedido-feito">
-      <Titulo frase="recebido" id="pedido-feito" foco>
-        Pedido {feito.numero}
-      </Titulo>
-      <p className="feito__texto">
-        Este é um pedido de exemplo: nada foi cobrado e nenhum pote sai da cozinha ainda. Quando o pagamento
-        estiver ligado, {feito.cliente.nome.split(' ')[0]}, a confirmação chega no {mascararCelular(feito.cliente.celular)}.
-      </p>
-      {feito.pagamento === 'pix' ? (
-        <p className="feito__pix">O código Pix aparece aqui quando o pagamento estiver ligado.</p>
-      ) : null}
-      <dl className="feito__contas">
-        {feito.linhas.map((l) => (
-          <div key={l.slug}>
-            <dt>
-              {l.quantos} × {l.nome}
-            </dt>
-            <dd>{formatarPreco(l.total)}</dd>
-          </div>
-        ))}
-        <div>
-          <dt>
-            Entrega pelo Uber{deExemplo(feito.cotacao)}, {ruaENumero(feito.cotacao)}
-            {complemento ? `, ${complemento}` : ''}
-          </dt>
-          <dd>{formatarPreco(feito.cotacao.valorCentavos)}</dd>
-        </div>
-        <div className="resumo__total">
-          <dt>Total, {feito.pagamento === 'pix' ? 'no Pix' : 'no cartão'}</dt>
-          <dd>{formatarPreco(subtotal + feito.cotacao.valorCentavos)}</dd>
-        </div>
-      </dl>
-      <BotaoRetro href={CAMINHO_CATALOGO} escuro>
-        Voltar ao catálogo
-      </BotaoRetro>
-    </section>
   )
 }

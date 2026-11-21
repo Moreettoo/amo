@@ -16,7 +16,8 @@
     display: grid; place-items: center; min-height: 48px; font-size: 16px; color: var(--color-suave);
     text-decoration: none; transition: color .2s ease;
   }
-  .porta__abas a[aria-current="page"] { color: var(--color-expresso); font-weight: 500; }
+  /* a aba atual: pela classe, porque dentro da sacola ela nao e a pagina atual (sem aria-current) */
+  .porta__abas a.porta__aba--atual { color: var(--color-expresso); font-weight: 500; }
   .porta__abas a:focus-visible { color: var(--color-expresso); }
   @media (hover: hover) { .porta__abas a:hover { color: var(--color-expresso); } }
   .porta__trilho {

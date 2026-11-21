@@ -1,13 +1,14 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { createHash } from 'node:crypto'
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
 import PaginaSacola from '@/app/sacola/page'
 import PaginaDoProduto from '@/app/catalogo/[produto]/page'
+import { horaDeSaoPaulo } from '@/components/sacola/espera'
 import { CHAVE_DO_PROGRESSO } from '@/components/sacola/progresso'
 import { carregarCatalogo } from '@/lib/dados/catalogo'
-import { MENSAGENS_DO_FECHAMENTO, type Cotacao } from '@/lib/fechamento/tipos'
+import { MENSAGENS_DO_FECHAMENTO, type Cotacao, type SituacaoDoPedido } from '@/lib/fechamento/tipos'
 import { resumoDosHorarios, textoDaLoja, type SituacaoDaLoja } from '@/lib/loja'
 import { mascararCelular } from '@/lib/pedido'
 import { formatarPreco } from '@/lib/produto'
@@ -29,12 +30,23 @@ const m = vi.hoisted(() => ({
   horarios: [2, 3, 4, 5, 6].map((dia) => ({ dia, abre: '09:00', fecha: '18:00' })),
   situacao: { aberta: true, fecha: '18:00' } as SituacaoDaLoja,
   cotar: vi.fn(),
-  enviarPedido: vi.fn(),
+  fechar: vi.fn(),
+  pagarPix: vi.fn(),
+  situacaoPedido: vi.fn(),
+  refresh: vi.fn(),
 }))
 // as acoes do servidor sao falsas aqui: no Vitest uma acao e uma funcao comum
-vi.mock('@/app/sacola/acoes', () => ({ cotarEntrega: m.cotar }))
-// o fechamento de exemplo (a Task 3 o troca por fecharPedido): aqui so se ve o que ele recebe
-vi.mock('@/lib/pedido', async (original) => ({ ...(await original<typeof import('@/lib/pedido')>()), enviarPedidoDeExemplo: m.enviarPedido }))
+vi.mock('@/app/sacola/acoes', () => ({
+  cotarEntrega: m.cotar,
+  fecharPedido: m.fechar,
+  pagarComPix: m.pagarPix,
+  situacaoDoPedido: m.situacaoPedido,
+}))
+// o router.refresh() traz da pagina o que mudou no servidor (precos, loja, sessao)
+vi.mock('next/navigation', async (original) => ({
+  ...(await original<typeof import('next/navigation')>()),
+  useRouter: () => ({ refresh: m.refresh }),
+}))
 vi.mock('@/lib/auth', async (original) => ({ ...(await original<typeof import('@/lib/auth')>()), obterUsuario: async () => m.usuario }))
 vi.mock('@/lib/dados/enderecos', () => ({
   lerEnderecos: async () => {
@@ -71,6 +83,39 @@ const guardar = (s: Record<string, number>) => localStorage.setItem(CHAVE_SACOLA
 
 const principal = () => screen.getByRole('main')
 
+/** O Pix como o Mercado Pago devolve: o copia e cola e o QR em PNG (base64). */
+const PIX = {
+  copiaECola: '00020101021226830014br.gov.bcb.pix2561qrcode.exemplo.com.br/amo-123456520400005303986540550.705802BR6304ABCD',
+  qrBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+}
+/** O pedido 123456 aguardando o Pix, com o codigo valendo (30 min, pelo relogio de agora). */
+const pixPendente = (pix: Partial<typeof PIX & { expiraEm: string }> = {}): SituacaoDoPedido => ({
+  numero: '123456',
+  estado: 'aguardando_pagamento',
+  pagamento: {
+    forma: 'pix',
+    estado: 'pendente',
+    recusa: null,
+    pix: { ...PIX, expiraEm: new Date(Date.now() + 30 * 60_000).toISOString(), ...pix },
+    desafioUrl: null,
+  },
+})
+const pixPago = (): SituacaoDoPedido => ({
+  numero: '123456',
+  estado: 'pago',
+  pagamento: { forma: 'pix', estado: 'aprovado', recusa: null, pix: null, desafioUrl: null },
+})
+
+/** O relogio falso so no que a espera usa: o React e o jsdom seguem com os deles. */
+const relogioFalso = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] })
+/** Anda o relogio falso e deixa as promessas e o React assentarem. */
+const andar = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms))
+
+afterEach(() => {
+  vi.useRealTimers()
+  Reflect.deleteProperty(document, 'visibilityState')
+})
+
 beforeEach(() => {
   localStorage.clear()
   sessionStorage.clear()
@@ -80,8 +125,13 @@ beforeEach(() => {
   m.falha.mockReset()
   m.situacao = { aberta: true, fecha: '18:00' }
   m.cotar.mockReset()
-  m.enviarPedido.mockReset()
-  m.enviarPedido.mockResolvedValue({ numero: '123456' })
+  m.fechar.mockReset()
+  m.fechar.mockResolvedValue({ ok: true, pedido: { numero: '123456', totalCentavos: 5070 } })
+  m.pagarPix.mockReset()
+  m.pagarPix.mockResolvedValue({ ok: true, situacao: pixPendente() })
+  m.situacaoPedido.mockReset()
+  m.situacaoPedido.mockResolvedValue({ ok: true, situacao: pixPendente() })
+  m.refresh.mockReset()
   vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', '1x00000000000000000000AA')
 })
 
@@ -173,12 +223,12 @@ describe('a página /sacola', () => {
     expect(screen.getAllByText(formatarPreco(3780)).length).toBeGreaterThan(0)
   })
 
-  it('o pedido inteiro: entrega, dados, pagamento e a confirmação', async () => {
+  it('o caminho inteiro: entrega, dados, "Pagar com Pix" fecha o pedido e gera o Pix; a espera confirma o pagamento', async () => {
     guardar({ prestigio: 2 })
     m.usuario = { id: 'usuario-1', email: 'ana@exemplo.com', nome: 'Ana Souza', celular: '11987654321' }
     const user = userEvent.setup()
     render(await PaginaSacola())
-    const botao = () => screen.getByRole('button', { name: /^(Continuar|Calcular|Fazer o pedido)/ })
+    const botao = () => screen.getByRole('button', { name: /^(Continuar|Calcular|Pagar com Pix)/ })
 
     m.cotar.mockResolvedValueOnce({ ok: false, erro: 'fora_da_area' }).mockResolvedValueOnce({ ok: true, cotacao: cotacaoDe() })
     await user.click(await screen.findByRole('button', { name: 'Continuar para a entrega' }))
@@ -196,16 +246,60 @@ describe('a página /sacola', () => {
 
     await user.click(botao())
 
-    await user.click(await screen.findByRole('radio', { name: /Cartão de crédito/ }))
-    expect(screen.getByText(/nenhum valor é cobrado/)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: /^Fazer o pedido/ }))
-    expect(await screen.findByRole('heading', { level: 1, name: /^Pedido \d+ recebido$/ }, { timeout: 2000 })).toBeInTheDocument()
+    expect(await screen.findByRole('radio', { name: 'Pix' })).toBeChecked()
+    // o pagamento deixou de ser de exemplo: nenhum texto dele sobra
+    expect(document.body.textContent).not.toMatch(/Pagamento de exemplo|nenhum valor é cobrado/)
+
+    // daqui a espera do pagamento conta o tempo: o relogio passa a ser o do teste
+    relogioFalso()
+    const pixDoPedido = pixPendente()
+    m.pagarPix.mockResolvedValue({ ok: true, situacao: pixDoPedido })
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: pixPago() })
+    // com o relogio falso o clique e o do fireEvent: o do user-event espera um setTimeout que nao anda
+    fireEvent.click(screen.getByRole('button', { name: `Pagar com Pix · ${formatarPreco(5070)}` }))
+    await andar(0)
+
+    expect(m.fechar).toHaveBeenCalledWith({
+      itens: [{ produto: 'prestigio', quantos: 2 }],
+      cotacao: cotacaoDe().id,
+      totalVisto: 5070,
+      guardarEndereco: false,
+    })
+    expect(m.pagarPix).toHaveBeenCalledWith({ numero: '123456' })
+    expect(m.fechar.mock.invocationCallOrder[0]).toBeLessThan(m.pagarPix.mock.invocationCallOrder[0])
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Pedido 123456 aguardando o Pix' })).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
-    expect(screen.getByText(/pedido de exemplo: nada foi cobrado/)).toBeInTheDocument()
-    expect(screen.getByText(/Total, no cartão/)).toBeInTheDocument()
-    expect(m.enviarPedido).toHaveBeenCalledWith(expect.objectContaining({ guardarEndereco: false }))
+    expect(screen.getByRole('img', { name: 'QR Code do Pix' })).toHaveAttribute('src', `data:image/png;base64,${PIX.qrBase64}`)
+    const copiaECola = screen.getByRole('textbox', { name: 'Pix copia e cola' })
+    expect(copiaECola).toHaveValue(PIX.copiaECola)
+    expect(copiaECola).toHaveAttribute('readonly')
+    expect(screen.getByRole('button', { name: 'Copiar código' })).toBeInTheDocument()
+    expect(screen.getByText(`Vale até ${horaDeSaoPaulo(pixDoPedido.pagamento!.pix!.expiraEm!)}`)).toBeInTheDocument()
+    expect(screen.getByText('Abra o app do seu banco, escolha Pix e leia o QR Code ou cole o código.')).toBeInTheDocument()
+    expect(screen.getByText(/Entrega pelo Uber \(valor de exemplo\), Rua Gomes de Carvalho, 10/)).toBeInTheDocument()
+    expect(screen.getByText('Total, no Pix').nextElementSibling).toHaveTextContent(formatarPreco(5070))
+    expect(document.body.textContent).not.toMatch(/pedido de exemplo|Pagamento de exemplo/)
+    // o Pix ainda nao foi pago: a sacola fica
+    expect(guardada()).toEqual({ prestigio: 2 })
+
+    // a espera pergunta em 5 s, nao antes
+    await andar(4999)
+    expect(m.situacaoPedido).not.toHaveBeenCalled()
+    await andar(1)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(1)
+    expect(m.situacaoPedido).toHaveBeenCalledWith({ numero: '123456' })
+
+    expect(screen.getByText('Pagamento aprovado.')).toBeInTheDocument()
+    const titulo = screen.getByRole('heading', { level: 1, name: 'Pedido 123456 recebido' })
+    expect(titulo).toHaveFocus()
+    expect(screen.getByRole('link', { name: 'Acompanhar em Minha conta' })).toHaveAttribute('href', '/conta/pedidos/123456')
+    expect(screen.queryByRole('img', { name: 'QR Code do Pix' })).toBeNull()
     expect(localStorage.getItem(CHAVE_SACOLA)).toBeNull()
     expect(sessionStorage.getItem(CHAVE_DO_PROGRESSO)).toBeNull()
+    // pago, a espera para
+    await andar(60_000)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(1)
   }, 15000)
 
   it('outra aba mexeu na sacola: a página acompanha', async () => {
@@ -429,6 +523,10 @@ describe('a etapa Seus dados e a conta', () => {
     const abas = within(etapa).getByRole('navigation', { name: 'Entrar ou criar conta' })
     expect(within(abas).getByRole('link', { name: 'Entrar' })).toHaveAttribute('href', '/entrar?volta=%2Fsacola')
     expect(within(abas).getByRole('link', { name: 'Criar conta' })).toHaveAttribute('href', '/cadastro?volta=%2Fsacola')
+    // a pagina e a sacola, nao /entrar: as abas nao dizem aria-current="page"; a atual so se marca no desenho
+    for (const aba of within(abas).getAllByRole('link')) expect(aba).not.toHaveAttribute('aria-current')
+    expect(within(abas).getByRole('link', { name: 'Entrar' })).toHaveClass('porta__aba--atual')
+    expect(within(abas).getByRole('link', { name: 'Criar conta' })).not.toHaveClass('porta__aba--atual')
     expect(within(etapa).getByLabelText('E-mail')).toBeInTheDocument()
     expect(within(etapa).getByRole('button', { name: 'Entrar' })).toBeInTheDocument()
     expect(container.querySelector('input[name="volta"]')).toHaveValue('/sacola')
@@ -445,6 +543,8 @@ describe('a etapa Seus dados e a conta', () => {
     await user.click(within(abas).getByRole('link', { name: 'Criar conta' }))
     expect(within(etapa).getByLabelText('Nome')).toBeInTheDocument()
     expect(etapa).toHaveAttribute('aria-current', 'step')
+    expect(within(abas).getByRole('link', { name: 'Criar conta' })).toHaveClass('porta__aba--atual')
+    expect(within(abas).getByRole('link', { name: 'Criar conta' })).not.toHaveAttribute('aria-current')
   })
 
   it('entrou pela porta: a página volta com a cliente e a etapa 3 mostra os dados dela, com a entrega guardada', async () => {
@@ -460,9 +560,30 @@ describe('a etapa Seus dados e a conta', () => {
     expect(screen.getByText(linhaDaEntrega())).toBeInTheDocument()
     expect(within(resumo()).getByRole('button', { name: 'Continuar para o pagamento' })).toBeEnabled()
     await waitFor(() => expect(JSON.parse(sessionStorage.getItem(CHAVE_DO_PROGRESSO) ?? '{}').conta).toBe(marca))
+    // o leitor de tela ouve onde ela esta: o foco vai ao titulo da etapa
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: '3. Seus dados' })).toHaveFocus())
   })
 
-  it('a caixa marcada fica na volta à etapa e vai como guardarEndereco: true quando o pedido for fechado', async () => {
+  it('a página que já abre logada depois de entrar (o progresso era sem conta) leva o foco ao título da etapa 3', async () => {
+    guardar({ prestigio: 1 })
+    naEtapa3(null)
+    m.usuario = mariana
+    render(await PaginaSacola())
+    expect(await screen.findByRole('link', { name: 'Trocar em Minha conta' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: '3. Seus dados' })).toHaveFocus())
+  })
+
+  it('logada desde o começo, a etapa 3 guardada não rouba o foco', async () => {
+    guardar({ prestigio: 1 })
+    naEtapa3(marca)
+    m.usuario = mariana
+    render(await PaginaSacola())
+    expect(await screen.findByRole('link', { name: 'Trocar em Minha conta' })).toBeInTheDocument()
+    await new Promise((r) => setTimeout(r, 50))
+    expect(screen.getByRole('heading', { level: 2, name: '3. Seus dados' })).not.toHaveFocus()
+  })
+
+  it('a caixa marcada fica na volta à etapa e vai como guardarEndereco: true quando o pedido é fechado', async () => {
     guardar({ prestigio: 1 })
     m.usuario = mariana
     naEtapa3(marca)
@@ -473,8 +594,8 @@ describe('a etapa Seus dados e a conta', () => {
     await user.click(await screen.findByRole('button', { name: 'Alterar seus dados' }))
     expect(await screen.findByRole('checkbox', { name: caixa })).toBeChecked()
     await user.click(within(resumo()).getByRole('button', { name: 'Continuar para o pagamento' }))
-    await user.click(await screen.findByRole('button', { name: /^Fazer o pedido/ }))
-    await waitFor(() => expect(m.enviarPedido).toHaveBeenCalledWith(expect.objectContaining({ guardarEndereco: true })))
+    await user.click(await screen.findByRole('button', { name: /^Pagar com Pix/ }))
+    await waitFor(() => expect(m.fechar).toHaveBeenCalledWith(expect.objectContaining({ guardarEndereco: true })))
   })
 
   it('passa no axe com a porta aberta dentro da etapa, e logada com os dados', async () => {
@@ -491,4 +612,263 @@ describe('a etapa Seus dados e a conta', () => {
     await screen.findByRole('checkbox', { name: caixa })
     expect(await axe(logada.container)).toHaveNoViolations()
   })
+})
+
+describe('o Pix e a espera do pagamento', () => {
+  const ana = { id: 'usuario-1', email: 'ana@exemplo.com', nome: 'Ana Souza', celular: '11987654321' }
+  const marca = createHash('sha256').update('usuario-1').digest('hex').slice(0, 16)
+  const resumo = () => screen.getByRole('complementary', { name: 'Resumo' })
+  const botaoDoResumo = () => within(resumo()).getByRole('button')
+  /** logada, na etapa 4, com a entrega cotada (dois potes de Prestigio: R$ 37,80 + R$ 12,90) */
+  const naEtapa4 = async () => {
+    guardar({ prestigio: 2 })
+    m.usuario = ana
+    const endereco = { cep: '04567-000', numero: '10', complemento: '' }
+    sessionStorage.setItem(CHAVE_DO_PROGRESSO, JSON.stringify({ etapa: 3, endereco, cotacao: cotacaoDe(), conta: marca }))
+    const user = userEvent.setup()
+    const tela = render(await PaginaSacola())
+    await user.click(await screen.findByRole('button', { name: 'Continuar para o pagamento' }))
+    expect(await screen.findByRole('radio', { name: 'Pix' })).toBeChecked()
+    return { user, ...tela }
+  }
+  /** na etapa 4 com o relogio falso, paga com Pix e espera o pedido feito aparecer */
+  const pagoComPix = async () => {
+    await naEtapa4()
+    relogioFalso()
+    // com o relogio falso o clique e o do fireEvent: o do user-event espera um setTimeout que nao anda
+    fireEvent.click(botaoDoResumo())
+    await andar(0)
+    expect(screen.getByRole('heading', { level: 1, name: 'Pedido 123456 aguardando o Pix' })).toBeInTheDocument()
+  }
+  const mudarAba = (estado: 'hidden' | 'visible') =>
+    act(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => estado })
+      document.dispatchEvent(new Event('visibilitychange'))
+    })
+
+  it('clique duplo em "Pagar com Pix" fecha o pedido uma vez, e o botão fica ocupado dizendo o que faz', async () => {
+    const { user } = await naEtapa4()
+    m.fechar.mockReturnValue(new Promise(() => {}))
+    await user.dblClick(within(resumo()).getByRole('button', { name: `Pagar com Pix · ${formatarPreco(5070)}` }))
+    expect(m.fechar).toHaveBeenCalledTimes(1)
+    const ocupado = botaoDoResumo()
+    expect(ocupado).toBeDisabled()
+    expect(ocupado).toHaveAttribute('aria-busy', 'true')
+    expect(ocupado).toHaveTextContent('Fechando o pedido, só um instante')
+    await user.click(ocupado)
+    expect(m.fechar).toHaveBeenCalledTimes(1)
+    expect(m.pagarPix).not.toHaveBeenCalled()
+  })
+
+  it('a resposta que chega depois de a cliente sair da etapa 4 é ignorada', async () => {
+    const { user } = await naEtapa4()
+    let responder: (r: unknown) => void = () => {}
+    m.fechar.mockReturnValue(new Promise((r) => (responder = r)))
+    await user.click(botaoDoResumo())
+    await user.click(screen.getByRole('button', { name: 'Alterar entrega' }))
+    expect(await screen.findByLabelText('CEP')).toBeInTheDocument()
+    await act(async () => responder({ ok: true, pedido: { numero: '123456', totalCentavos: 5070 } }))
+    expect(m.pagarPix).not.toHaveBeenCalled()
+    expect(screen.queryByRole('heading', { level: 1, name: /^Pedido/ })).toBeNull()
+    expect(screen.getByLabelText('CEP')).toBeInTheDocument()
+  })
+
+  it('cotacao_vencida volta à etapa 2 com a frase, com o endereço, e a entrega volta a ser calculada', async () => {
+    const { user } = await naEtapa4()
+    m.fechar.mockResolvedValue({ ok: false, erro: 'cotacao_vencida' })
+    await user.click(botaoDoResumo())
+    const frase = await screen.findByText(MENSAGENS_DO_FECHAMENTO.cotacao_vencida)
+    expect(frase).toHaveAttribute('aria-live', 'polite')
+    expect(document.querySelector('.etapa[aria-current="step"]')).toHaveTextContent('2. Entrega')
+    expect(screen.getByLabelText('CEP')).toHaveValue('04567-000')
+    expect(within(resumo()).getByText('informe o CEP')).toBeInTheDocument()
+    expect(within(resumo()).getByRole('button', { name: 'Calcular e continuar' })).toBeEnabled()
+    expect(m.pagarPix).not.toHaveBeenCalled()
+    await waitFor(() => expect(screen.getByRole('heading', { level: 2, name: '2. Entrega' })).toHaveFocus())
+  })
+
+  it('produto_indisponivel volta à etapa 1 com a frase, e a página traz o cardápio de novo', async () => {
+    const { user } = await naEtapa4()
+    m.fechar.mockResolvedValue({ ok: false, erro: 'produto_indisponivel' })
+    await user.click(botaoDoResumo())
+    expect(await screen.findByText(MENSAGENS_DO_FECHAMENTO.produto_indisponivel)).toHaveAttribute('aria-live', 'polite')
+    expect(document.querySelector('.etapa[aria-current="step"]')).toHaveTextContent('1. Os potes')
+    expect(m.refresh).toHaveBeenCalled()
+  })
+
+  it('sem_sessao volta à etapa 3 com a frase, e a página traz a sessão de novo', async () => {
+    const { user } = await naEtapa4()
+    m.fechar.mockResolvedValue({ ok: false, erro: 'sem_sessao' })
+    await user.click(botaoDoResumo())
+    expect(await screen.findByText(MENSAGENS_DO_FECHAMENTO.sem_sessao)).toHaveAttribute('aria-live', 'polite')
+    expect(document.querySelector('.etapa[aria-current="step"]')).toHaveTextContent('3. Seus dados')
+    expect(m.refresh).toHaveBeenCalled()
+  })
+
+  it('total_mudou fica na etapa 4 com a frase, e a página traz os preços de novo', async () => {
+    const { user } = await naEtapa4()
+    m.fechar.mockResolvedValue({ ok: false, erro: 'total_mudou' })
+    await user.click(botaoDoResumo())
+    expect(await screen.findByText(MENSAGENS_DO_FECHAMENTO.total_mudou)).toBeInTheDocument()
+    expect(m.refresh).toHaveBeenCalledTimes(1)
+    expect(document.querySelector('.etapa[aria-current="step"]')).toHaveTextContent('4. Pagamento')
+    expect(botaoDoResumo()).toBeEnabled()
+  })
+
+  it('loja_fechada: a frase, o botão desligado com "Cozinha fechada agora", e o resumo passa a dizer quando abre', async () => {
+    const { user, rerender } = await naEtapa4()
+    m.fechar.mockResolvedValue({ ok: false, erro: 'loja_fechada' })
+    await user.click(botaoDoResumo())
+    expect(await screen.findByText(MENSAGENS_DO_FECHAMENTO.loja_fechada)).toHaveAttribute('aria-live', 'polite')
+    expect(within(resumo()).getByRole('button', { name: 'Cozinha fechada agora' })).toBeDisabled()
+    expect(m.pagarPix).not.toHaveBeenCalled()
+    expect(m.refresh).toHaveBeenCalledTimes(1)
+
+    // o refresh traz a pagina do servidor com a loja fechada; a cliente segue na etapa 4
+    m.situacao = { aberta: false, pausada: false, abre: { dia: 2, hora: '09:00', emDias: 1 } }
+    rerender(await PaginaSacola())
+    expect(await within(resumo()).findByText(textoDaLoja(m.situacao))).toBeInTheDocument()
+    expect(within(resumo()).getByText(resumoDosHorarios(m.horarios))).toBeInTheDocument()
+    expect(document.querySelector('.etapa[aria-current="step"]')).toHaveTextContent('4. Pagamento')
+    expect(within(resumo()).getByRole('button', { name: 'Cozinha fechada agora' })).toBeDisabled()
+  })
+
+  it('pagamento_indisponivel no Pix: fica na etapa 4 com a frase, e o botão volta', async () => {
+    const { user } = await naEtapa4()
+    m.pagarPix.mockResolvedValue({ ok: false, erro: 'pagamento_indisponivel' })
+    await user.click(botaoDoResumo())
+    expect(await screen.findByText(MENSAGENS_DO_FECHAMENTO.pagamento_indisponivel)).toHaveAttribute('aria-live', 'polite')
+    expect(m.fechar).toHaveBeenCalledTimes(1)
+    expect(m.pagarPix).toHaveBeenCalledWith({ numero: '123456' })
+    expect(document.querySelector('.etapa[aria-current="step"]')).toHaveTextContent('4. Pagamento')
+    const botao = within(resumo()).getByRole('button', { name: `Pagar com Pix · ${formatarPreco(5070)}` })
+    expect(botao).toBeEnabled()
+    expect(botao).toHaveAttribute('aria-busy', 'false')
+
+    // pagar de novo fecha de novo (o banco devolve o mesmo pedido) e segue
+    m.pagarPix.mockResolvedValue({ ok: true, situacao: pixPendente() })
+    await user.click(botao)
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pedido 123456 aguardando o Pix' })).toBeInTheDocument()
+    expect(m.fechar).toHaveBeenCalledTimes(2)
+  })
+
+  it('"Copiar código" põe o copia e cola na área de transferência e diz "Código copiado." numa região viva', async () => {
+    const { user } = await naEtapa4()
+    await user.click(botaoDoResumo())
+    const copiar = await screen.findByRole('button', { name: 'Copiar código' })
+    const escrever = vi.spyOn(navigator.clipboard, 'writeText')
+    await user.click(copiar)
+    expect(escrever).toHaveBeenCalledWith(PIX.copiaECola)
+    expect(await screen.findByText('Código copiado.')).toHaveAttribute('aria-live', 'polite')
+  })
+
+  it('sem a área de transferência, "Copiar código" seleciona o código para copiar à mão', async () => {
+    const { user } = await naEtapa4()
+    await user.click(botaoDoResumo())
+    const copiar = await screen.findByRole('button', { name: 'Copiar código' })
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined })
+    await user.click(copiar)
+    const campo = screen.getByRole<HTMLInputElement>('textbox', { name: 'Pix copia e cola' })
+    expect(campo).toHaveFocus()
+    expect([campo.selectionStart, campo.selectionEnd]).toEqual([0, PIX.copiaECola.length])
+    expect(screen.queryByText('Código copiado.')).toBeNull()
+  })
+
+  it('o código vencido diz "O código venceu." e oferece outro: "Gerar outro código" chama pagarComPix de novo', async () => {
+    await naEtapa4()
+    relogioFalso()
+    const quaseVencendo = pixPendente({ expiraEm: new Date(Date.now() + 60_000).toISOString() })
+    m.pagarPix.mockResolvedValue({ ok: true, situacao: quaseVencendo })
+    // o servidor ainda da a tentativa como pendente, com o mesmo codigo: quem vence e o relogio daqui
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: quaseVencendo })
+    fireEvent.click(botaoDoResumo())
+    await andar(0)
+    expect(screen.getByRole('img', { name: 'QR Code do Pix' })).toBeInTheDocument()
+
+    await andar(61_000)
+    const venceu = screen.getByText('O código venceu.')
+    expect(venceu).toHaveAttribute('aria-live', 'polite')
+    expect(screen.queryByRole('img', { name: 'QR Code do Pix' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Copiar código' })).toBeNull()
+
+    const novo = pixPendente({ copiaECola: '00020101021226830014br.gov.bcb.pix-novo', expiraEm: new Date(Date.now() + 30 * 60_000).toISOString() })
+    m.pagarPix.mockResolvedValue({ ok: true, situacao: novo })
+    fireEvent.click(screen.getByRole('button', { name: 'Gerar outro código' }))
+    await andar(0)
+    expect(m.pagarPix).toHaveBeenCalledTimes(2)
+    expect(m.pagarPix).toHaveBeenLastCalledWith({ numero: '123456' })
+    expect(m.fechar).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('textbox', { name: 'Pix copia e cola' })).toHaveValue('00020101021226830014br.gov.bcb.pix-novo')
+    expect(screen.queryByText('O código venceu.')).toBeNull()
+  })
+
+  it('a tentativa trocada (cancelado) que a espera vê pede outro código, e a espera para', async () => {
+    await pagoComPix()
+    m.situacaoPedido.mockResolvedValue({
+      ok: true,
+      situacao: { ...pixPendente(), pagamento: { forma: 'pix', estado: 'cancelado', recusa: null, pix: null, desafioUrl: null } },
+    })
+    await andar(5000)
+    expect(screen.getByText('O código venceu.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Gerar outro código' })).toBeInTheDocument()
+    await andar(60_000)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(1)
+  })
+
+  it('a aba escondida não pergunta; ao voltar, pergunta uma vez; a rede que cai não muda o que a tela mostra', async () => {
+    await pagoComPix()
+    m.situacaoPedido.mockRejectedValue(new TypeError('Failed to fetch'))
+    await andar(5000)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('heading', { level: 1, name: 'Pedido 123456 aguardando o Pix' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'QR Code do Pix' })).toBeInTheDocument()
+    expect(document.body.textContent).not.toMatch(/recusad/)
+
+    await mudarAba('hidden')
+    await andar(120_000)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(1)
+
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: pixPendente() })
+    await mudarAba('visible')
+    await andar(0)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(2)
+    // e o ritmo volta: a proxima pergunta vem no tempo dela, nao de uma vez
+    await andar(1000)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(2)
+  })
+
+  it('depois de 30 min sem mudança a espera para e diz isso', async () => {
+    await pagoComPix()
+    await andar(30 * 60_000 + 15_000)
+    const chamadas = m.situacaoPedido.mock.calls.length
+    expect(screen.getByText(/Paramos de conferir sozinhos/)).toBeInTheDocument()
+    await andar(10 * 60_000)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(chamadas)
+  })
+
+  it('o pedido cancelado durante a espera volta à etapa 4 com a frase, e a sacola fica', async () => {
+    await pagoComPix()
+    m.situacaoPedido.mockResolvedValue({
+      ok: true,
+      situacao: { numero: '123456', estado: 'cancelado', pagamento: { forma: 'pix', estado: 'cancelado', recusa: null, pix: null, desafioUrl: null } },
+    })
+    await andar(5000)
+    await andar(100)
+    expect(screen.getByText(MENSAGENS_DO_FECHAMENTO.pedido_invalido)).toHaveAttribute('aria-live', 'polite')
+    expect(document.querySelector('.etapa[aria-current="step"]')).toHaveTextContent('4. Pagamento')
+    // o titulo do pedido feito saiu: o foco vai ao titulo da etapa
+    expect(screen.getByRole('heading', { level: 2, name: '4. Pagamento' })).toHaveFocus()
+    expect(guardada()).toEqual({ prestigio: 2 })
+  })
+
+  it('passa no axe no pedido feito, esperando o Pix e depois de pago', async () => {
+    const { user, container } = await naEtapa4()
+    await user.click(botaoDoResumo())
+    await screen.findByRole('img', { name: 'QR Code do Pix' })
+    expect(await axe(container)).toHaveNoViolations()
+
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: pixPago() })
+    expect(await screen.findByText('Pagamento aprovado.', {}, { timeout: 7000 })).toBeInTheDocument()
+    expect(await axe(container)).toHaveNoViolations()
+  }, 15000)
 })

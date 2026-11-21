@@ -1,9 +1,8 @@
 /**
- * O fechamento do pedido: as regras do nome e do celular (que a conta usa) e
- * o envio. O envio ainda e de exemplo (enviarPedidoDeExemplo): nenhum valor e
- * cobrado e nada sai do navegador. Quando o meio de pagamento for escolhido,
- * o envio vai para o servidor, que recalcula precos e frete (o navegador
- * nunca diz o total que vale).
+ * As regras do pedido que a tela e a conta usam: as formas de pagamento, a
+ * mascara do celular e as regras do nome e do celular. O pedido em si fecha
+ * no servidor (src/app/sacola/acoes.ts), que recalcula precos e frete: o
+ * navegador nunca diz o total que vale.
  */
 
 export type Pagamento = 'pix' | 'cartao'
@@ -33,14 +32,4 @@ export function erroDoNome(nome: string): string | null {
 export function erroDoCelular(celular: string): string | null {
   const cel = digitos(celular)
   return cel.length !== 11 || cel[2] !== '9' ? 'Confira o celular: DDD e 9 números, como (11) 98765-4321.' : null
-}
-
-/** "04567-000, 120, ap. 52" */
-/** O que o fechamento manda com o pedido: a escolha de guardar o endereco da entrega em Minha conta. */
-export type PedidoParaFechar = { guardarEndereco: boolean }
-
-/** EXEMPLO. Recebe o pedido e responde depois de um instante, como o servidor responderia. */
-export const enviarPedidoDeExemplo: (pedido: PedidoParaFechar) => Promise<{ numero: string }> = async () => {
-  await new Promise((r) => setTimeout(r, 700))
-  return { numero: String(Date.now()).slice(-6) }
 }

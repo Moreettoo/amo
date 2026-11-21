@@ -1,0 +1,97 @@
+'use client'
+
+import { useEffect, useEffectEvent, useState } from 'react'
+import { situacaoDoPedido } from '@/app/sacola/acoes'
+import type { SituacaoDoPedido } from '@/lib/fechamento/tipos'
+import { mesmaSituacao, proximaEspera, terminou } from './espera'
+
+type Props = {
+  numero: string
+  /** a situacao de onde a espera parte; uma situacao nova (um codigo novo) recomeca o ritmo */
+  inicial: SituacaoDoPedido
+  /** a situacao mudou: o codigo chegou, o pagamento foi aprovado, o codigo venceu */
+  aoMudar: (s: SituacaoDoPedido) => void
+}
+
+type Resposta = Awaited<ReturnType<typeof situacaoDoPedido>>
+
+/**
+ * A espera do pagamento: pergunta ao servidor (situacaoDoPedido) no ritmo de
+ * proximaEspera ate o pedido sair de aguardando_pagamento ou a tentativa
+ * acabar. Com a aba escondida nao pergunta; ao voltar, pergunta uma vez e
+ * retoma o ritmo. Erro de rede, ou resposta de erro, nao muda o que a tela
+ * mostra. Nada gira: a espera e dita em texto.
+ */
+export function EsperaDoPagamento({ numero, inicial, aoMudar }: Props) {
+  // a situacao com que o ritmo acabou (30 min sem mudanca); outra inicial recomeca
+  const [parouEm, setParouEm] = useState<SituacaoDoPedido | null>(null)
+  const avisar = useEffectEvent((s: SituacaoDoPedido) => aoMudar(s))
+
+  useEffect(() => {
+    if (terminou(inicial)) return
+    const desde = Date.now()
+    let ultima = inicial
+    let viva = true
+    let perguntando = false
+    let relogio: ReturnType<typeof setTimeout> | undefined
+    const escondida = () => document.visibilityState === 'hidden'
+
+    /** Marca a proxima pergunta; false quando o ritmo acabou. */
+    const agendar = (): boolean => {
+      clearTimeout(relogio)
+      if (!viva || escondida()) return true
+      const ms = proximaEspera(desde, Date.now())
+      if (ms === null) return false
+      relogio = setTimeout(perguntar, ms)
+      return true
+    }
+
+    async function perguntar() {
+      if (perguntando) return
+      perguntando = true
+      let r: Resposta | null
+      try {
+        r = await situacaoDoPedido({ numero })
+      } catch {
+        // a rede caiu: a tela fica como estava e a proxima pergunta vem no ritmo
+        r = null
+      }
+      perguntando = false
+      if (!viva) return
+      if (r?.ok) {
+        if (!mesmaSituacao(ultima, r.situacao)) {
+          ultima = r.situacao
+          avisar(r.situacao)
+        }
+        if (terminou(r.situacao)) return
+      }
+      if (!agendar()) setParouEm(inicial)
+    }
+
+    const aoTrocarDeAba = () => {
+      clearTimeout(relogio)
+      if (!escondida()) void perguntar()
+    }
+
+    document.addEventListener('visibilitychange', aoTrocarDeAba)
+    agendar()
+    return () => {
+      viva = false
+      clearTimeout(relogio)
+      document.removeEventListener('visibilitychange', aoTrocarDeAba)
+    }
+  }, [numero, inicial])
+
+  if (terminou(inicial)) return null
+  return (
+    <p className="espera" aria-live="polite">
+      {parouEm === inicial ? (
+        <>
+          Paramos de conferir sozinhos. Se você já pagou, veja o pedido em <a href={`/conta/pedidos/${numero}`}>Minha conta</a>.
+        </>
+      ) : (
+        'Assim que o pagamento for confirmado, esta página avisa sozinha.'
+      )}
+    </p>
+  )
+}

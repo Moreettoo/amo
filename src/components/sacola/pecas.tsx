@@ -3,10 +3,16 @@
 import Image from 'next/image'
 import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Quantidade } from '@/components/ui/Quantidade'
+import type { Cotacao } from '@/lib/fechamento/tipos'
 import { formatarPreco } from '@/lib/produto'
 import { definirQuantidade, tirarDaSacola, type LinhaDaSacola } from '@/lib/sacola'
 import { CAMINHO_CATALOGO } from '@/lib/visao'
 import type { Etapa } from './progresso'
+
+/** A Regra do Exemplo Dito: enquanto a cotacao for de exemplo, o valor da entrega diz isso. */
+export const deExemplo = (c: Cotacao) => (c.exemplo ? ' (valor de exemplo)' : '')
+/** "Rua Gomes de Carvalho, 10" */
+export const ruaENumero = (c: Cotacao) => `${c.endereco.logradouro}, ${c.endereco.numero}`
 
 /** O fio de 1 px pela margem e o coracao na etapa atual, que desliza ate ela. */
 export function Fio({ etapa, id, children }: { etapa: Etapa; id: string; children: ReactNode }) {
