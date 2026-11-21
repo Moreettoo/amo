@@ -2,7 +2,8 @@
 
 **Data:** 2026-11-21. Lido na documentação oficial (mercadopago.com.br/developers,
 em inglês) e, onde ela cala, no código dos SDKs oficiais. É a referência da
-etapa 3 (`docs/superpowers/plans/2026-11-21-amo-etapa-3-fechamento.md`) e
+etapa 3 (`docs/superpowers/plans/2026-11-21-amo-etapa-3-servidor.md` e o
+plano da tela que vem depois dele) e
 completa a §10 de `2026-11-18-amo-backend-design.md`, que deixou para a etapa
 3 o reenvio da chave de idempotência e os domínios da CSP.
 
@@ -124,7 +125,7 @@ documentação; o pagamento fica `contestado` e a equipe resolve no painel.
   chave enquanto a primeira chamada roda: 423 `resource_locked`. 500
   `idempotency_validation_failed`: reenviar com chave nova. Mesma chave com o
   mesmo corpo: **não documentado**. A AMO não reenvia a criação: se ela falha
-  ou demora (8 s), a tentativa fica pendente sem `ORD`, a tela diz "não deu
+  ou demora (6 s), a tentativa fica pendente sem `ORD`, a tela diz "não deu
   certo agora", e a reconciliação a cancela depois de 10 minutos. Se o
   Mercado Pago a tiver criado e ela for paga, o aviso chega pelo
   `external_reference` e vale a §10.3.
@@ -136,7 +137,8 @@ documentação; o pagamento fica `contestado` e a equipe resolve no painel.
 - 401 `invalid_credentials`: credencial errada (ou de teste antiga, `TEST-`,
   que a API de Orders não aceita).
 - O corpo de erro não tem formato documentado: o servidor guarda no log só o
-  status HTTP e o `x-request-id` da resposta, nunca o corpo.
+  status HTTP e, quando houver, o código curto (por `registrarFalha`), nunca o
+  corpo.
 
 ## 4. O aviso (`POST /api/webhooks/mercadopago`)
 

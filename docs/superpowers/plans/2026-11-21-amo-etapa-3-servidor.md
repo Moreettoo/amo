@@ -47,7 +47,7 @@ Cada uma pode ser revertida pelo dono. Ele saiu pelo dia em 2026-11-21 e pediu q
 - Migration aplicada não se edita. Depois de toda migration: regenerar `src/lib/dados/banco.ts` (mantendo `import 'server-only'` e as linhas de comentário do topo), rodar `supabase/tests/90_permissoes.sql` e o conselheiro de segurança (`get_advisors`, tipo `security`). Testes de banco: uma chamada só do `execute_sql` do MCP `supabase-amo` com `supabase/tests/_apoio.sql` seguido do teste. Só o MCP `supabase-amo` (o `claude_ai_Supabase` é de outra organização). O banco `yuhrtuizxuvqvvjtcemz` é o de desenvolvimento.
 - Textos sem travessão nem meia-risca em `src/`, `tests/`, `scripts/` e README (`tests/travessao.test.ts`); comentário de código sem acento.
 - Commit no padrão do repositório (`feat:`/`fix:`/`test:`/`docs:` em português, sem acento no assunto), terminando com uma linha em branco e `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`. Branch `feat/etapa-3`; nada de `stash`, `reset` ou `checkout` amplo.
-- Suíte completa antes de cada commit: `npx vitest run`, `npx tsc --noEmit`, `npm run lint`.
+- Suíte completa antes de cada commit: `npx vitest run`, `npx tsc --noEmit`, `npm run lint`. A tarefa que cria rota (`route.ts`) ou mexe em fronteira `'use client'`, layout ou `proxy.ts` roda também `npm run build` (que já chama a varredura de segredos).
 
 ## Review Focus
 
@@ -291,7 +291,7 @@ Com `fetch` falso e `MERCADOPAGO_ACCESS_TOKEN=APP_USR-teste`:
 Run: `npx vitest run tests/mercadopago-cliente.test.ts tests/mercadopago-traducao.test.ts`
 Expected: FAIL (os módulos não existem).
 
-- [ ] **Step 3: Implementar** a interface. Falha HTTP vai ao log por `registrarFalha('mercadopago:<operacao>', { status, code })`; nada mais.
+- [ ] **Step 3: Implementar** a interface. Falha HTTP vai ao log por `registrarFalha('mercadopago.<operacao>', { status, code })` (com ponto: o formato curto de `registrarFalha` recusa dois-pontos); nada mais.
 
 - [ ] **Step 4: Rodar a suíte e commitar**
 
