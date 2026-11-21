@@ -1,7 +1,7 @@
 import 'server-only'
 import type { Tables } from '@/lib/dados/banco'
 import { falhaDoBanco } from '@/lib/dados/erros'
-import { criarClientePublico } from '@/lib/dados/publico'
+import { criarClienteDoCatalogo } from '@/lib/dados/publico'
 import type { Comentario, Nota } from '@/lib/produto'
 
 type LinhaDoComentario = Pick<Tables<'comentarios'>, 'id' | 'produto' | 'nome_exibido' | 'nota' | 'texto' | 'criado_em'>
@@ -30,7 +30,7 @@ export function montarComentario(linha: LinhaDoComentario): Comentario | null {
  * pode nem citar `status` nem `user_id`.
  */
 export async function lerComentariosAprovados(produto: string): Promise<Comentario[]> {
-  const { data, error, status } = await criarClientePublico()
+  const { data, error, status } = await criarClienteDoCatalogo()
     .from('comentarios')
     .select('id, produto, nome_exibido, nota, texto, criado_em')
     .eq('produto', produto)

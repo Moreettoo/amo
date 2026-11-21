@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { variavel } from '@/lib/dados/ambiente'
+import { mercadoPagoEmTeste, variavel } from '@/lib/dados/ambiente'
 import { falhaDoBanco, registrarFalha } from '@/lib/dados/erros'
-import { criarClientePublico } from '@/lib/dados/publico'
+import { criarClienteDoCatalogo, criarClienteDoVisitante } from '@/lib/dados/publico'
 
 afterEach(() => {
   vi.unstubAllEnvs()
@@ -20,6 +20,12 @@ describe('variavel', () => {
   it.each(['', '   '])('vazia (%j) lanca erro com o nome', (valor) => {
     vi.stubEnv('SUPABASE_PORTA', valor)
     expect(() => variavel('SUPABASE_PORTA')).toThrow('Falta a variável de ambiente SUPABASE_PORTA')
+  })
+  it('as variaveis do pagamento lancam o nome quando faltam', () => {
+    for (const nome of ['NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY', 'MERCADOPAGO_ACCESS_TOKEN', 'MERCADOPAGO_WEBHOOK_SECRET', 'TAREFAS_SEGREDO'] as const) {
+      vi.stubEnv(nome, '')
+      expect(() => variavel(nome)).toThrow(`Falta a variável de ambiente ${nome}`)
+    }
   })
 })
 
@@ -83,7 +89,7 @@ describe('registrarFalha', () => {
   })
 })
 
-describe('criarClientePublico', () => {
+describe('criarClienteDoCatalogo', () => {
   it('toda chamada leva a porta e o cache de 5 minutos, sem sessao', async () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://exemplo.supabase.co')
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_teste')
@@ -91,11 +97,43 @@ describe('criarClientePublico', () => {
     const busca = vi.fn(async () => new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }))
     vi.stubGlobal('fetch', busca)
 
-    await criarClientePublico().from('loja').select('vendas_pausadas')
+    await criarClienteDoCatalogo().from('loja').select('vendas_pausadas')
 
     const [url, opcoes] = busca.mock.calls[0] as unknown as [string, RequestInit & { next?: unknown }]
     expect(String(url)).toContain('https://exemplo.supabase.co/rest/v1/loja')
     expect(new Headers(opcoes.headers).get('x-amo-porta')).toBe('segredo-de-teste')
     expect(opcoes.next).toEqual({ revalidate: 300, tags: ['catalogo'] })
+  })
+})
+
+describe('criarClienteDoVisitante', () => {
+  it('toda chamada leva a porta e nao usa cache, sem sessao', async () => {
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://exemplo.supabase.co')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_teste')
+    vi.stubEnv('SUPABASE_PORTA', 'segredo-de-teste')
+    const busca = vi.fn(async () => new Response('[]', { status: 200, headers: { 'content-type': 'application/json' } }))
+    vi.stubGlobal('fetch', busca)
+
+    await criarClienteDoVisitante().from('loja').select('vendas_pausadas')
+
+    const [, opcoes] = busca.mock.calls[0] as unknown as [string, RequestInit & { next?: unknown }]
+    expect(opcoes.cache).toBe('no-store')
+    expect(opcoes.next).toBeUndefined()
+    expect(new Headers(opcoes.headers).get('x-amo-porta')).toBe('segredo-de-teste')
+  })
+})
+
+describe('mercadoPagoEmTeste', () => {
+  it.each(['teste', ' teste '])('%j e teste', (valor) => {
+    vi.stubEnv('MERCADOPAGO_AMBIENTE', valor)
+    expect(mercadoPagoEmTeste()).toBe(true)
+  })
+  it.each(['', 'producao', 'TESTE'])('%j e producao', (valor) => {
+    vi.stubEnv('MERCADOPAGO_AMBIENTE', valor)
+    expect(mercadoPagoEmTeste()).toBe(false)
+  })
+  it('ausente e producao', () => {
+    vi.stubEnv('MERCADOPAGO_AMBIENTE', undefined as unknown as string)
+    expect(mercadoPagoEmTeste()).toBe(false)
   })
 })

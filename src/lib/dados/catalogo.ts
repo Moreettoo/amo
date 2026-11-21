@@ -2,7 +2,7 @@ import 'server-only'
 import { validarCatalogo, type Catalogo, type CorDoRotulo, type Linha, type Produto } from '@/lib/catalogo'
 import type { Tables } from '@/lib/dados/banco'
 import { falhaDoBanco } from '@/lib/dados/erros'
-import { criarClientePublico } from '@/lib/dados/publico'
+import { criarClienteDoCatalogo } from '@/lib/dados/publico'
 
 /**
  * O cadastro vem do banco: as cinco tabelas do catalogo, lidas como visitante
@@ -87,7 +87,7 @@ export function montarCatalogoDoBanco(t: TabelasDoCatalogo): Catalogo {
 
 /** Le as cinco tabelas, monta e valida. */
 export async function carregarCatalogo(): Promise<Catalogo> {
-  const banco = criarClientePublico()
+  const banco = criarClienteDoCatalogo()
   const [categorias, linhas, produtos, selos, vontades] = await Promise.all([
     banco.from('categorias').select('slug, nome, ordem').order('ordem').order('slug'),
     banco

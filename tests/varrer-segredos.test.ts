@@ -53,4 +53,18 @@ describe('varrer-segredos', () => {
     expect(r.codigo).toBe(1)
     expect(r.saida).toMatch(/Nenhum segredo de servidor para procurar/)
   })
+  it('a chave publica do Mercado Pago, que vai ao navegador, nao dispara', () => {
+    montar({ '.env.local': `SUPABASE_PORTA=${SEGREDO}
+`, '.next/static/a.js': 'APP_USR-6b0d5c4a-1f2e-4d3c-9b8a-7f6e5d4c3b2a' })
+    expect(varrer().codigo).toBe(0)
+  })
+  it.each(['APP_USR', 'TEST'])('o token do Mercado Pago (%s) dispara, sem imprimir o valor', (prefixo) => {
+    const token = `${prefixo}-1234567890123456-112118-0123456789abcdef0123456789abcdef-123456789`
+    montar({ '.env.local': `SUPABASE_PORTA=${SEGREDO}
+`, '.next/static/a.js': `x ${token} x` })
+    const r = varrer()
+    expect(r.codigo).toBe(1)
+    expect(r.saida).toMatch(/a\.js: token do Mercado Pago/)
+    expect(r.saida).not.toContain(token)
+  })
 })

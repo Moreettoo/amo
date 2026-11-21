@@ -14,7 +14,7 @@
 //
 // O que procura: o valor de cada variavel de servidor (as da spec 13 e as do
 // .env.local que nao comecam com NEXT_PUBLIC_), lido do ambiente e do
-// .env.local, com 8 caracteres ou mais; e as marcas sb_secret_, x-amo-porta e APP_USR-.
+// .env.local, com 8 caracteres ou mais; as marcas sb_secret_ e x-amo-porta; e o formato do token do Mercado Pago (a chave publica, que vai ao navegador, nao dispara).
 // Cada achado sai como arquivo e nome da regra, nunca o valor. Sai com codigo
 // 1 se achar algo, ou se nao houver nenhum valor de segredo para procurar
 // (uma varredura sem o que procurar nao prova nada).
@@ -55,7 +55,10 @@ if (regras.length === 0) {
   console.error('Nenhum segredo de servidor para procurar: confira o ambiente ou o .env.local.')
   process.exit(1)
 }
-for (const marca of ['sb_secret_', 'x-amo-porta', 'APP_USR-']) regras.push({ nome: marca, texto: marca })
+for (const marca of ['sb_secret_', 'x-amo-porta']) regras.push({ nome: marca, texto: marca })
+// A chave publica do Mercado Pago (APP_USR-<UUID>) vai ao navegador por desenho;
+// so o formato do token de acesso e segredo.
+regras.push({ nome: 'token do Mercado Pago', formato: /\b(?:APP_USR|TEST)-\d{6,20}-\d{6}-[0-9a-f]{32}-\d{3,15}\b/ })
 
 function arquivos(dir, filtro = () => true) {
   if (!existsSync(dir)) return []
@@ -70,7 +73,7 @@ const achados = []
 for (const arquivo of lidos) {
   const conteudo = readFileSync(arquivo, 'latin1')
   for (const regra of regras) {
-    if (conteudo.includes(regra.texto)) achados.push(`${relative('.', arquivo)}: ${regra.nome}`)
+    if (regra.formato ? regra.formato.test(conteudo) : conteudo.includes(regra.texto)) achados.push(`${relative('.', arquivo)}: ${regra.nome}`)
   }
 }
 
