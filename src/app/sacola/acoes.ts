@@ -9,10 +9,10 @@ import { mercadoPagoEmTeste } from '@/lib/dados/ambiente'
 import { ErroDeRegra, registrarFalha } from '@/lib/dados/erros'
 import { conferirNumeroDoPedido } from '@/lib/conta/regras'
 import { criarPedido, iniciarPagamento, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
-import { aplicarPagamento, tentativasACancelarNoMp } from '@/lib/dados/pagamentos'
+import { aplicarPagamento, mpPedidoDaTentativa, tentativasACancelarNoMp } from '@/lib/dados/pagamentos'
 import { criarPedidoCartao, criarPedidoPix, type PedidoMp } from '@/lib/mercadopago/cliente'
 import { traduzir } from '@/lib/mercadopago/traducao'
-import { aplicarRespostaDoMp, cancelarNoMp } from '@/lib/mercadopago/sincronizar'
+import { aplicarRespostaDoMp, cancelarNoMp, sincronizarTentativa } from '@/lib/mercadopago/sincronizar'
 import { consumirLimite } from '@/lib/dados/limites'
 import type {
   CodigoDoFechamento,
@@ -22,6 +22,7 @@ import type {
   RespostaDaCotacao,
   RespostaDoPagamento,
   RespostaDoPedido,
+  SituacaoDoPedido,
 } from '@/lib/fechamento/tipos'
 
 /**
@@ -230,6 +231,27 @@ function situacaoDaResposta(
   return { ok: true, situacao: { numero, estado: aplicado.pedido as EstadoDoPedido, pagamento } }
 }
 
+type Ultima = NonNullable<Awaited<ReturnType<typeof lerUltimaTentativa>>>
+
+/** A situacao como o banco a tem: o Pix so aparece com a tentativa pendente; o desafio nao e guardado. */
+function situacaoDoBanco(numero: string, estado: string, ultima: Ultima | null): SituacaoDoPedido {
+  const pendente = ultima?.status === 'pendente'
+  return {
+    numero,
+    estado: estado as EstadoDoPedido,
+    pagamento: ultima && {
+      forma: ultima.forma,
+      estado: ultima.status,
+      recusa: ultima.recusa,
+      pix:
+        pendente && ultima.pixCopiaECola && ultima.pixQrBase64
+          ? { copiaECola: ultima.pixCopiaECola, qrBase64: ultima.pixQrBase64, expiraEm: ultima.pixExpiraEm }
+          : null,
+      desafioUrl: null,
+    },
+  }
+}
+
 /** O caminho comum das duas formas. Ordem: sessao, campos, limite, pedido, tentativa, cancelar a anterior, Mercado Pago, aplicar. */
 async function pagar(forma: 'pix' | 'cartao', entrada: unknown): Promise<RespostaDoPagamento> {
   try {
@@ -296,24 +318,7 @@ async function pagar(forma: 'pix' | 'cartao', entrada: unknown): Promise<Respost
     const ultima = await lerUltimaTentativa(pedido.id)
     const atual = await lerPedidoParaPagar(numero)
     if (!ultima || !atual) return { ok: false, erro: 'pagamento_indisponivel' }
-    const pendente = ultima.status === 'pendente'
-    return {
-      ok: true,
-      situacao: {
-        numero,
-        estado: atual.estado as EstadoDoPedido,
-        pagamento: {
-          forma: ultima.forma,
-          estado: ultima.status,
-          recusa: ultima.recusa,
-          pix:
-            pendente && ultima.pixCopiaECola && ultima.pixQrBase64
-              ? { copiaECola: ultima.pixCopiaECola, qrBase64: ultima.pixQrBase64, expiraEm: ultima.pixExpiraEm }
-              : null,
-          desafioUrl: null,
-        },
-      },
-    }
+    return { ok: true, situacao: situacaoDoBanco(numero, atual.estado, ultima) }
   } catch (erro) {
     if (!(erro instanceof ErroDeRegra)) registrarFalha(forma === 'pix' ? 'pagar_com_pix' : 'pagar_com_cartao', erro)
     return { ok: false, erro: 'tente_de_novo' }
@@ -326,4 +331,37 @@ export async function pagarComPix(entrada: unknown): Promise<RespostaDoPagamento
 
 export async function pagarComCartao(entrada: unknown): Promise<RespostaDoPagamento> {
   return pagar('cartao', entrada)
+}
+
+/** Pergunta ao Mercado Pago, no maximo a cada 15 s por tentativa, enquanto o pagamento espera. */
+export async function situacaoDoPedido(
+  entrada: unknown,
+): Promise<{ ok: true; situacao: SituacaoDoPedido } | { ok: false; erro: CodigoDoFechamento }> {
+  try {
+    const usuario = await obterUsuario()
+    if (!usuario) return { ok: false, erro: 'sem_sessao' }
+
+    if (!objeto(entrada) || !soAs(entrada, ['numero'])) return { ok: false, erro: 'campos_invalidos' }
+    const numero = conferirNumeroDoPedido(entrada.numero)
+    if (!numero) return { ok: false, erro: 'campos_invalidos' }
+
+    if (!(await consumirLimite(`situacao:${usuario.id}`, 240, 3600))) return { ok: false, erro: 'muitas_tentativas' }
+
+    let pedido = await lerPedidoParaPagar(numero)
+    if (!pedido) return { ok: false, erro: 'pedido_invalido' }
+    let ultima = await lerUltimaTentativa(pedido.id)
+
+    if (ultima?.status === 'pendente') {
+      const mpPedidoId = await mpPedidoDaTentativa(ultima.id)
+      if (mpPedidoId && (await consumirLimite(`mp:${ultima.id}`, 1, 15))) {
+        await sincronizarTentativa(ultima.id, mpPedidoId)
+        pedido = (await lerPedidoParaPagar(numero)) ?? pedido
+        ultima = await lerUltimaTentativa(pedido.id)
+      }
+    }
+    return { ok: true, situacao: situacaoDoBanco(numero, pedido.estado, ultima) }
+  } catch (erro) {
+    if (!(erro instanceof ErroDeRegra)) registrarFalha('situacao_do_pedido', erro)
+    return { ok: false, erro: 'tente_de_novo' }
+  }
 }
