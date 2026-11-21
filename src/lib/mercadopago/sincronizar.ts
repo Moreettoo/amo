@@ -21,6 +21,10 @@ export async function aplicarRespostaDoMp(
     registrarFalha('mercadopago.sincronizar', { code: 'traducao_desconhecida' })
     return null
   }
+  if (pedido.referencia !== null && pedido.referencia !== tentativa) {
+    registrarFalha('mercadopago.sincronizar', { code: 'referencia_diferente' })
+    return null
+  }
   const pg = pedido.pagamento
   const aplicado = await aplicarPagamento({
     tentativa,
@@ -41,10 +45,26 @@ export async function aplicarRespostaDoMp(
   return aplicado
 }
 
-/** Estorna no Mercado Pago; falha deixa a_estornar (a reconciliacao tenta de novo) e devolve null. */
+/** Estorna no Mercado Pago (o cliente ja registra as falhas das chamadas); falha deixa a_estornar (a reconciliacao tenta de novo) e devolve null. */
 export async function estornarNoMp(tentativa: string, mpPedidoId: string): Promise<Aplicado | null> {
   const r = await estornarPedidoMp(mpPedidoId, tentativa)
-  if (r.ok) return aplicarRespostaDoMp(tentativa, r.pedido)
+  if (r.ok) {
+    // So aplica o que volta estornado: um 2xx que ainda le aprovado/pendente nunca reabre o estorno.
+    const t = traduzir(r.pedido)
+    const referenciaOk = r.pedido.referencia === null || r.pedido.referencia === tentativa
+    if (t?.status !== 'estornado' || !referenciaOk) {
+      registrarFalha('mercadopago.estornar', { code: 'resposta_nao_estornada' })
+      return null
+    }
+    return aplicarPagamento({
+      tentativa,
+      mpPedidoId: r.pedido.id,
+      mpPagamentoId: r.pedido.pagamento?.id ?? null,
+      status: 'estornado',
+      detalhe: t.detalhe,
+      valorCentavos: r.pedido.valorCentavos ?? 0,
+    })
+  }
   if (r.status === 409 && r.codigo === 'order_already_refunded') {
     return aplicarPagamento({
       tentativa,
@@ -55,17 +75,13 @@ export async function estornarNoMp(tentativa: string, mpPedidoId: string): Promi
       valorCentavos: 0,
     })
   }
-  registrarFalha('mercadopago.estornar', { code: r.codigo ?? undefined, status: r.status })
   return null
 }
 
 /** Le o pedido no Mercado Pago e aplica; falha do GET devolve null. */
 export async function sincronizarTentativa(tentativa: string, mpPedidoId: string): Promise<Aplicado | null> {
   const r = await lerPedidoMp(mpPedidoId)
-  if (!r.ok) {
-    registrarFalha('mercadopago.ler', { code: r.codigo ?? undefined, status: r.status })
-    return null
-  }
+  if (!r.ok) return null
   return aplicarRespostaDoMp(tentativa, r.pedido)
 }
 
@@ -84,6 +100,5 @@ export async function cancelarNoMp(tentativa: string, mpPedidoId: string): Promi
     })
   }
   if (r.status === 409 && r.codigo === 'cannot_cancel_order') return sincronizarTentativa(tentativa, mpPedidoId)
-  registrarFalha('mercadopago.cancelar', { code: r.codigo ?? undefined, status: r.status })
   return null
 }

@@ -86,7 +86,7 @@ describe('aplicarRespostaDoMp', () => {
 
   it('banco responde a_estornar: estorna e aplica estornado', async () => {
     m.aplicarPagamento.mockResolvedValueOnce(banco('a_estornar')).mockResolvedValueOnce(banco('estornado', 'cancelado'))
-    m.estornarPedidoMp.mockResolvedValue(ok(pedido('refunded', 'refunded')))
+    m.estornarPedidoMp.mockResolvedValue(ok(corpoDoEstorno))
     const r = await aplicarRespostaDoMp('T1', pedido('processed', 'accredited'))
     expect(m.estornarPedidoMp).toHaveBeenCalledWith('ORD1', 'T1')
     expect(m.aplicarPagamento).toHaveBeenLastCalledWith(expect.objectContaining({ status: 'estornado' }))
@@ -96,6 +96,57 @@ describe('aplicarRespostaDoMp', () => {
   it('erro do banco sobe a quem chamou', async () => {
     m.aplicarPagamento.mockRejectedValue(new Error('banco'))
     await expect(aplicarRespostaDoMp('T1', pedido('processed', 'accredited'))).rejects.toThrow('banco')
+  })
+})
+
+const corpoDoEstorno: PedidoMp = {
+  id: 'ORD1',
+  status: 'processed',
+  detalhe: 'refunded',
+  referencia: null,
+  valorCentavos: null,
+  pagamento: null,
+}
+
+describe('referencia', () => {
+  it('referencia diferente da tentativa nao aplica e registra', async () => {
+    const r = await aplicarRespostaDoMp('T1', { ...pedido('processed', 'accredited'), referencia: 'OUTRA' })
+    expect(r).toBeNull()
+    expect(m.aplicarPagamento).not.toHaveBeenCalled()
+    expect(m.registrarFalha).toHaveBeenCalled()
+  })
+
+  it('referencia igual aplica', async () => {
+    m.aplicarPagamento.mockResolvedValue(banco('aprovado'))
+    await aplicarRespostaDoMp('T1', { ...pedido('processed', 'accredited'), referencia: 'T1' })
+    expect(m.aplicarPagamento).toHaveBeenCalled()
+  })
+})
+
+describe('estornarNoMp, resposta 2xx', () => {
+  it('corpo de estorno do contrato aplica estornado com valor 0 e sem pagamento', async () => {
+    m.estornarPedidoMp.mockResolvedValue(ok(corpoDoEstorno))
+    m.aplicarPagamento.mockResolvedValue(banco('estornado'))
+    const r = await estornarNoMp('T1', 'ORD1')
+    expect(m.aplicarPagamento).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'estornado', valorCentavos: 0, mpPagamentoId: null, mpPedidoId: 'ORD1' }),
+    )
+    expect(r).toEqual(banco('estornado'))
+  })
+
+  it('2xx que ainda le aprovado nao aplica, nao estorna de novo e devolve null', async () => {
+    m.estornarPedidoMp.mockResolvedValue(ok(pedido('processed', 'accredited')))
+    expect(await estornarNoMp('T1', 'ORD1')).toBeNull()
+    expect(m.aplicarPagamento).not.toHaveBeenCalled()
+    expect(m.estornarPedidoMp).toHaveBeenCalledTimes(1)
+    expect(m.registrarFalha).toHaveBeenCalledWith('mercadopago.estornar', expect.anything())
+  })
+
+  it('encadeado: banco a_estornar e estorno que falha devolve null', async () => {
+    m.aplicarPagamento.mockResolvedValueOnce(banco('a_estornar'))
+    m.estornarPedidoMp.mockResolvedValue(falha(0, null))
+    expect(await aplicarRespostaDoMp('T1', pedido('processed', 'accredited'))).toBeNull()
+    expect(m.aplicarPagamento).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -136,6 +187,7 @@ describe('cancelarNoMp', () => {
     m.cancelarPedidoMp.mockResolvedValue(ok(pedido('canceled', 'canceled')))
     m.aplicarPagamento.mockResolvedValue(banco('cancelado', 'cancelado'))
     const r = await cancelarNoMp('T1', 'ORD1')
+    expect(m.cancelarPedidoMp).toHaveBeenCalledWith('ORD1', 'T1')
     expect(m.aplicarPagamento).toHaveBeenCalledWith(expect.objectContaining({ status: 'cancelado' }))
     expect(r).toEqual(banco('cancelado', 'cancelado'))
   })
