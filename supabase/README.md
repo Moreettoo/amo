@@ -31,6 +31,8 @@ banco baterem.
 | `ajustes_desempenho` | índice e regra de leitura apontados pelo conselheiro |
 | `selos_ordem` | a ordem dos selos, para o filtro do catálogo sair na ordem do cadastro |
 | `domingo_fechado` | a loja não abre aos domingos (fica 9h às 18h, de segunda a sábado) |
+| `tentativas_a_cancelar_da_cliente` | as tentativas de todos os pedidos de uma cliente que o Mercado Pago ainda tem abertas, para o servidor cancelar lá |
+| `expiracao_espera_o_pix` | o pedido não expira enquanto tiver um Pix pendente ainda válido |
 
 Para aplicar uma migration nova: escrever o arquivo, aplicar com o MCP
 (`apply_migration`), conferir a versão com `list_migrations` e dar ao
@@ -54,10 +56,10 @@ transação que o próprio teste desfaz no fim; nada fica gravado. O resultado
 | `06_fechamento.sql` | 3 | 63 |
 | `07_pagamento.sql` | 4 e 5 | 46 |
 | `08_comentarios.sql` | 1 | 23 |
-| `09_conta_guarda.sql` | 6 | 25 |
+| `09_conta_guarda.sql` | 6 | 34 |
 | `10_porta.sql` | 0 | 13 |
-| `11_pagamento_pelo_servidor.sql` | 4 | 16 |
-| `90_permissoes.sql` | 2 | 86 |
+| `11_pagamento_pelo_servidor.sql` | 4 | 26 |
+| `90_permissoes.sql` | 2 | 88 |
 | `91_injecao.sql` | 7 | 132 |
 
 E o teste da porta por HTTP de verdade, pela internet:
@@ -244,7 +246,8 @@ da porta.
 precisa entrar em "Exposed schemas" no painel (spec §13, item 1); visitante
 e cliente continuam sem acesso a ele. `registrar_cotacao`,
 `aplicar_pagamento`, `pagamentos_a_reconciliar`,
-`pagamentos_a_cancelar_no_mp`, `mp_pedido_da_tentativa`,
+`pagamentos_a_cancelar_no_mp`, `tentativas_a_cancelar_da_cliente`,
+`mp_pedido_da_tentativa`,
 `registrar_evento_webhook`, `concluir_evento_webhook`, `aplicar_entrega` e
 `consumir_limite`. A chave secreta não lê nenhuma tabela.
 
@@ -264,7 +267,7 @@ código curto, que o servidor traduz para a tela:
 
 | Tarefa | Quando | O que faz |
 | --- | --- | --- |
-| `amo-expirar-pedidos` | a cada 5 minutos | pedido aguardando pagamento há mais de 60 minutos é cancelado |
+| `amo-expirar-pedidos` | a cada 5 minutos | pedido aguardando pagamento há mais de 60 minutos é cancelado, e a tentativa pendente dele expira; com um Pix pendente ainda válido (`pix_expira_em` no futuro), o pedido espera o Pix acabar |
 | `amo-guarda` | todo dia, 6h UTC | apaga o que passou do prazo (spec §12) |
 
 ## Mercado Pago
@@ -283,6 +286,12 @@ curl -X POST -H "Authorization: Bearer $TAREFAS_SEGREDO" <site>/api/tarefas/reco
 `TAREFAS_SEGREDO` é a senha da tarefa (sem ela, 401; sem a variável no
 servidor, 500). Chamar a cada 10 minutos pelo agendador da hospedagem
 (etapa 4).
+
+Fora da reconciliação, o servidor cancela no Mercado Pago as tentativas da
+cliente que terminaram do lado de cá (`tentativas_a_cancelar_da_cliente`)
+logo depois de ela fechar um pedido novo e antes de cada cobrança nova: o QR
+de um pedido antigo deixa de valer. Se cancelar lá mostrar que o pedido
+acabou de ser pago, a cobrança nova não é criada.
 
 ### O que é do dono, no painel do Mercado Pago
 
