@@ -294,6 +294,16 @@ describe('o log do servidor nas trocas', () => {
 })
 
 describe('trocarEmail', () => {
+  it('o proprio e-mail da conta, em outra caixa e com espacos, marca o campo, sem limite nem Supabase', async () => {
+    expect(await trocarEmail(null, form({ email: '  MARIA@Exemplo.com ' }))).toEqual({
+      ok: false,
+      erro: 'campos_invalidos',
+      campos: { email: 'Esse já é o e-mail da sua conta.' },
+    })
+    expect(m.consumirLimite).not.toHaveBeenCalled()
+    expect(m.updateUser).not.toHaveBeenCalled()
+  })
+
   it('e-mail invalido marca o campo, sem limite nem Supabase', async () => {
     expect(await trocarEmail(null, form({ email: 'maria' }))).toEqual({ ok: false, erro: 'campos_invalidos', campos: { email: expect.any(String) } })
     expect(m.consumirLimite).not.toHaveBeenCalled()

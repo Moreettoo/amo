@@ -189,6 +189,7 @@ export async function trocarEmail(_: Resposta | null, form: FormData): Promise<R
     const email = conferirEmail(form.get('email'))
     const campoEmail = { email: 'Confira o e-mail: falta algo como nome@exemplo.com.' }
     if (!email) return falha('campos_invalidos', campoEmail)
+    if (email === usuario.email.toLowerCase()) return falha('campos_invalidos', { email: 'Esse já é o e-mail da sua conta.' })
     if (!(await consumirLimite(`credenciais:${usuario.id}`, 5, 3600))) return falha('muitas_tentativas')
 
     const { error } = await (await criarClienteServidor()).auth.updateUser({ email })
