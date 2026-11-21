@@ -43,7 +43,7 @@ export default async function PaginaDosEnderecos() {
           <NovoEndereco primeiro={enderecos.length === 0} />
         </section>
       ) : (
-        <p className="painel__nota painel__nota--esquerda">Já são {MAXIMO} endereços: para guardar outro, remova um.</p>
+        <p className="painel__nota">Já são {MAXIMO} endereços: para guardar outro, remova um.</p>
       )}
     </PainelDaConta>
   )

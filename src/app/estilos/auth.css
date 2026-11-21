@@ -88,9 +88,11 @@
   /* os botoes de texto a 22 px do Confirmar; o erro e o aviso do reenvio embaixo deles */
   .porta__reenviar { display: grid; gap: 8px; margin-top: 18px; }
   .porta__reenviar .conta__erro, .porta__reenviar .turnstile__espera { margin: 0; text-align: center; }
+  /* vazia, a linha de erro nao reserva altura aqui: o "Enviamos outro codigo." fica perto dos botoes */
+  .porta__reenviar .conta__erro:empty { display: none; }
   .conta__fim { display: grid; gap: 22px; margin-top: 30px; }
   /* o widget e a linha de quem enviou antes do token: vazios, nao ocupam altura */
-  .turnstile__espera { margin: 0; font-size: 13px; line-height: 1.6; color: var(--color-suave); }
+  .turnstile__espera { margin: 0; font-size: 13px; line-height: 1.6; color: var(--color-suave); text-align: center; text-wrap: balance; }
 
   /* recuperar a senha: dois passos sobre o fio, o coracao no atual */
   .passos { position: relative; margin: 30px 0 0; padding: 0 0 0 40px; list-style: none; }

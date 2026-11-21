@@ -71,7 +71,7 @@
   .painel__mais { margin: 22px 0 0; }
   .painel__nota { margin: 0; font-size: 13px; line-height: 1.6; color: var(--color-suave); }
   .painel__nota a {
-    margin-left: 4px; color: var(--color-expresso); text-underline-offset: 4px; text-decoration-color: var(--fio);
+    color: var(--color-expresso); text-decoration-line: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; text-decoration-color: var(--fio);
     transition: color .2s ease, text-decoration-color .2s ease;
   }
   .painel__nota a:focus-visible { color: var(--color-cobre-texto); text-decoration-color: var(--color-cobre); }
@@ -278,7 +278,10 @@
 
     .potes-pedido li, .pedido .potes-pedido li { grid-template-columns: 56px minmax(0, 1fr) auto; gap: 14px; align-items: start; padding: 12px 0; }
     .potes-pedido__foto { width: 56px; height: 70px; }
-    .potes-pedido__quantos { display: none; }
+    /* quantos potes vai embaixo do total, na coluna dele; a foto e o nome ocupam as duas linhas */
+    .potes-pedido__foto, .potes-pedido__nome { grid-row: span 2; }
+    .potes-pedido__total { grid-column: 3; grid-row: 1; }
+    .potes-pedido__quantos { grid-column: 3; grid-row: 2; font-size: 13px; text-align: right; white-space: nowrap; }
     .potes-pedido__total { font-size: 15px; }
     .painel__total { display: grid; grid-template-columns: 1fr auto; }
     .painel__total strong { grid-column: 2; grid-row: 1; font-size: 26px; }

@@ -461,6 +461,13 @@ describe('/conta/perfil/email-e-senha', () => {
     expect(within(principal()).getByRole('button', { name: 'Trocar a senha' })).toBeInTheDocument()
   })
 
+  it('na troca de e-mail a resposta tambem fica em cima do botao, como na de senha', async () => {
+    render(await EmailESenha.default(comBusca()))
+    const botao = within(principal()).getByRole('button', { name: 'Trocar o e-mail' })
+    const resposta = botao.closest('form')!.querySelector('.painel__resposta')!
+    expect(resposta.compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('a regra da troca de e-mail e a dica do proprio campo (revisao de acabamento)', async () => {
     render(await EmailESenha.default(comBusca()))
     expect(screen.getByLabelText('E-mail novo')).toHaveAccessibleDescription('A troca vale depois que você confirmar nos dois e-mails, o atual e o novo.')
@@ -472,7 +479,10 @@ describe('/conta/perfil/email-e-senha', () => {
     const botao = within(form).getByRole('button', { name: 'Trocar a senha' })
     const resposta = form.querySelector('.painel__resposta')!
     expect(resposta.compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(within(form).getByRole('link', { name: 'Esqueci a senha' })).toHaveAttribute('href', '/esqueci-a-senha')
+    const esqueci = within(form).getByRole('link', { name: 'Esqueci a senha' })
+    expect(esqueci).toHaveAttribute('href', '/esqueci-a-senha')
+    // numa linha so dele, para nao quebrar no meio da nota (terceira rodada do ensaio)
+    expect(esqueci.parentElement).toHaveTextContent(/^Esqueci a senha$/)
     expect(form).toHaveTextContent('Trocar a senha encerra a conta nos outros aparelhos.')
   })
 })

@@ -120,6 +120,8 @@ describe('o endereco novo', () => {
     expect((await screen.findAllByText(/Não achamos esse CEP/)).length).toBeGreaterThan(0)
     // a frase fica junto do campo CEP (revisao de acabamento), e o leitor de tela ainda ouve
     expect(screen.getByLabelText('CEP')).toHaveAccessibleDescription(/Não achamos esse CEP/)
+    // embaixo do campo de 160 px, a frase curta; a completa vai ao leitor de tela (terceira rodada do ensaio)
+    expect(document.querySelector('.campo--cep .campo__erro')).toHaveTextContent(/^Não achamos esse CEP\.$/)
     expect(screen.getByLabelText('Rua')).toHaveValue('Rua Cuiabá')
   })
 })

@@ -242,6 +242,29 @@ describe('estilos', () => {
     expect(ultimo(regra(dentroDe(auth, '(forced-colors: active)'), '.marcar input[type="checkbox"]'), 'appearance')).toBe('auto')
   })
 
+  // Achados da terceira rodada do ensaio de Minha conta (2026-11-21).
+
+  it('o "Enviamos outro código." fica perto dos botões: a linha de erro vazia não reserva altura no reenvio', () => {
+    expect(ultimo(regra(ler('auth.css'), '.porta__reenviar .conta__erro:empty'), 'display')).toBe('none')
+  })
+
+  it('"Falta só um instante" fica centrado e quebra equilibrado, sem "um robô." sozinho', () => {
+    const espera = regra(ler('auth.css'), '.turnstile__espera')
+    expect(ultimo(espera, 'text-align')).toBe('center')
+    expect(ultimo(espera, 'text-wrap')).toBe('balance')
+  })
+
+  it('no celular o pedido continua dizendo quantos potes de cada sabor, embaixo do total', () => {
+    const celular = dentroDe(ler('conta.css'), '(max-width: 820px)')
+    const quantos = regra(celular, '.potes-pedido__quantos')
+    expect(ultimo(quantos, 'display')).not.toBe('none')
+    expect(ultimo(quantos, 'grid-column')).toBe('3')
+  })
+
+  it('o link dentro de uma nota da conta e sublinhado no fio, como o das portas', () => {
+    expect(ultimo(regra(ler('conta.css'), '.painel__nota a'), 'text-decoration-line')).toBe('underline')
+  })
+
   it('bolo inteiro: a moldura contém a margem do círculo', () => {
     // sem conter a margem (margin collapse), a moldura media so o circulo e
     // o texto do card subia em relacao aos vizinhos

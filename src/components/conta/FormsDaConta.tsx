@@ -126,6 +126,8 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
   const [campos, setCampos] = useState({ ...inicial, cep: cepComTraco(inicial.cep) })
   const [buscando, setBuscando] = useState(false)
   const [avisoDoCep, setAvisoDoCep] = useState('')
+  // embaixo do campo de 160 px vai a frase curta; a completa vai ao leitor de tela
+  const [cepNaoAchado, setCepNaoAchado] = useState(false)
   // o ultimo CEP buscado (ou o guardado): passar pelo campo sem mudar nao busca nem troca a rua corrigida a mao
   const cepBuscado = useRef(inicial.cep.replace(/\D/g, ''))
   const [resposta, enviar, enviando] = useActionState<Resposta | null, FormData>(async (anterior, form) => {
@@ -151,10 +153,12 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
     setBuscando(false)
     if (!achado) {
       cepBuscado.current = '' // nao achou (ou o limite estourou): passar de novo tenta de novo
+      setCepNaoAchado(true)
       setAvisoDoCep('Não achamos esse CEP. Confira os números ou escreva a rua, o bairro e a cidade.')
       return
     }
     setAvisoDoCep('')
+    setCepNaoAchado(false)
     // o CEP manda na rua, no bairro, na cidade e no estado; numero e complemento ficam
     setCampos((c) => ({
       ...c,
@@ -180,7 +184,7 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
           value={campos.cep}
           onChange={mudar('cep')}
           onBlur={(e) => preencherPeloCep(e.target.value)}
-          erro={erro('cep') || avisoDoCep}
+          erro={erro('cep') || (cepNaoAchado ? 'Não achamos esse CEP.' : undefined)}
         />
         <Campo rotulo="Rua" name="logradouro" autoComplete="address-line1" value={campos.logradouro} onChange={mudar('logradouro')} erro={erro('logradouro')} />
         <Campo rotulo="Número" name="numero" largura="numero" value={campos.numero} onChange={mudar('numero')} erro={erro('numero')} />
@@ -345,8 +349,8 @@ export function FormEmail({ email }: { email: string }) {
         erro={erroDoCampo(resposta, 'email')}
       />
       <div className="painel__fim painel__fim--largo">
-        <Enviar enviando={enviando} rotulo="Trocar o e-mail" rotuloEnviando="Enviando" />
         <RespostaDaAcao resposta={resposta} />
+        <Enviar enviando={enviando} rotulo="Trocar o e-mail" rotuloEnviando="Enviando" />
       </div>
     </form>
   )
@@ -380,8 +384,9 @@ export function FormSenha({ chave, nonce }: { chave: string; nonce: string }) {
         <Turnstile chave={chave} nonce={nonce} reiniciar={resposta} />
         <RespostaDaAcao resposta={resposta} />
         <Enviar enviando={enviando} rotulo="Trocar a senha" rotuloEnviando="Trocando a senha" />
+        <p className="painel__nota">Trocar a senha encerra a conta nos outros aparelhos.</p>
         <p className="painel__nota">
-          Trocar a senha encerra a conta nos outros aparelhos. <a href="/esqueci-a-senha">Esqueci a senha</a>
+          <a href="/esqueci-a-senha">Esqueci a senha</a>
         </p>
       </div>
     </form>
