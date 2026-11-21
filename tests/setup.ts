@@ -29,8 +29,14 @@ vi.mock('@/lib/dados/comentarios', async (original) => {
   }
 })
 import { MotionGlobalConfig } from 'motion/react'
+import { configure } from '@testing-library/dom'
 
 expect.extend(matchers)
+
+// Os findBy/waitFor esperam ate 3 s (o padrao e 1 s): com a suite inteira em
+// paralelo e a maquina carregada, um fluxo de dois envios passava de 1 s e
+// falhava sem defeito nenhum (2026-11-20).
+configure({ asyncUtilTimeout: 3000 })
 
 // Animacao do Motion termina no frame seguinte: o que sai do cardapio sai de
 // verdade do DOM, sem o teste esperar a duracao da animacao.
