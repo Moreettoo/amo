@@ -7,6 +7,7 @@ type Resposta = { data: unknown; error: unknown; status: number }
 const m = vi.hoisted(() => ({
   chamadas: [] as unknown[][],
   resposta: { data: null, error: null, status: 200 } as Resposta,
+  fila: [] as Resposta[],
 }))
 
 vi.mock('@/lib/auth/servidor', () => ({
@@ -15,7 +16,7 @@ vi.mock('@/lib/auth/servidor', () => ({
     for (const nome of ['select', 'eq', 'order', 'limit']) {
       cadeia[nome] = (...a: unknown[]) => (m.chamadas.push([nome, ...a]), cadeia)
     }
-    cadeia.maybeSingle = async () => (m.chamadas.push(['maybeSingle']), m.resposta)
+    cadeia.maybeSingle = async () => (m.chamadas.push(['maybeSingle']), m.fila.shift() ?? m.resposta)
     return {
       from: (t: string) => (m.chamadas.push(['from', t]), cadeia),
       rpc: async (fn: string, p: unknown) => (m.chamadas.push(['rpc', fn, p]), m.resposta),
@@ -43,6 +44,7 @@ import {
   mpPedidoDaTentativa,
   pagamentosAReconciliar,
   registrarEventoWebhook,
+  tentativasACancelarDaCliente,
   tentativasACancelarNoMp,
 } from '@/lib/dados/pagamentos'
 
@@ -53,6 +55,7 @@ const responder = (data: unknown, error: unknown = null, status = 200) => {
 
 beforeEach(() => {
   m.chamadas = []
+  m.fila = []
   responder(null)
 })
 
@@ -94,11 +97,13 @@ describe('iniciarPagamento', () => {
 })
 
 describe('lerUltimaTentativa', () => {
-  it('a mais recente, na forma da interface', async () => {
-    responder({
-      id: 't1', forma: 'pix', status: 'pendente', recusa: null, pix_copia_e_cola: '0002', pix_qr_base64: 'abc',
-      pix_expira_em: '2026-11-21T12:00:00Z', criado_em: '2026-11-21T11:30:00Z',
-    })
+  const linha = (status: string) => ({
+    id: 't1', forma: 'pix', status, recusa: null, pix_copia_e_cola: '0002', pix_qr_base64: 'abc',
+    pix_expira_em: '2026-11-21T12:00:00Z', criado_em: '2026-11-21T11:30:00Z',
+  })
+  const vazia: Resposta = { data: null, error: null, status: 200 }
+  it('sem aprovada, a mais recente, na forma da interface', async () => {
+    m.fila = [vazia, { data: linha('pendente'), error: null, status: 200 }]
     expect(await lerUltimaTentativa('p1')).toEqual({
       id: 't1', forma: 'pix', status: 'pendente', recusa: null, pixCopiaECola: '0002', pixQrBase64: 'abc',
       pixExpiraEm: '2026-11-21T12:00:00Z', criadoEm: '2026-11-21T11:30:00Z',
@@ -107,6 +112,17 @@ describe('lerUltimaTentativa', () => {
     expect(m.chamadas).toContainEqual(['eq', 'pedido_id', 'p1'])
     expect(m.chamadas).toContainEqual(['order', 'criado_em', { ascending: false }])
     expect(m.chamadas).toContainEqual(['limit', 1])
+    expect(m.chamadas.filter((c) => c[0] === 'maybeSingle')).toHaveLength(2)
+  })
+  it('a aprovada vem antes da mais recente (a que pagou, nao a cancelada ou estornada depois)', async () => {
+    m.fila = [{ data: linha('aprovado'), error: null, status: 200 }, { data: linha('estornado'), error: null, status: 200 }]
+    expect((await lerUltimaTentativa('p1'))?.status).toBe('aprovado')
+    expect(m.chamadas).toContainEqual(['eq', 'status', 'aprovado'])
+    expect(m.chamadas.filter((c) => c[0] === 'maybeSingle')).toHaveLength(1)
+  })
+  it('erro do banco ao procurar a aprovada sobe', async () => {
+    m.fila = [{ data: null, error: { code: 'XX000' }, status: 500 }]
+    await expect(lerUltimaTentativa('p1')).rejects.toThrow('Falha no banco (pagamentos): XX000')
   })
   it('sem tentativa: null', async () => {
     expect(await lerUltimaTentativa('p1')).toBeNull()
@@ -166,6 +182,23 @@ describe('tentativasACancelarNoMp', () => {
   it('erro do banco sobe', async () => {
     responder(null, { code: '42501' }, 403)
     await expect(tentativasACancelarNoMp()).rejects.toThrow('Falha no banco (pagamentos_a_cancelar_no_mp): 42501')
+  })
+})
+
+describe('tentativasACancelarDaCliente', () => {
+  it('manda o id da cliente e traduz as colunas', async () => {
+    responder([{ pagamento_id: 't1', mp_pedido_id: 'ORD1' }])
+    expect(await tentativasACancelarDaCliente('u1')).toEqual([{ tentativa: 't1', mpPedidoId: 'ORD1' }])
+    expect(m.chamadas).toContainEqual(['schema', 'privado'])
+    expect(rpc()).toEqual(['rpc', 'tentativas_a_cancelar_da_cliente', { p_usuario: 'u1' }])
+  })
+  it('linha fora da forma fica de fora', async () => {
+    responder([{ pagamento_id: 't1', mp_pedido_id: null }, { pagamento_id: 2, mp_pedido_id: 'ORD2' }, { pagamento_id: 't3', mp_pedido_id: 'ORD3' }])
+    expect(await tentativasACancelarDaCliente('u1')).toEqual([{ tentativa: 't3', mpPedidoId: 'ORD3' }])
+  })
+  it('erro do banco sobe', async () => {
+    responder(null, { code: '42501' }, 403)
+    await expect(tentativasACancelarDaCliente('u1')).rejects.toThrow('Falha no banco (tentativas_a_cancelar_da_cliente): 42501')
   })
 })
 

@@ -22,17 +22,20 @@ vi.mock('@/lib/dados/fechamento', () => ({
 vi.mock('@/lib/dados/pagamentos', () => ({
   aplicarPagamento: vi.fn(),
   tentativasACancelarNoMp: vi.fn(),
+  tentativasACancelarDaCliente: vi.fn(),
   mpPedidoDaTentativa: m.mpPedidoDaTentativa,
 }))
 vi.mock('@/lib/mercadopago/sincronizar', () => ({
   aplicarRespostaDoMp: vi.fn(),
   cancelarNoMp: vi.fn(),
+  guardarIdsDoMp: vi.fn(),
   sincronizarTentativa: m.sincronizarTentativa,
 }))
 vi.mock('@/lib/mercadopago/cliente', () => ({ criarPedidoPix: vi.fn(), criarPedidoCartao: vi.fn() }))
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }))
 
 import { situacaoDoPedido } from '@/app/sacola/acoes'
+import { ErroDeRegra } from '@/lib/dados/erros'
 
 const NUMERO = 'AMO-ABCDEFGH'
 const tentativa = (extra: object = {}) => ({
@@ -140,11 +143,29 @@ describe('situacaoDoPedido', () => {
     expect(m.sincronizarTentativa).not.toHaveBeenCalled()
   })
 
-  it('falha do banco ou da sincronizacao: tente_de_novo', async () => {
-    m.sincronizarTentativa.mockRejectedValue(new Error('banco'))
-    expect(await situacaoDoPedido({ numero: NUMERO })).toEqual({ ok: false, erro: 'tente_de_novo' })
+  it('sincronizacao que lanca: registra e devolve o que o banco tem, nao tente_de_novo', async () => {
+    m.sincronizarTentativa.mockRejectedValue(new ErroDeRegra('passagem_invalida'))
+    const r = await situacaoDoPedido({ numero: NUMERO })
+    expect(r).toMatchObject({ ok: true, situacao: { estado: 'aguardando_pagamento', pagamento: { estado: 'pendente', pix: { copiaECola: '000201' } } } })
+    expect(console.error).toHaveBeenCalledWith(
+      'Falha do Supabase',
+      expect.objectContaining({ onde: 'situacao_do_pedido.sincronizar', code: 'passagem_invalida' }),
+    )
+  })
+
+  it('falha do banco ao ler: tente_de_novo, com o codigo de um ErroDeRegra no log', async () => {
     m.lerPedidoParaPagar.mockRejectedValue(new Error('banco'))
     expect(await situacaoDoPedido({ numero: NUMERO })).toEqual({ ok: false, erro: 'tente_de_novo' })
+    m.lerPedidoParaPagar.mockRejectedValue(new ErroDeRegra('pagamento_invalido'))
+    expect(await situacaoDoPedido({ numero: NUMERO })).toEqual({ ok: false, erro: 'tente_de_novo' })
+    expect(console.error).toHaveBeenCalledWith('Falha do Supabase', expect.objectContaining({ onde: 'situacao_do_pedido', code: 'pagamento_invalido' }))
+  })
+
+  it('tentativa pendente com o pedido ja pago: o Pix nao aparece', async () => {
+    m.lerPedidoParaPagar.mockResolvedValue({ id: 'ped-1', totalCentavos: 100, estado: 'pago' })
+    m.consumirLimite.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+    const r = await situacaoDoPedido({ numero: NUMERO })
+    expect(r).toMatchObject({ ok: true, situacao: { estado: 'pago', pagamento: { estado: 'pendente', pix: null } } })
   })
 
   it('Mercado Pago falhou na sincronizacao (null): devolve o banco', async () => {

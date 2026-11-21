@@ -58,6 +58,18 @@ export async function tentativasACancelarNoMp(pedidoId?: string): Promise<{ tent
   return linhas(data).map((l) => ({ tentativa: String(l.pagamento_id), mpPedidoId: String(l.mp_pedido_id) }))
 }
 
+/**
+ * As tentativas de todos os pedidos da cliente encerradas aqui que o Mercado
+ * Pago ainda tem como pendentes (privado.tentativas_a_cancelar_da_cliente).
+ * Linha fora da forma fica de fora.
+ */
+export async function tentativasACancelarDaCliente(usuarioId: string): Promise<{ tentativa: string; mpPedidoId: string }[]> {
+  const { data } = await chamar('tentativas_a_cancelar_da_cliente', { p_usuario: usuarioId })
+  return linhas(data).flatMap((l) =>
+    typeof l.pagamento_id === 'string' && typeof l.mp_pedido_id === 'string' ? [{ tentativa: l.pagamento_id, mpPedidoId: l.mp_pedido_id }] : [],
+  )
+}
+
 /** O pedido do Mercado Pago de uma tentativa, ou null. */
 export async function mpPedidoDaTentativa(tentativa: string): Promise<string | null> {
   const { data } = await chamar('mp_pedido_da_tentativa', { p_pagamento: tentativa })

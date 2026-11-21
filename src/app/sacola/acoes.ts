@@ -9,10 +9,10 @@ import { mercadoPagoEmTeste } from '@/lib/dados/ambiente'
 import { ErroDeRegra, registrarFalha } from '@/lib/dados/erros'
 import { conferirNumeroDoPedido } from '@/lib/conta/regras'
 import { criarPedido, iniciarPagamento, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
-import { aplicarPagamento, mpPedidoDaTentativa, tentativasACancelarNoMp } from '@/lib/dados/pagamentos'
+import { aplicarPagamento, mpPedidoDaTentativa, tentativasACancelarDaCliente } from '@/lib/dados/pagamentos'
 import { criarPedidoCartao, criarPedidoPix, type PedidoMp } from '@/lib/mercadopago/cliente'
 import { traduzir } from '@/lib/mercadopago/traducao'
-import { aplicarRespostaDoMp, cancelarNoMp, sincronizarTentativa } from '@/lib/mercadopago/sincronizar'
+import { aplicarRespostaDoMp, cancelarNoMp, guardarIdsDoMp, sincronizarTentativa } from '@/lib/mercadopago/sincronizar'
 import { consumirLimite } from '@/lib/dados/limites'
 import type {
   CodigoDoFechamento,
@@ -136,12 +136,38 @@ function conferirItens(valor: unknown): ItemDoPedido[] | null {
 }
 
 /**
+ * Cancela no Mercado Pago as tentativas da cliente (de qualquer pedido dela)
+ * que terminaram aqui e la seguem abertas, e espera. Nunca lanca: falha so
+ * vai ao log e nunca barra quem chamou.
+ */
+async function cancelarAsDaClienteNoMp(usuarioId: string): Promise<void> {
+  try {
+    const velhas = await tentativasACancelarDaCliente(usuarioId)
+    await Promise.allSettled(
+      velhas.map(async (velha) => {
+        try {
+          await cancelarNoMp(velha.tentativa, velha.mpPedidoId)
+        } catch (erro) {
+          registrarFalha('cancelar_tentativa_anterior', erro)
+        }
+      }),
+    )
+  } catch (erro) {
+    registrarFalha('tentativas_a_cancelar', erro)
+  }
+}
+
+/**
  * Fecha o pedido. Ordem (backend 11): a sessao, cada campo conferido, o banco,
  * a traducao do codigo. Sem limite aqui: o banco limita a 10 pedidos por hora.
+ * Criado o pedido, o que aguardava foi cancelado aqui (criar_pedido); as
+ * tentativas dele que o Mercado Pago ainda tem abertas sao canceladas la (o
+ * QR antigo deixa de valer).
  */
 export async function fecharPedido(entrada: unknown): Promise<RespostaDoPedido> {
   try {
-    if (!(await obterUsuario())) return { ok: false, erro: 'sem_sessao' }
+    const usuario = await obterUsuario()
+    if (!usuario) return { ok: false, erro: 'sem_sessao' }
 
     if (typeof entrada !== 'object' || entrada === null || Array.isArray(entrada)) {
       return { ok: false, erro: 'campos_invalidos' }
@@ -162,6 +188,7 @@ export async function fecharPedido(entrada: unknown): Promise<RespostaDoPedido> 
     }
 
     const pedido = await criarPedido({ itens, cotacao, totalVisto, guardarEndereco })
+    await cancelarAsDaClienteNoMp(usuario.id)
     return { ok: true, pedido }
   } catch (erro) {
     if (erro instanceof ErroDeRegra && Object.hasOwn(CODIGOS_DO_BANCO, erro.codigo)) {
@@ -220,7 +247,8 @@ function situacaoDaResposta(
   pedido: PedidoMp,
 ): RespostaDoPagamento {
   const estado = aplicado.tentativa
-  const pendente = estado === 'pendente'
+  // o QR e o desafio so com a tentativa pendente e o pedido ainda aguardando
+  const pendente = estado === 'pendente' && aplicado.pedido === 'aguardando_pagamento'
   const pagamento: PagamentoNaTela = {
     forma,
     estado,
@@ -233,9 +261,9 @@ function situacaoDaResposta(
 
 type Ultima = NonNullable<Awaited<ReturnType<typeof lerUltimaTentativa>>>
 
-/** A situacao como o banco a tem: o Pix so aparece com a tentativa pendente; o desafio nao e guardado. */
+/** A situacao como o banco a tem: o Pix so aparece com a tentativa pendente e o pedido aguardando; o desafio nao e guardado. */
 function situacaoDoBanco(numero: string, estado: string, ultima: Ultima | null): SituacaoDoPedido {
-  const pendente = ultima?.status === 'pendente'
+  const pendente = ultima?.status === 'pendente' && estado === 'aguardando_pagamento'
   return {
     numero,
     estado: estado as EstadoDoPedido,
@@ -252,7 +280,19 @@ function situacaoDoBanco(numero: string, estado: string, ultima: Ultima | null):
   }
 }
 
-/** O caminho comum das duas formas. Ordem: sessao, campos, limite, pedido, tentativa, cancelar a anterior, Mercado Pago, aplicar. */
+/** O que o banco tem agora, para a tela, quando a resposta do Mercado Pago nao serve ou nem houve chamada. */
+async function situacaoLida(numero: string, pedidoId: string): Promise<RespostaDoPagamento> {
+  const ultima = await lerUltimaTentativa(pedidoId)
+  const atual = await lerPedidoParaPagar(numero)
+  if (!ultima || !atual) return { ok: false, erro: 'pagamento_indisponivel' }
+  return { ok: true, situacao: situacaoDoBanco(numero, atual.estado, ultima) }
+}
+
+/**
+ * O caminho comum das duas formas. Ordem: sessao, campos, limite, pedido,
+ * tentativa, cancelar as anteriores da cliente, reler o pedido, Mercado Pago,
+ * guardar os ids, aplicar.
+ */
 async function pagar(forma: 'pix' | 'cartao', entrada: unknown): Promise<RespostaDoPagamento> {
   try {
     const usuario = await obterUsuario()
@@ -278,20 +318,25 @@ async function pagar(forma: 'pix' | 'cartao', entrada: unknown): Promise<Respost
       throw erro
     }
 
-    // A anterior e cancelada la antes de criar a nova; falha aqui e registrada e nunca barra o pagamento.
-    try {
-      const velhas = await tentativasACancelarNoMp(pedido.id)
-      await Promise.allSettled(
-        velhas.map(async (velha) => {
-          try {
-            await cancelarNoMp(velha.tentativa, velha.mpPedidoId)
-          } catch (erro) {
-            registrarFalha('cancelar_tentativa_anterior', erro)
-          }
-        }),
-      )
-    } catch (erro) {
-      registrarFalha('tentativas_a_cancelar', erro)
+    // As anteriores da cliente sao canceladas la antes de criar a nova; falha aqui e registrada e nunca barra o pagamento.
+    await cancelarAsDaClienteNoMp(usuario.id)
+
+    // Cancelar la pode mostrar que o pedido acabou de ser pago (409 cannot_cancel_order le e aplica): sem cobranca nova.
+    const relido = await lerPedidoParaPagar(numero)
+    if (relido?.estado !== 'aguardando_pagamento') {
+      try {
+        await aplicarPagamento({
+          tentativa,
+          mpPedidoId: null,
+          mpPagamentoId: null,
+          status: 'cancelado',
+          detalhe: relido?.estado === 'cancelado' ? 'pedido_cancelado' : 'pedido_ja_pago',
+          valorCentavos: pedido.totalCentavos,
+        })
+      } catch (erro) {
+        registrarFalha('cancelar_tentativa_nova', erro)
+      }
+      return situacaoLida(numero, pedido.id)
     }
 
     const base = { tentativa, totalCentavos: pedido.totalCentavos, email: usuario.email }
@@ -311,16 +356,21 @@ async function pagar(forma: 'pix' | 'cartao', entrada: unknown): Promise<Respost
       return { ok: false, erro: 'pagamento_indisponivel' }
     }
 
+    // Os ids do pedido la primeiro: se o resto falhar, a reconciliacao e o cancelamento ainda o acham.
+    try {
+      await guardarIdsDoMp(tentativa, criado.pedido)
+    } catch (erro) {
+      registrarFalha('guardar_ids_do_mp', erro)
+    }
+
     const aplicado = await aplicarRespostaDoMp(tentativa, criado.pedido, dados?.final)
     if (aplicado) return situacaoDaResposta(numero, forma, aplicado, criado.pedido)
 
     // A traducao falhou ou a referencia nao confere: a tentativa existe, entao a tela recebe o que o banco tem.
-    const ultima = await lerUltimaTentativa(pedido.id)
-    const atual = await lerPedidoParaPagar(numero)
-    if (!ultima || !atual) return { ok: false, erro: 'pagamento_indisponivel' }
-    return { ok: true, situacao: situacaoDoBanco(numero, atual.estado, ultima) }
+    return situacaoLida(numero, pedido.id)
   } catch (erro) {
-    if (!(erro instanceof ErroDeRegra)) registrarFalha(forma === 'pix' ? 'pagar_com_pix' : 'pagar_com_cartao', erro)
+    // um ErroDeRegra (de aplicar_pagamento) tambem vai ao log, com o codigo dele
+    registrarFalha(forma === 'pix' ? 'pagar_com_pix' : 'pagar_com_cartao', erro)
     return { ok: false, erro: 'tente_de_novo' }
   }
 }
@@ -354,14 +404,19 @@ export async function situacaoDoPedido(
     if (ultima?.status === 'pendente') {
       const mpPedidoId = await mpPedidoDaTentativa(ultima.id)
       if (mpPedidoId && (await consumirLimite(`mp:${ultima.id}`, 1, 15))) {
-        await sincronizarTentativa(ultima.id, mpPedidoId)
+        // sincronizar que falha nao derruba a resposta: a tela recebe o que o banco tem
+        try {
+          await sincronizarTentativa(ultima.id, mpPedidoId)
+        } catch (erro) {
+          registrarFalha('situacao_do_pedido.sincronizar', erro)
+        }
         pedido = (await lerPedidoParaPagar(numero)) ?? pedido
         ultima = await lerUltimaTentativa(pedido.id)
       }
     }
     return { ok: true, situacao: situacaoDoBanco(numero, pedido.estado, ultima) }
   } catch (erro) {
-    if (!(erro instanceof ErroDeRegra)) registrarFalha('situacao_do_pedido', erro)
+    registrarFalha('situacao_do_pedido', erro)
     return { ok: false, erro: 'tente_de_novo' }
   }
 }

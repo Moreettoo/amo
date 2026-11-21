@@ -10,7 +10,9 @@ vi.mock('@/lib/auth', () => ({ obterUsuario: m.obterUsuario }))
 vi.mock('@/lib/auth/servidor', () => ({ criarClienteServidor: async () => ({ rpc: m.rpc }) }))
 vi.mock('@/lib/dados/cep', () => ({ buscarCep: vi.fn() }))
 vi.mock('@/lib/dados/limites', () => ({ consumirLimite: vi.fn() }))
-vi.mock('@/lib/auth/admin', () => ({ criarClienteAdmin: () => ({}) }))
+vi.mock('@/lib/auth/admin', () => ({
+  criarClienteAdmin: () => ({ schema: () => ({ rpc: async () => ({ data: [], error: null, status: 200 }) }) }),
+}))
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }))
 
 import { fecharPedido } from '@/app/sacola/acoes'

@@ -53,7 +53,11 @@ export async function iniciarPagamento(pedidoId: string, forma: 'pix' | 'cartao'
   return data
 }
 
-/** A tentativa mais recente do pedido, ou null se ainda nao houve. */
+/**
+ * A tentativa que a tela mostra: a aprovada, quando houver (a que pagou, nao
+ * uma cancelada ou estornada depois dela), senao a mais recente; null se
+ * ainda nao houve.
+ */
 export async function lerUltimaTentativa(pedidoId: string): Promise<{
   id: string
   forma: 'pix' | 'cartao'
@@ -65,14 +69,17 @@ export async function lerUltimaTentativa(pedidoId: string): Promise<{
   criadoEm: string
 } | null> {
   const banco = await criarClienteServidor()
-  const { data, error, status } = await banco
-    .from('pagamentos')
-    .select('id, forma, status, recusa, pix_copia_e_cola, pix_qr_base64, pix_expira_em, criado_em')
-    .eq('pedido_id', pedidoId)
-    .order('criado_em', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-  if (error) throw erroDoBanco('pagamentos', error, status)
+  const ler = async (soAAprovada: boolean) => {
+    let consulta = banco
+      .from('pagamentos')
+      .select('id, forma, status, recusa, pix_copia_e_cola, pix_qr_base64, pix_expira_em, criado_em')
+      .eq('pedido_id', pedidoId)
+    if (soAAprovada) consulta = consulta.eq('status', 'aprovado')
+    const { data, error, status } = await consulta.order('criado_em', { ascending: false }).limit(1).maybeSingle()
+    if (error) throw erroDoBanco('pagamentos', error, status)
+    return data
+  }
+  const data = (await ler(true)) ?? (await ler(false))
   if (!data) return null
   return {
     id: data.id,

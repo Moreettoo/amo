@@ -13,8 +13,10 @@ const m = vi.hoisted(() => ({
   lerUltimaTentativa: vi.fn(),
   aplicarPagamento: vi.fn(),
   tentativasACancelarNoMp: vi.fn(),
+  tentativasACancelarDaCliente: vi.fn(),
   cancelarNoMp: vi.fn(),
   aplicarRespostaDoMp: vi.fn(),
+  guardarIdsDoMp: vi.fn(),
   criarPedidoPix: vi.fn(),
   criarPedidoCartao: vi.fn(),
   criarPedido: vi.fn(),
@@ -32,10 +34,12 @@ vi.mock('@/lib/dados/fechamento', () => ({
 vi.mock('@/lib/dados/pagamentos', () => ({
   aplicarPagamento: m.aplicarPagamento,
   tentativasACancelarNoMp: m.tentativasACancelarNoMp,
+  tentativasACancelarDaCliente: m.tentativasACancelarDaCliente,
 }))
 vi.mock('@/lib/mercadopago/sincronizar', () => ({
   aplicarRespostaDoMp: m.aplicarRespostaDoMp,
   cancelarNoMp: m.cancelarNoMp,
+  guardarIdsDoMp: m.guardarIdsDoMp,
 }))
 vi.mock('@/lib/mercadopago/cliente', () => ({
   criarPedidoPix: m.criarPedidoPix,
@@ -67,7 +71,9 @@ beforeEach(() => {
   m.lerPedidoParaPagar.mockResolvedValue({ id: 'ped-1', totalCentavos: 9280, estado: 'aguardando_pagamento' })
   m.iniciarPagamento.mockResolvedValue('tent-1')
   m.tentativasACancelarNoMp.mockResolvedValue([])
+  m.tentativasACancelarDaCliente.mockResolvedValue([])
   m.cancelarNoMp.mockResolvedValue(null)
+  m.guardarIdsDoMp.mockResolvedValue(undefined)
   m.criarPedidoPix.mockResolvedValue({ ok: true, pedido: pedidoMp({ status: 'action_required', pix }) })
   m.criarPedidoCartao.mockResolvedValue({ ok: true, pedido: pedidoMp() })
   m.aplicarRespostaDoMp.mockResolvedValue({ tentativa: 'pendente', pedido: 'aguardando_pagamento' })
@@ -181,17 +187,18 @@ describe('fecharPedido: codigo herdado', () => {
 })
 
 describe('criar no Mercado Pago', () => {
-  it('cancela a tentativa anterior pendente, sem esperar o sucesso', async () => {
-    m.tentativasACancelarNoMp.mockResolvedValue([{ tentativa: 'velha', mpPedidoId: 'ORD0' }])
+  it('cancela as tentativas anteriores da cliente (de qualquer pedido), sem esperar o sucesso', async () => {
+    m.tentativasACancelarDaCliente.mockResolvedValue([{ tentativa: 'velha', mpPedidoId: 'ORD0' }])
     m.cancelarNoMp.mockRejectedValue(new Error('falhou'))
     expect((await pagarComPix({ numero: NUMERO })).ok).toBe(true)
-    expect(m.tentativasACancelarNoMp).toHaveBeenCalledWith('ped-1')
+    expect(m.tentativasACancelarDaCliente).toHaveBeenCalledWith('u1')
+    expect(m.tentativasACancelarNoMp).not.toHaveBeenCalled()
     expect(m.cancelarNoMp).toHaveBeenCalledWith('velha', 'ORD0')
     expect(JSON.stringify((console.error as ReturnType<typeof vi.fn>).mock.calls)).toContain('cancelar_tentativa_anterior')
   })
   it('o cancelamento termina antes de criar no Mercado Pago', async () => {
     let terminou = 0
-    m.tentativasACancelarNoMp.mockResolvedValue([{ tentativa: 'velha', mpPedidoId: 'ORD0' }])
+    m.tentativasACancelarDaCliente.mockResolvedValue([{ tentativa: 'velha', mpPedidoId: 'ORD0' }])
     m.cancelarNoMp.mockImplementation(async () => {
       await new Promise((f) => setTimeout(f, 20))
       terminou = m.criarPedidoPix.mock.invocationCallOrder.length
@@ -201,8 +208,8 @@ describe('criar no Mercado Pago', () => {
     expect(terminou).toBe(0)
     expect(m.criarPedidoPix).toHaveBeenCalledTimes(1)
   })
-  it('falha em tentativasACancelarNoMp: registra e segue', async () => {
-    m.tentativasACancelarNoMp.mockRejectedValue(new Error('banco'))
+  it('falha na lista a cancelar: registra e segue', async () => {
+    m.tentativasACancelarDaCliente.mockRejectedValue(new Error('banco'))
     expect((await pagarComPix({ numero: NUMERO })).ok).toBe(true)
     expect(JSON.stringify((console.error as ReturnType<typeof vi.fn>).mock.calls)).toContain('tentativas_a_cancelar')
   })
@@ -272,8 +279,10 @@ describe('criar no Mercado Pago', () => {
     })
     m.lerPedidoParaPagar
       .mockResolvedValueOnce({ id: 'ped-1', totalCentavos: 9280, estado: 'aguardando_pagamento' })
+      .mockResolvedValueOnce({ id: 'ped-1', totalCentavos: 9280, estado: 'aguardando_pagamento' })
       .mockResolvedValueOnce({ id: 'ped-1', totalCentavos: 9280, estado: 'pago' })
     const lido = await pagarComPix({ numero: NUMERO })
+    expect(m.criarPedidoPix).toHaveBeenCalledTimes(2)
     expect(lido.ok && lido.situacao.estado).toBe('pago')
     m.lerUltimaTentativa.mockResolvedValue(null)
     expect(await pagarComPix({ numero: NUMERO })).toEqual({ ok: false, erro: 'pagamento_indisponivel' })
@@ -299,6 +308,146 @@ describe('criar no Mercado Pago', () => {
     expect(log).not.toContain('12345678909')
     expect(log).not.toContain('123.456')
     expect(log).not.toContain(TOKEN)
+  })
+})
+
+describe('o pedido pago enquanto a anterior era cancelada', () => {
+  const aprovada = { id: 'velha', forma: 'pix', status: 'aprovado', recusa: null, pixCopiaECola: '000201', pixQrBase64: 'QUJD', pixExpiraEm: null, criadoEm: 'x' }
+  const aguardando = { id: 'ped-1', totalCentavos: 9280, estado: 'aguardando_pagamento' }
+  const pago = { id: 'ped-1', totalCentavos: 9280, estado: 'pago' }
+
+  it('cancelar a anterior mostra o pedido pago: nao cobra de novo, cancela a nova e devolve o banco', async () => {
+    m.tentativasACancelarDaCliente.mockResolvedValue([{ tentativa: 'velha', mpPedidoId: 'ORD0' }])
+    m.cancelarNoMp.mockResolvedValue({ tentativa: 'aprovado', pedido: 'pago' })
+    m.lerPedidoParaPagar.mockResolvedValueOnce(aguardando).mockResolvedValue(pago)
+    m.lerUltimaTentativa.mockResolvedValue(aprovada)
+    const r = await pagarComPix({ numero: NUMERO })
+    expect(m.criarPedidoPix).not.toHaveBeenCalled()
+    expect(m.criarPedidoCartao).not.toHaveBeenCalled()
+    expect(m.aplicarPagamento).toHaveBeenCalledWith({
+      tentativa: 'tent-1',
+      mpPedidoId: null,
+      mpPagamentoId: null,
+      status: 'cancelado',
+      detalhe: 'pedido_ja_pago',
+      valorCentavos: 9280,
+    })
+    expect(r).toEqual({
+      ok: true,
+      situacao: { numero: NUMERO, estado: 'pago', pagamento: { forma: 'pix', estado: 'aprovado', recusa: null, pix: null, desafioUrl: null } },
+    })
+  })
+
+  it('o pedido relido ja nao aguarda (sem anterior a cancelar): tambem nao chama o Mercado Pago', async () => {
+    m.lerPedidoParaPagar.mockResolvedValueOnce(aguardando).mockResolvedValue(pago)
+    m.lerUltimaTentativa.mockResolvedValue(aprovada)
+    const r = await pagarComCartao(cartao)
+    expect(m.criarPedidoCartao).not.toHaveBeenCalled()
+    expect(r.ok && r.situacao.estado).toBe('pago')
+  })
+
+  it('pedido cancelado enquanto isso: a nova e cancelada com o detalhe certo', async () => {
+    m.lerPedidoParaPagar.mockResolvedValueOnce(aguardando).mockResolvedValue({ ...pago, estado: 'cancelado' })
+    m.lerUltimaTentativa.mockResolvedValue({ ...aprovada, id: 'tent-1', status: 'cancelado' })
+    const r = await pagarComPix({ numero: NUMERO })
+    expect(m.criarPedidoPix).not.toHaveBeenCalled()
+    expect(m.aplicarPagamento).toHaveBeenCalledWith(expect.objectContaining({ tentativa: 'tent-1', status: 'cancelado', detalhe: 'pedido_cancelado' }))
+    expect(r.ok && r.situacao.estado).toBe('cancelado')
+  })
+
+  it('cancelar a nova falhando: registra e ainda devolve o banco', async () => {
+    m.lerPedidoParaPagar.mockResolvedValueOnce(aguardando).mockResolvedValue(pago)
+    m.lerUltimaTentativa.mockResolvedValue(aprovada)
+    m.aplicarPagamento.mockRejectedValue(new Error('banco'))
+    const r = await pagarComPix({ numero: NUMERO })
+    expect(r.ok && r.situacao.estado).toBe('pago')
+    expect(JSON.stringify((console.error as ReturnType<typeof vi.fn>).mock.calls)).toContain('cancelar_tentativa_nova')
+  })
+
+  it('a resposta do Mercado Pago com o pedido ja pago nao mostra o QR nem o desafio da tentativa pendente', async () => {
+    m.aplicarRespostaDoMp.mockResolvedValue({ tentativa: 'pendente', pedido: 'pago' })
+    const r = await pagarComPix({ numero: NUMERO })
+    expect(r.ok && r.situacao.pagamento).toMatchObject({ estado: 'pendente', pix: null, desafioUrl: null })
+    m.criarPedidoCartao.mockResolvedValue({ ok: true, pedido: pedidoMp({ desafioUrl: 'https://www.mercadopago.com.br/3ds' }) })
+    const c = await pagarComCartao(cartao)
+    expect(c.ok && c.situacao.pagamento?.desafioUrl).toBeNull()
+  })
+})
+
+describe('os ids do Mercado Pago', () => {
+  it('sao guardados antes de aplicar a resposta', async () => {
+    await pagarComPix({ numero: NUMERO })
+    expect(m.guardarIdsDoMp).toHaveBeenCalledWith('tent-1', expect.objectContaining({ id: 'ORD1' }))
+    expect(m.guardarIdsDoMp.mock.invocationCallOrder[0]).toBeLessThan(m.aplicarRespostaDoMp.mock.invocationCallOrder[0])
+  })
+
+  it('traducao desconhecida (null): os ids ja ficaram guardados e a tela recebe o banco', async () => {
+    m.aplicarRespostaDoMp.mockResolvedValue(null)
+    m.lerUltimaTentativa.mockResolvedValue({ id: 'tent-1', forma: 'pix', status: 'pendente', recusa: null, pixCopiaECola: null, pixQrBase64: null, pixExpiraEm: null, criadoEm: 'x' })
+    const r = await pagarComPix({ numero: NUMERO })
+    expect(m.guardarIdsDoMp).toHaveBeenCalledTimes(1)
+    expect(r.ok && r.situacao.pagamento?.estado).toBe('pendente')
+  })
+
+  it('guardar falhando: registra e ainda aplica a resposta', async () => {
+    m.guardarIdsDoMp.mockRejectedValue(new Error('banco'))
+    expect((await pagarComPix({ numero: NUMERO })).ok).toBe(true)
+    expect(m.aplicarRespostaDoMp).toHaveBeenCalled()
+    expect(JSON.stringify((console.error as ReturnType<typeof vi.fn>).mock.calls)).toContain('guardar_ids_do_mp')
+  })
+
+  it('criacao que falha nao guarda nada', async () => {
+    m.criarPedidoPix.mockResolvedValue({ ok: false, status: 500, codigo: null })
+    await pagarComPix({ numero: NUMERO })
+    expect(m.guardarIdsDoMp).not.toHaveBeenCalled()
+  })
+})
+
+describe('o log de um ErroDeRegra', () => {
+  it('aplicar_pagamento recusando a passagem: tente_de_novo e o codigo real no log', async () => {
+    m.aplicarRespostaDoMp.mockRejectedValue(new ErroDeRegra('passagem_invalida'))
+    expect(await pagarComPix({ numero: NUMERO })).toEqual({ ok: false, erro: 'tente_de_novo' })
+    expect(console.error).toHaveBeenCalledWith('Falha do Supabase', expect.objectContaining({ onde: 'pagar_com_pix', code: 'passagem_invalida' }))
+  })
+})
+
+describe('fecharPedido cancela la as tentativas antigas da cliente', () => {
+  const entrada = { itens: [{ produto: 'pistache', quantos: 1 }], cotacao: '3f2b8c1e-9a4d-4e7b-8c11-0d5e6f7a8b9c', totalVisto: 100, guardarEndereco: false }
+
+  beforeEach(() => {
+    m.criarPedido.mockResolvedValue({ numero: NUMERO, totalCentavos: 100 })
+  })
+
+  it('depois de criar o pedido, cancela no Mercado Pago as listadas da cliente e espera', async () => {
+    m.tentativasACancelarDaCliente.mockResolvedValue([{ tentativa: 'velha', mpPedidoId: 'ORD0' }])
+    let terminou = false
+    m.cancelarNoMp.mockImplementation(async () => {
+      await new Promise((f) => setTimeout(f, 10))
+      terminou = true
+      return null
+    })
+    expect(await fecharPedido(entrada)).toEqual({ ok: true, pedido: { numero: NUMERO, totalCentavos: 100 } })
+    expect(terminou).toBe(true)
+    expect(m.tentativasACancelarDaCliente).toHaveBeenCalledWith('u1')
+    expect(m.cancelarNoMp).toHaveBeenCalledWith('velha', 'ORD0')
+    expect(m.criarPedido.mock.invocationCallOrder[0]).toBeLessThan(m.tentativasACancelarDaCliente.mock.invocationCallOrder[0])
+  })
+
+  it('falha ao cancelar ou ao listar so vai ao log: o pedido criado volta ok', async () => {
+    m.tentativasACancelarDaCliente.mockResolvedValue([{ tentativa: 'velha', mpPedidoId: 'ORD0' }])
+    m.cancelarNoMp.mockRejectedValue(new Error('falhou'))
+    expect((await fecharPedido(entrada)).ok).toBe(true)
+    m.tentativasACancelarDaCliente.mockRejectedValue(new Error('banco'))
+    expect((await fecharPedido(entrada)).ok).toBe(true)
+    const log = JSON.stringify((console.error as ReturnType<typeof vi.fn>).mock.calls)
+    expect(log).toContain('cancelar_tentativa_anterior')
+    expect(log).toContain('tentativas_a_cancelar')
+  })
+
+  it('pedido que nao foi criado nao cancela nada', async () => {
+    m.criarPedido.mockRejectedValue(new ErroDeRegra('loja_fechada'))
+    expect(await fecharPedido(entrada)).toEqual({ ok: false, erro: 'loja_fechada' })
+    expect(m.tentativasACancelarDaCliente).not.toHaveBeenCalled()
   })
 })
 
