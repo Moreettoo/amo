@@ -6,9 +6,10 @@ import { lerIp } from '@/lib/auth/ip'
 import { buscarCep } from '@/lib/dados/cep'
 import { cotarDeExemplo, registrarCotacao, VALIDADE_DA_COTACAO_MS } from '@/lib/dados/cotacao'
 import { mercadoPagoEmTeste } from '@/lib/dados/ambiente'
-import { registrarFalha } from '@/lib/dados/erros'
+import { ErroDeRegra, registrarFalha } from '@/lib/dados/erros'
+import { criarPedido } from '@/lib/dados/fechamento'
 import { consumirLimite } from '@/lib/dados/limites'
-import type { CodigoDoFechamento, RespostaDaCotacao } from '@/lib/fechamento/tipos'
+import type { CodigoDoFechamento, ItemDoPedido, RespostaDaCotacao, RespostaDoPedido } from '@/lib/fechamento/tipos'
 
 /**
  * A cotacao da entrega no servidor. Ordem (backend 11): cada campo conferido,
@@ -80,5 +81,79 @@ export async function cotarEntrega(entrada: unknown): Promise<RespostaDaCotacao>
   } catch (erro) {
     registrarFalha('cotar_entrega', erro)
     return falha('tente_de_novo')
+  }
+}
+
+const PRODUTO = /^[a-z0-9]+(-[a-z0-9]+)*$/
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+const CODIGOS_DO_BANCO: Record<string, CodigoDoFechamento> = {
+  sem_sessao: 'sem_sessao',
+  email_nao_confirmado: 'email_nao_confirmado',
+  loja_fechada: 'loja_fechada',
+  produto_indisponivel: 'produto_indisponivel',
+  muitos_pedidos: 'muitos_pedidos',
+  total_mudou: 'total_mudou',
+  cotacao_invalida: 'cotacao_vencida',
+  cotacao_vencida: 'cotacao_vencida',
+  itens_invalidos: 'campos_invalidos',
+}
+
+const semOMais = (o: object, chaves: string[]) => {
+  const tem = Object.keys(o)
+  return tem.length === chaves.length && chaves.every((k) => tem.includes(k))
+}
+
+function conferirItens(valor: unknown): ItemDoPedido[] | null {
+  if (!Array.isArray(valor) || valor.length < 1 || valor.length > 30) return null
+  const vistos = new Set<string>()
+  const itens: ItemDoPedido[] = []
+  for (const bruto of valor) {
+    if (typeof bruto !== 'object' || bruto === null || Array.isArray(bruto)) return null
+    if (!semOMais(bruto, ['produto', 'quantos'])) return null
+    const { produto, quantos } = bruto as Record<string, unknown>
+    if (typeof produto !== 'string' || produto.length > 80 || !PRODUTO.test(produto)) return null
+    if (typeof quantos !== 'number' || !Number.isInteger(quantos) || quantos < 1 || quantos > 20) return null
+    if (vistos.has(produto)) return null
+    vistos.add(produto)
+    itens.push({ produto, quantos })
+  }
+  return itens
+}
+
+/**
+ * Fecha o pedido. Ordem (backend 11): a sessao, cada campo conferido, o banco,
+ * a traducao do codigo. Sem limite aqui: o banco limita a 10 pedidos por hora.
+ */
+export async function fecharPedido(entrada: unknown): Promise<RespostaDoPedido> {
+  try {
+    if (!(await obterUsuario())) return { ok: false, erro: 'sem_sessao' }
+
+    if (typeof entrada !== 'object' || entrada === null || Array.isArray(entrada)) {
+      return { ok: false, erro: 'campos_invalidos' }
+    }
+    const { itens: i, cotacao, totalVisto, guardarEndereco } = entrada as Record<string, unknown>
+    const itens = conferirItens(i)
+    if (
+      !itens ||
+      typeof cotacao !== 'string' ||
+      !UUID.test(cotacao) ||
+      typeof totalVisto !== 'number' ||
+      !Number.isInteger(totalVisto) ||
+      totalVisto < 1 ||
+      totalVisto > 10_000_000 ||
+      typeof guardarEndereco !== 'boolean'
+    ) {
+      return { ok: false, erro: 'campos_invalidos' }
+    }
+
+    const pedido = await criarPedido({ itens, cotacao, totalVisto, guardarEndereco })
+    return { ok: true, pedido }
+  } catch (erro) {
+    if (erro instanceof ErroDeRegra && erro.codigo in CODIGOS_DO_BANCO) {
+      return { ok: false, erro: CODIGOS_DO_BANCO[erro.codigo] }
+    }
+    if (!(erro instanceof ErroDeRegra)) registrarFalha('fechar_pedido', erro)
+    return { ok: false, erro: 'tente_de_novo' }
   }
 }

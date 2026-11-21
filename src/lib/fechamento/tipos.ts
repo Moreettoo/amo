@@ -64,3 +64,9 @@ export type Cotacao = {
 export type RespostaDaCotacao =
   | { ok: true; cotacao: Cotacao }
   | { ok: false; erro: CodigoDoFechamento; campos?: Partial<Record<'cep' | 'numero' | 'complemento', string>> }
+
+export type ItemDoPedido = { produto: string; quantos: number }
+
+export type RespostaDoPedido =
+  | { ok: true; pedido: { numero: string; totalCentavos: number } }
+  | { ok: false; erro: CodigoDoFechamento }
