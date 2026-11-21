@@ -6,10 +6,11 @@ import { CabecaDaConta, PainelDaConta, lerDadosDoPainel } from '@/components/con
 import { EtapasDoPedido, PotesDoPedido } from '@/components/conta/PecasDoPedido'
 import { exigirUsuario, obterUsuario } from '@/lib/auth'
 import { conferirNumeroDoPedido } from '@/lib/conta/regras'
-import { FRASE_DO_ESTADO, TITULO_NAO_ENCONTRADA, MOTIVO_DO_CANCELAMENTO, descreverEntrega, descreverPagamento, formatarDataEHora } from '@/lib/conta/textos'
+import { FRASE_DO_ESTADO, MOTIVO_DO_CANCELAMENTO, descreverEntrega, descreverPagamento, formatarDataEHora } from '@/lib/conta/textos'
 import { lerPedido } from '@/lib/dados/pedidos'
 import { formatarPreco } from '@/lib/produto'
 import { textoPotes } from '@/lib/sacola'
+import { TITULO_NAO_ENCONTRADA } from '@/lib/textos'
 
 type Props = { params: Promise<{ numero: string }>; searchParams: Promise<{ cancelado?: string | string[] }> }
 

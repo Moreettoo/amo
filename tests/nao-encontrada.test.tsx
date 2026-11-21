@@ -1,4 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { render, screen } from '@testing-library/react'
 import { renderToString } from 'react-dom/server'
 import { act } from 'react'
@@ -24,6 +26,12 @@ describe('a página 404', () => {
     expect(container.querySelector('footer')).toBeInTheDocument()
     expect(container.textContent).not.toMatch(/could not be found|this page/i)
     expect(metadata.title).toBe('Página não encontrada · AMO')
+  })
+
+  // o pedido que nao se acha usa o mesmo titulo, mas a pagina do site inteiro nao depende de Minha conta
+  it('o título da aba vem de um módulo neutro, e não dos textos da conta', () => {
+    const fonte = readFileSync(resolve(import.meta.dirname, '../src/app/not-found.tsx'), 'utf8')
+    expect(fonte).not.toMatch(/@\/lib\/conta\//)
   })
 
   it('o título abre o bloco em duas vozes; o "Erro 404" vem depois dele, não como rótulo acima', () => {

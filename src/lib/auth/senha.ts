@@ -5,11 +5,11 @@ import { variavel } from '@/lib/dados/ambiente'
 import { registrarFalha } from '@/lib/dados/erros'
 
 /**
- * Confere a senha de quem ja esta logada (para excluir a conta), num cliente
- * a parte, sem cookie: a sessao atual nao muda. O Supabase nao tem outro jeito
- * de conferir uma senha, entao isto e um login; a sessao que ele abre nao fica
- * viva: encerra-se logo que a senha confere (escopo local, so aquela sessao;
- * as outras da cliente continuam).
+ * Confere a senha de quem ja esta logada (para excluir a conta e para trocar
+ * a senha), num cliente a parte, sem cookie: a sessao atual nao muda. O
+ * Supabase nao tem outro jeito de conferir uma senha, entao isto e um login; a
+ * sessao que ele abre nao fica viva: encerra-se logo que a senha confere
+ * (escopo local, so aquela sessao; as outras da cliente continuam).
  */
 export async function senhaConfere(email: string, senha: string, captchaToken: string): Promise<true | CodigoDaConta> {
   const banco = createClient(variavel('NEXT_PUBLIC_SUPABASE_URL'), variavel('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'), {

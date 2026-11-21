@@ -89,6 +89,3 @@ export function descreverPagamento(p: PedidoCompleto['pagamento']): string | nul
 }
 
 export const primeiroNome = (nome: string) => nome.trim().split(/\s+/)[0] ?? ''
-
-/** O titulo da aba da pagina 404 do site; o pedido que nao se acha usa o mesmo. */
-export const TITULO_NAO_ENCONTRADA = 'Página não encontrada · AMO'
