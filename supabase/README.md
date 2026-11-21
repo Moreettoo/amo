@@ -24,6 +24,7 @@ banco baterem.
 | `pedidos` | pedidos, itens, pagamentos e as máquinas de estado |
 | `fechamento` | `criar_pedido`, `iniciar_pagamento`, `cancelar_pedido`, cotação |
 | `pagamento` | aplicar o que o Mercado Pago diz, avisos, entrega e limites |
+| `pagamento_pelo_servidor` | `pagamentos_a_cancelar_no_mp` e `mp_pedido_da_tentativa`, para o servidor falar com o Mercado Pago |
 | `comentarios` | comentário com nota, só de quem recebeu, moderado |
 | `conta_e_guarda` | exclusão de conta, auditoria, expiração, guarda e as tarefas agendadas |
 | `porta` | a porta da API de dados (spec §5, regra 6) |
@@ -55,7 +56,8 @@ transação que o próprio teste desfaz no fim; nada fica gravado. O resultado
 | `08_comentarios.sql` | 1 | 23 |
 | `09_conta_guarda.sql` | 6 | 25 |
 | `10_porta.sql` | 0 | 13 |
-| `90_permissoes.sql` | 2 | 82 |
+| `11_pagamento_pelo_servidor.sql` | 4 | 16 |
+| `90_permissoes.sql` | 2 | 86 |
 | `91_injecao.sql` | 7 | 132 |
 
 E o teste da porta por HTTP de verdade, pela internet:
@@ -242,6 +244,7 @@ da porta.
 precisa entrar em "Exposed schemas" no painel (spec §13, item 1); visitante
 e cliente continuam sem acesso a ele. `registrar_cotacao`,
 `aplicar_pagamento`, `pagamentos_a_reconciliar`,
+`pagamentos_a_cancelar_no_mp`, `mp_pedido_da_tentativa`,
 `registrar_evento_webhook`, `concluir_evento_webhook`, `aplicar_entrega` e
 `consumir_limite`. A chave secreta não lê nenhuma tabela.
 

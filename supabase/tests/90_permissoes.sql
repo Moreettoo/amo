@@ -52,6 +52,8 @@ insert into _esperado (objeto, papel, privilegio) values
   ('privado.aplicar_pagamento(uuid, text, text, text, text, integer, text, text, integer, text, text, timestamp with time zone, text)',
     'service_role', 'EXECUTE'),
   ('privado.pagamentos_a_reconciliar()', 'service_role', 'EXECUTE'),
+  ('privado.pagamentos_a_cancelar_no_mp(uuid)', 'service_role', 'EXECUTE'),
+  ('privado.mp_pedido_da_tentativa(uuid)', 'service_role', 'EXECUTE'),
   ('privado.registrar_evento_webhook(text, text, text, text)', 'service_role', 'EXECUTE'),
   ('privado.concluir_evento_webhook(bigint, text)', 'service_role', 'EXECUTE'),
   ('privado.aplicar_entrega(uuid, text, text, text)', 'service_role', 'EXECUTE'),
