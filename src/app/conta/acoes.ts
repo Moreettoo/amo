@@ -151,7 +151,7 @@ const ERRO_DA_TROCA_DE_SENHA = (erro: { code?: string; reasons?: string[] }): Co
  * A senha atual e conferida aqui, num login a parte (senhaConfere), porque o
  * painel do Supabase pode trocar a senha sem conferir a atual (achado de
  * 2026-11-20); ela tambem segue no updateUser, para quando o painel conferir.
- * So no sucesso as outras sessoes caem (a do login a parte junto).
+ * A sessao do login a parte ja se fecha em senhaConfere; so no sucesso as outras sessoes caem.
  */
 export async function trocarSenha(_: Resposta | null, form: FormData): Promise<Resposta> {
   return comSessao(EMAIL_E_SENHA, async (usuario) => {
