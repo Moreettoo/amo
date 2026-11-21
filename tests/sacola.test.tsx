@@ -110,6 +110,13 @@ const pixPago = (): SituacaoDoPedido => ({
 const relogioFalso = () => vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'Date'] })
 /** Anda o relogio falso e deixa as promessas e o React assentarem. */
 const andar = (ms: number) => act(() => vi.advanceTimersByTimeAsync(ms))
+/** O axe usa setTimeout: com o relogio falso ele anda de 1 em 1 ms ate o axe terminar, longe da proxima pergunta da espera. */
+async function axeNoRelogioFalso(el: Element) {
+  let pronto = false
+  const resultado = axe(el).finally(() => (pronto = true))
+  for (let ms = 0; !pronto && ms < 2000; ms++) await andar(1)
+  return resultado
+}
 
 afterEach(() => {
   vi.useRealTimers()
@@ -210,6 +217,8 @@ describe('a página /sacola', () => {
     })
     expect(etapas).toHaveLength(4)
     expect(etapas[0]).toHaveAttribute('aria-current', 'step')
+    // por enquanto so o Pix e oferecido: a dica da etapa 4 diz so ele
+    expect(within(etapas[3]).getByText('Pix.', { selector: '.etapa__dica' })).toBeInTheDocument()
     expect(screen.getByText(formatarPreco(5670), { selector: '.resumo__total dd' })).toBeInTheDocument()
   })
 
@@ -633,12 +642,13 @@ describe('o Pix e a espera do pagamento', () => {
   }
   /** na etapa 4 com o relogio falso, paga com Pix e espera o pedido feito aparecer */
   const pagoComPix = async () => {
-    await naEtapa4()
+    const { container } = await naEtapa4()
     relogioFalso()
     // com o relogio falso o clique e o do fireEvent: o do user-event espera um setTimeout que nao anda
     fireEvent.click(botaoDoResumo())
     await andar(0)
     expect(screen.getByRole('heading', { level: 1, name: 'Pedido 123456 aguardando o Pix' })).toBeInTheDocument()
+    return container
   }
   const mudarAba = (estado: 'hidden' | 'visible') =>
     act(() => {
@@ -731,6 +741,12 @@ describe('o Pix e a espera do pagamento', () => {
     expect(within(resumo()).getByText(resumoDosHorarios(m.horarios))).toBeInTheDocument()
     expect(document.querySelector('.etapa[aria-current="step"]')).toHaveTextContent('4. Pagamento')
     expect(within(resumo()).getByRole('button', { name: 'Cozinha fechada agora' })).toBeDisabled()
+
+    // um refresh depois traz a loja aberta de novo: o botao volta a pagar
+    m.situacao = { aberta: true, fecha: '18:00' }
+    rerender(await PaginaSacola())
+    expect(await within(resumo()).findByRole('button', { name: `Pagar com Pix · ${formatarPreco(5070)}` })).toBeEnabled()
+    expect(within(resumo()).getByText('Pedidos até as 18h.')).toBeInTheDocument()
   })
 
   it('pagamento_indisponivel no Pix: fica na etapa 4 com a frase, e o botão volta', async () => {
@@ -784,22 +800,71 @@ describe('o Pix e a espera do pagamento', () => {
     fireEvent.click(botaoDoResumo())
     await andar(0)
     expect(screen.getByRole('img', { name: 'QR Code do Pix' })).toBeInTheDocument()
+    // o primeiro codigo nao e "novo": nada dito na linha de cima
+    expect(screen.queryByText('Código novo pronto.')).toBeNull()
 
+    // o foco estava dentro do painel (no "Copiar codigo"): com o codigo vencido ele vai ao "Gerar outro codigo"
+    act(() => screen.getByRole('button', { name: 'Copiar código' }).focus())
     await andar(61_000)
     const venceu = screen.getByText('O código venceu.')
     expect(venceu).toHaveAttribute('aria-live', 'polite')
     expect(screen.queryByRole('img', { name: 'QR Code do Pix' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Copiar código' })).toBeNull()
+    const outro = screen.getByRole('button', { name: 'Gerar outro código' })
+    expect(outro).toHaveFocus()
 
     const novo = pixPendente({ copiaECola: '00020101021226830014br.gov.bcb.pix-novo', expiraEm: new Date(Date.now() + 30 * 60_000).toISOString() })
     m.pagarPix.mockResolvedValue({ ok: true, situacao: novo })
-    fireEvent.click(screen.getByRole('button', { name: 'Gerar outro código' }))
+    fireEvent.click(outro)
     await andar(0)
     expect(m.pagarPix).toHaveBeenCalledTimes(2)
     expect(m.pagarPix).toHaveBeenLastCalledWith({ numero: '123456' })
     expect(m.fechar).toHaveBeenCalledTimes(1)
     expect(screen.getByRole('textbox', { name: 'Pix copia e cola' })).toHaveValue('00020101021226830014br.gov.bcb.pix-novo')
     expect(screen.queryByText('O código venceu.')).toBeNull()
+    // o codigo novo e dito na regiao viva, e o foco vai ao "Copiar codigo"
+    expect(screen.getByText('Código novo pronto.')).toHaveAttribute('aria-live', 'polite')
+    expect(screen.getByRole('button', { name: 'Copiar código' })).toHaveFocus()
+  })
+
+  it('o código que vence com o foco fora do painel não rouba o foco', async () => {
+    await naEtapa4()
+    relogioFalso()
+    const quaseVencendo = pixPendente({ expiraEm: new Date(Date.now() + 60_000).toISOString() })
+    m.pagarPix.mockResolvedValue({ ok: true, situacao: quaseVencendo })
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: quaseVencendo })
+    fireEvent.click(botaoDoResumo())
+    await andar(0)
+    const voltar = screen.getByRole('link', { name: 'Voltar ao catálogo' })
+    act(() => voltar.focus())
+    await andar(61_000)
+    expect(screen.getByRole('button', { name: 'Gerar outro código' })).not.toHaveFocus()
+    expect(voltar).toHaveFocus()
+  })
+
+  it('a tentativa recusada (sem o QR) não diz que venceu: diz que não deu para gerar e oferece outro', async () => {
+    const { user } = await naEtapa4()
+    m.pagarPix.mockResolvedValue({
+      ok: true,
+      situacao: { ...pixPendente(), pagamento: { forma: 'pix', estado: 'recusado', recusa: null, pix: null, desafioUrl: null } },
+    })
+    await user.click(botaoDoResumo())
+    expect(await screen.findByText('Não conseguimos gerar o código. Tente de novo.')).toHaveAttribute('aria-live', 'polite')
+    expect(screen.queryByText('O código venceu.')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Gerar outro código' })).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'QR Code do Pix' })).toBeNull()
+  })
+
+  it('a tentativa que acabou não mostra QR, mesmo se a resposta ainda trouxer um', async () => {
+    const { user } = await naEtapa4()
+    const morta = pixPendente()
+    morta.pagamento = { ...morta.pagamento!, estado: 'expirado' }
+    m.pagarPix.mockResolvedValue({ ok: true, situacao: morta })
+    await user.click(botaoDoResumo())
+    expect(await screen.findByText('O código venceu.')).toBeInTheDocument()
+    expect(screen.queryByRole('img', { name: 'QR Code do Pix' })).toBeNull()
+    expect(screen.queryByRole('textbox', { name: 'Pix copia e cola' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Gerar outro código' })).toBeInTheDocument()
   })
 
   it('a tentativa trocada (cancelado) que a espera vê pede outro código, e a espera para', async () => {
@@ -862,13 +927,14 @@ describe('o Pix e a espera do pagamento', () => {
   })
 
   it('passa no axe no pedido feito, esperando o Pix e depois de pago', async () => {
-    const { user, container } = await naEtapa4()
-    await user.click(botaoDoResumo())
-    await screen.findByRole('img', { name: 'QR Code do Pix' })
-    expect(await axe(container)).toHaveNoViolations()
+    const container = await pagoComPix()
+    expect(screen.getByRole('img', { name: 'QR Code do Pix' })).toBeInTheDocument()
+    expect(await axeNoRelogioFalso(container)).toHaveNoViolations()
+    expect(m.situacaoPedido).not.toHaveBeenCalled()
 
     m.situacaoPedido.mockResolvedValue({ ok: true, situacao: pixPago() })
-    expect(await screen.findByText('Pagamento aprovado.', {}, { timeout: 7000 })).toBeInTheDocument()
-    expect(await axe(container)).toHaveNoViolations()
-  }, 15000)
+    await andar(5000)
+    expect(screen.getByText('Pagamento aprovado.')).toBeInTheDocument()
+    expect(await axeNoRelogioFalso(container)).toHaveNoViolations()
+  })
 })

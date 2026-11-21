@@ -1,5 +1,6 @@
 'use server'
 
+import { updateTag } from 'next/cache'
 import { headers } from 'next/headers'
 import { obterUsuario } from '@/lib/auth'
 import { lerIp } from '@/lib/auth/ip'
@@ -14,6 +15,7 @@ import { criarPedidoCartao, criarPedidoPix, type PedidoMp } from '@/lib/mercadop
 import { traduzir } from '@/lib/mercadopago/traducao'
 import { aplicarRespostaDoMp, cancelarNoMp, guardarIdsDoMp, sincronizarTentativa } from '@/lib/mercadopago/sincronizar'
 import { consumirLimite } from '@/lib/dados/limites'
+import { ETIQUETA_DO_CATALOGO } from '@/lib/dados/publico'
 import type {
   CodigoDoFechamento,
   EstadoDoPedido,
@@ -113,6 +115,22 @@ const CODIGOS_DO_BANCO: Record<string, CodigoDoFechamento> = {
   itens_invalidos: 'campos_invalidos',
 }
 
+/** O banco viu outro preco ou outro cardapio: o catalogo guardado no cache (5 min) ja nao vale. */
+const MUDOU_O_CATALOGO = new Set<CodigoDoFechamento>(['total_mudou', 'produto_indisponivel'])
+
+/**
+ * Derruba o cache do catalogo (updateTag: a proxima leitura espera o banco,
+ * em vez de servir o velho), para a pagina que a tela pede de novo ja vir com
+ * os precos e o cardapio novos. Nunca lanca: falha so vai ao log.
+ */
+function invalidarCatalogo(): void {
+  try {
+    updateTag(ETIQUETA_DO_CATALOGO)
+  } catch (erro) {
+    registrarFalha('invalidar_catalogo', erro)
+  }
+}
+
 const semOMais = (o: object, chaves: string[]) => {
   const tem = Object.keys(o)
   return tem.length === chaves.length && chaves.every((k) => tem.includes(k))
@@ -192,7 +210,9 @@ export async function fecharPedido(entrada: unknown): Promise<RespostaDoPedido> 
     return { ok: true, pedido }
   } catch (erro) {
     if (erro instanceof ErroDeRegra && Object.hasOwn(CODIGOS_DO_BANCO, erro.codigo)) {
-      return { ok: false, erro: CODIGOS_DO_BANCO[erro.codigo] }
+      const codigo = CODIGOS_DO_BANCO[erro.codigo]
+      if (MUDOU_O_CATALOGO.has(codigo)) invalidarCatalogo()
+      return { ok: false, erro: codigo }
     }
     if (!(erro instanceof ErroDeRegra)) registrarFalha('fechar_pedido', erro)
     return { ok: false, erro: 'tente_de_novo' }

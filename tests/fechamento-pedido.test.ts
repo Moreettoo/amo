@@ -4,7 +4,7 @@ import { HOSTIS } from './fixtures/hostis'
 
 /** Fechar o pedido no servidor, sem banco: sessao, campos, codigos e o que volta. */
 
-const m = vi.hoisted(() => ({ obterUsuario: vi.fn(), rpc: vi.fn() }))
+const m = vi.hoisted(() => ({ obterUsuario: vi.fn(), rpc: vi.fn(), updateTag: vi.fn() }))
 
 vi.mock('@/lib/auth', () => ({ obterUsuario: m.obterUsuario }))
 vi.mock('@/lib/auth/servidor', () => ({ criarClienteServidor: async () => ({ rpc: m.rpc }) }))
@@ -14,6 +14,8 @@ vi.mock('@/lib/auth/admin', () => ({
   criarClienteAdmin: () => ({ schema: () => ({ rpc: async () => ({ data: [], error: null, status: 200 }) }) }),
 }))
 vi.mock('next/headers', () => ({ headers: async () => new Headers() }))
+// o updateTag de verdade so roda dentro de uma acao do Next: aqui so se ve quando ele e chamado
+vi.mock('next/cache', async (original) => ({ ...(await original<typeof import('next/cache')>()), updateTag: m.updateTag }))
 
 import { fecharPedido } from '@/app/sacola/acoes'
 
@@ -24,6 +26,7 @@ const doBanco = (message: string) => ({ data: null, error: { code: 'P0001', mess
 beforeEach(() => {
   m.obterUsuario.mockReset().mockResolvedValue({ id: 'u1' })
   m.rpc.mockReset().mockResolvedValue({ data: [{ id: 'pedido-id', numero: 'AMO-0001', total_centavos: 12990 }], error: null, status: 200 })
+  m.updateTag.mockReset()
   vi.spyOn(console, 'error').mockImplementation(() => {})
 })
 
@@ -103,6 +106,32 @@ describe('codigos do banco', () => {
     expect(await fecharPedido(valida)).toEqual({ ok: false, erro: 'tente_de_novo' })
     m.rpc.mockResolvedValue({ data: [], error: null, status: 200 })
     expect(await fecharPedido(valida)).toEqual({ ok: false, erro: 'tente_de_novo' })
+  })
+})
+
+describe('o catalogo guardado no cache', () => {
+  it.each(['total_mudou', 'produto_indisponivel'])('%s derruba o cache do catalogo antes de responder', async (codigo) => {
+    m.rpc.mockResolvedValue(doBanco(codigo))
+    expect(await fecharPedido(valida)).toEqual({ ok: false, erro: codigo })
+    expect(m.updateTag).toHaveBeenCalledTimes(1)
+    expect(m.updateTag).toHaveBeenCalledWith('catalogo')
+  })
+  it('os outros codigos, os campos e o sucesso nao mexem no cache', async () => {
+    for (const c of ['loja_fechada', 'cotacao_vencida', 'cotacao_invalida', 'email_nao_confirmado', 'muitos_pedidos', 'sem_sessao', 'itens_invalidos', 'coisa_estranha']) {
+      m.rpc.mockResolvedValue(doBanco(c))
+      await fecharPedido(valida)
+    }
+    await fecharPedido({ ...valida, totalVisto: 0 })
+    m.rpc.mockResolvedValue({ data: [{ id: 'pedido-id', numero: 'AMO-0001', total_centavos: 12990 }], error: null, status: 200 })
+    expect(await fecharPedido(valida)).toMatchObject({ ok: true })
+    expect(m.updateTag).not.toHaveBeenCalled()
+  })
+  it('o cache que nao cai nao muda a resposta: o codigo chega e a falha vai ao log', async () => {
+    m.updateTag.mockImplementation(() => {
+      throw new Error('fora de uma acao')
+    })
+    m.rpc.mockResolvedValue(doBanco('total_mudou'))
+    expect(await fecharPedido(valida)).toEqual({ ok: false, erro: 'total_mudou' })
   })
 })
 

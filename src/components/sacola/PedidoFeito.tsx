@@ -35,7 +35,9 @@ type Props = {
  */
 export function PedidoFeito({ situacao, linhas, entrega, total, aoGerarOutro, aoMudar, gerando = false, erro = null }: Props) {
   const pago = aprovado(situacao)
-  const pix = situacao.pagamento?.pix ?? null
+  // a tentativa que acabou nao tem QR para pagar, mesmo que a resposta traga um
+  const acabou = codigoAcabou(situacao)
+  const pix = acabou ? null : (situacao.pagamento?.pix ?? null)
   const { complemento } = entrega.endereco
   return (
     <section className="feito" aria-labelledby="pedido-feito">
@@ -52,8 +54,14 @@ export function PedidoFeito({ situacao, linhas, entrega, total, aoGerarOutro, ao
         </a>
       ) : (
         <>
-          {pix || codigoAcabou(situacao) ? (
-            <PainelDoPix pix={pix} aoGerarOutro={aoGerarOutro} gerando={gerando} erro={erro} />
+          {pix || acabou ? (
+            <PainelDoPix
+              pix={pix}
+              aoGerarOutro={aoGerarOutro}
+              recusado={situacao.pagamento?.estado === 'recusado'}
+              gerando={gerando}
+              erro={erro}
+            />
           ) : (
             <p className="feito__gerando">Gerando o código Pix.</p>
           )}

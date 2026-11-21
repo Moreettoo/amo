@@ -45,7 +45,8 @@ const DICAS: Record<Etapa, string> = {
   1: 'Confira os sabores e quantos de cada.',
   2: 'CEP e número; o valor do Uber aparece aqui.',
   3: 'Nome, celular e e-mail para acompanhar o pedido.',
-  4: 'Pix ou cartão.',
+  // so o que a etapa oferece: o cartao entra com o Card Payment Brick
+  4: 'Pix.',
 }
 
 /** O pedido fechado, pago ou esperando o Pix: a situacao que o servidor devolveu e o que foi pedido. */
@@ -109,6 +110,15 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   const [fase, setFase] = useState<Fase | null>(null)
   // o banco disse loja_fechada: o botao desliga ja, antes de a pagina voltar com a loja
   const [lojaFechou, setLojaFechou] = useState(false)
+  // a loja que um refresh depois traz aberta de novo religa o botao (e a frase da loja fechada sai)
+  const [abertaVista, setAbertaVista] = useState(dados.loja.aberta)
+  if (dados.loja.aberta !== abertaVista) {
+    setAbertaVista(dados.loja.aberta)
+    if (dados.loja.aberta) {
+      setLojaFechou(false)
+      setAviso((a) => (a?.codigo === 'loja_fechada' ? null : a))
+    }
+  }
   const [gerando, setGerando] = useState(false)
   const [erroDoCodigo, setErroDoCodigo] = useState<CodigoDoFechamento | null>(null)
   // o pagamento em curso (o clique duplo nao fecha dois pedidos) e o numero da

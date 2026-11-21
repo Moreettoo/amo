@@ -8,9 +8,11 @@ import { horaDeSaoPaulo } from './espera'
 export type PixDaTela = NonNullable<PagamentoNaTela['pix']>
 
 type Props = {
-  /** o codigo da tentativa que espera; null quando ele nao vale mais (venceu ou foi trocado por outro) */
+  /** o codigo da tentativa que espera; null quando ele nao vale mais (venceu, foi trocado ou recusado) */
   pix: PixDaTela | null
   aoGerarOutro: () => void
+  /** sem codigo porque a tentativa foi recusada: nao diz que venceu */
+  recusado?: boolean
   /** enquanto o codigo novo e pedido, o botao diz o que faz */
   gerando?: boolean
   /** o que deu errado ao pedir o codigo novo */
@@ -24,12 +26,18 @@ const COPIADO_MS = 4000
  * O Pix do pedido: o QR sobre o papel, o copia e cola num campo so de leitura
  * com o botao "Copiar codigo", ate que horas vale e o que fazer. Vencido pelo
  * relogio daqui, ou trocado no servidor (pix null), diz que venceu e oferece
- * outro. A linha de cima e a do "Codigo copiado." sao regioes vivas, sempre
- * no lugar, para o leitor de tela ouvir quando mudam.
+ * outro; recusado, diz que nao deu para gerar. A linha de cima e a do "Codigo
+ * copiado." sao regioes vivas, sempre no lugar, para o leitor de tela ouvir
+ * quando mudam. Quando o codigo vence ou chega um novo, o controle com o foco
+ * sai da tela: o foco vai ao "Gerar outro codigo" ou ao "Copiar codigo".
  */
-export function PainelDoPix({ pix, aoGerarOutro, gerando = false, erro = null }: Props) {
+export function PainelDoPix({ pix, aoGerarOutro, recusado = false, gerando = false, erro = null }: Props) {
   const id = useId()
   const campo = useRef<HTMLInputElement>(null)
+  const botaoCopiar = useRef<HTMLButtonElement>(null)
+  const botaoOutro = useRef<HTMLButtonElement>(null)
+  // o ultimo controle do painel que teve o foco; esquecido quando o foco vai a outro lugar da pagina
+  const ultimoFoco = useRef<Element | null>(null)
   const vence = pix?.expiraEm ? Date.parse(pix.expiraEm) : null
   // o vencimento que ja passou por este relogio (o servidor confirma depois)
   const [vencido, setVencido] = useState<number | null>(() => (vence !== null && vence <= Date.now() ? vence : null))
@@ -49,6 +57,27 @@ export function PainelDoPix({ pix, aoGerarOutro, gerando = false, erro = null }:
   }, [copiado])
 
   const valendo = pix !== null && (vence === null || vencido !== vence) ? pix : null
+  const atual = valendo?.copiaECola ?? null
+
+  // o codigo que chega depois de outro (ou de nenhum) e dito: "Codigo novo pronto."
+  const [anterior, setAnterior] = useState(atual)
+  const [novo, setNovo] = useState<string | null>(null)
+  if (atual !== anterior) {
+    setAnterior(atual)
+    setNovo(atual)
+  }
+
+  // o codigo mudou (venceu, ou chegou outro): se o controle com o foco saiu da
+  // tela com ele, o foco vai ao controle que segue
+  const visto = useRef(atual)
+  useEffect(() => {
+    if (visto.current === atual) return
+    visto.current = atual
+    const ativo = document.activeElement
+    const perdido = ativo === null || ativo === document.body
+    if (!perdido || ultimoFoco.current === null || ultimoFoco.current.isConnected) return
+    ;(atual !== null ? botaoCopiar : botaoOutro).current?.focus()
+  }, [atual])
 
   async function copiar(codigo: string) {
     try {
@@ -62,9 +91,26 @@ export function PainelDoPix({ pix, aoGerarOutro, gerando = false, erro = null }:
   }
 
   return (
-    <div className="pix">
+    <div
+      className="pix"
+      onFocus={(e) => {
+        ultimoFoco.current = e.target
+      }}
+      onBlur={(e) => {
+        // o foco foi a outro lugar da pagina (e nao a lugar nenhum, como quando o controle sai da tela)
+        if (e.relatedTarget instanceof Node && !e.currentTarget.contains(e.relatedTarget)) ultimoFoco.current = null
+      }}
+    >
       <p className="pix__aviso" aria-live="polite">
-        {valendo ? '' : erro ? MENSAGENS_DO_FECHAMENTO[erro] : 'O código venceu.'}
+        {valendo
+          ? novo === valendo.copiaECola
+            ? 'Código novo pronto.'
+            : ''
+          : erro
+            ? MENSAGENS_DO_FECHAMENTO[erro]
+            : pix === null && recusado
+              ? 'Não conseguimos gerar o código. Tente de novo.'
+              : 'O código venceu.'}
       </p>
       {valendo ? (
         <>
@@ -89,7 +135,12 @@ export function PainelDoPix({ pix, aoGerarOutro, gerando = false, erro = null }:
                 onFocus={(e) => e.currentTarget.select()}
               />
             </div>
-            <button type="button" className="btn-retro btn-retro--contorno pix__copiar" onClick={() => void copiar(valendo.copiaECola)}>
+            <button
+              ref={botaoCopiar}
+              type="button"
+              className="btn-retro btn-retro--contorno pix__copiar"
+              onClick={() => void copiar(valendo.copiaECola)}
+            >
               Copiar código
             </button>
             <p className="pix__copiado" aria-live="polite">
@@ -100,6 +151,7 @@ export function PainelDoPix({ pix, aoGerarOutro, gerando = false, erro = null }:
         </>
       ) : (
         <button
+          ref={botaoOutro}
           type="button"
           className="btn-retro btn-retro--contorno pix__outro"
           onClick={aoGerarOutro}
