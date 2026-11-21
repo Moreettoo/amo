@@ -14,6 +14,7 @@ import { PISO_DO_ENVIO, PISO_DO_LOGIN, comPiso } from '@/lib/auth/tempo'
 import { VERSAO_DOS_TERMOS } from '@/lib/auth/termos'
 import { voltaSegura } from '@/lib/auth/volta'
 import { conferirCodigo, conferirEmail, conferirPerfil, conferirSenha, conferirSenhaAtual } from '@/lib/conta/regras'
+import { falhaDoBanco, registrarFalha } from '@/lib/dados/erros'
 import { consumirLimite } from '@/lib/dados/limites'
 
 /**
@@ -75,7 +76,7 @@ export async function entrar(_: RespostaDaConta | null, form: FormData): Promise
       banco.auth.signInWithPassword({ email, password: senha, options: { captchaToken: tokenDoCaptcha(form) } }),
     )
     if (error?.code === 'email_not_confirmed') return { ok: true, passo: 'codigo', email }
-    if (error) return falha(traduzirErroDoAuth(error))
+    if (error) return falha(traduzirErroDoAuth(error, 'entrar'))
   } catch {
     return falha('tente_de_novo')
   }
@@ -118,7 +119,8 @@ export async function cadastrar(_: RespostaDaConta | null, form: FormData): Prom
     // conta que ja existe responde igual a conta nova (spec 4.1), e o limite de
     // e-mail, que so pega conta nova, tambem
     const naoRevela = error?.code === 'user_already_exists' || error?.code === 'email_exists' || limiteDeEmailDoSupabase(error)
-    if (error && !naoRevela) return falha(traduzirErroDoAuth(error))
+    const codigo = error && traduzirErroDoAuth(error, 'cadastrar')
+    if (codigo && !naoRevela) return falha(codigo)
   } catch {
     return falha('tente_de_novo')
   }
@@ -138,7 +140,7 @@ export async function confirmarCadastro(_: RespostaDaConta | null, form: FormDat
   try {
     const banco = await criarClienteServidor()
     const { error } = await banco.auth.verifyOtp({ email, token: codigo, type: 'email' })
-    if (error) return falha(traduzirErroDoAuth(error), { passo: 'codigo', email })
+    if (error) return falha(traduzirErroDoAuth(error, 'confirmarCadastro'), { passo: 'codigo', email })
   } catch {
     return falha('tente_de_novo', { passo: 'codigo', email })
   }
@@ -154,7 +156,8 @@ export async function reenviarCodigo(_: RespostaDaConta | null, form: FormData):
     const { error } = await comPiso(PISO_DO_ENVIO, () =>
       banco.auth.resend({ type: 'signup', email, options: { captchaToken: tokenDoCaptcha(form) } }),
     )
-    if (error && !erroQueNaoRevelaNada(error)) return falha(traduzirErroDoAuth(error), { passo: 'codigo', email })
+    const codigo = error && traduzirErroDoAuth(error, 'reenviarCodigo')
+    if (codigo && !erroQueNaoRevelaNada(error)) return falha(codigo, { passo: 'codigo', email })
   } catch {
     return falha('tente_de_novo', { passo: 'codigo', email })
   }
@@ -170,7 +173,8 @@ export async function pedirCodigoDeSenha(_: RespostaDaConta | null, form: FormDa
     const banco = await criarClienteServidor()
     const { error } = await comPiso(PISO_DO_ENVIO, () => banco.auth.resetPasswordForEmail(email, { captchaToken: tokenDoCaptcha(form) }))
     // com e sem conta, a mesma resposta (spec 4.1)
-    if (error && !erroQueNaoRevelaNada(error)) return falha(traduzirErroDoAuth(error))
+    const codigo = error && traduzirErroDoAuth(error, 'pedirCodigoDeSenha')
+    if (codigo && !erroQueNaoRevelaNada(error)) return falha(codigo)
   } catch {
     return falha('tente_de_novo')
   }
@@ -217,13 +221,13 @@ export async function trocarSenhaComCodigo(_: RespostaDaConta | null, form: Form
     // sessao que ele abriu continua, e o novo envio troca a senha nela
     if (!(await sessaoAbertaPorCodigo(banco, email))) {
       const conferido = await banco.auth.verifyOtp({ email, token: codigo, type: 'recovery' })
-      if (conferido.error) return falha(traduzirErroDoAuth(conferido.error), passo)
+      if (conferido.error) return falha(traduzirErroDoAuth(conferido.error, 'trocarSenhaComCodigo'), passo)
     }
     const trocado = await banco.auth.updateUser({ password: senha })
-    if (trocado.error) return falha(traduzirErroDoAuth(trocado.error), passo)
+    if (trocado.error) return falha(traduzirErroDoAuth(trocado.error, 'trocarSenhaComCodigo'), passo)
     // trocar a senha encerra as outras sessoes (contrato, item 6)
     const encerrado = await banco.auth.signOut({ scope: 'others' })
-    if (encerrado.error) return falha('tente_de_novo', passo)
+    if (encerrado.error) return falha(traduzirErroDoAuth(encerrado.error, 'trocarSenhaComCodigo'), passo)
   } catch {
     return falha('tente_de_novo', passo)
   }
@@ -241,12 +245,13 @@ export async function excluirConta(_: RespostaDaConta | null, form: FormData): P
   try {
     const banco = await criarClienteServidor()
     const { data, error } = await banco.rpc('pode_excluir_conta')
-    if (error || !data?.[0]) return falha('tente_de_novo')
+    if (error) throw falhaDoBanco('pode_excluir_conta', error)
+    if (!data?.[0]) return falha('tente_de_novo')
     if (!data[0].pode) return falha('pedido_em_aberto')
     const conferida = await senhaConfere(usuario.email, senha, tokenDoCaptcha(form))
     if (conferida !== true) return falha((conferida as CodigoDaConta | false) || 'credenciais')
     const apagada = await criarClienteAdmin().auth.admin.deleteUser(usuario.id)
-    if (apagada.error) return falha('tente_de_novo')
+    if (apagada.error) return falha(traduzirErroDoAuth(apagada.error, 'excluirConta'))
     await apagarCookiesDaSessao()
   } catch {
     return falha('tente_de_novo')
@@ -263,7 +268,10 @@ export async function sair(): Promise<never> {
     // so esta sessao (spec 5); com "local" a biblioteca apaga a sessao do cookie
     // antes de chamar o Supabase, e se ele recusar o cookie some do mesmo jeito
     const { error } = await banco.auth.signOut({ scope: 'local' })
-    if (error) await apagarCookiesDaSessao()
+    if (error) {
+      registrarFalha('sair', error)
+      await apagarCookiesDaSessao()
+    }
   } catch {
     await apagarCookiesDaSessao()
   }

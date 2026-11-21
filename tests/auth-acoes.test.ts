@@ -58,6 +58,8 @@ const chamar = async (acao: Acao, campos: Record<string, string>): Promise<Recor
   }
 }
 const erroDoAuth = (code: string, extra: object = {}): Resposta => ({ data: {}, error: { code, status: 400, message: `texto cru ${code}`, ...extra } })
+// o log do servidor: espiado em todo teste, para conferir o que sai e nao sujar a saida
+const log = vi.spyOn(console, 'error').mockImplementation(() => {})
 
 const CADASTRO = { nome: ' Maria  José ', celular: '(11) 98765-4321', email: 'Maria@Exemplo.com', senha: '12345678', termos: 'on', 'cf-turnstile-response': 'tok' }
 const ENTRAR = { email: '  Maria@Exemplo.com ', senha: 'qualquer', volta: '/sacola', 'cf-turnstile-response': 'tok' }
@@ -306,6 +308,47 @@ describe('sair', () => {
     auth.signOut.mockResolvedValue({ data: {}, error: { code: 'unexpected_failure', status: 500 } })
     await expect(acoes.sair()).rejects.toThrow('REDIRECIONOU /')
     expect(apagarCookiesDaSessao).toHaveBeenCalled()
+  })
+})
+
+describe('o log do servidor', () => {
+  const linhas = () => log.mock.calls.filter(([titulo]) => titulo === 'Falha do Supabase')
+  it('erro do Supabase vai ao log com o lugar, o codigo, o status e o nome, sem o e-mail nem a mensagem crua', async () => {
+    auth.signInWithPassword.mockResolvedValue(erroDoAuth('invalid_credentials', { name: 'AuthApiError' }))
+    await chamar(acoes.entrar, ENTRAR)
+    expect(linhas()).toEqual([['Falha do Supabase', { onde: 'entrar', code: 'invalid_credentials', status: 400, name: 'AuthApiError' }]])
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/maria|texto cru/i)
+  })
+  it.each([
+    ['cadastrar', acoes.cadastrar, CADASTRO, 'signUp', 'user_already_exists'],
+    ['reenviarCodigo', acoes.reenviarCodigo, { email: 'maria@exemplo.com', 'cf-turnstile-response': 'tok' }, 'resend', 'over_email_send_rate_limit'],
+    ['pedirCodigoDeSenha', acoes.pedirCodigoDeSenha, { email: 'maria@exemplo.com', 'cf-turnstile-response': 'tok' }, 'resetPasswordForEmail', 'over_email_send_rate_limit'],
+  ] as [string, Acao, Record<string, string>, keyof typeof auth, string][])(
+    '%s: o erro que a tela responde como sucesso tambem vai ao log, uma vez so',
+    async (onde, acao, campos, metodo, code) => {
+      auth[metodo].mockResolvedValue(erroDoAuth(code))
+      expect(await chamar(acao, campos)).toMatchObject({ ok: true })
+      expect(linhas()).toEqual([['Falha do Supabase', { onde, code, status: 400, name: null }]])
+    },
+  )
+  it('o erro que aparece na tela vai ao log uma vez so', async () => {
+    auth.resend.mockResolvedValue(erroDoAuth('captcha_failed'))
+    expect(await chamar(acoes.reenviarCodigo, { email: 'maria@exemplo.com', 'cf-turnstile-response': 'tok' })).toMatchObject({ ok: false, erro: 'captcha' })
+    expect(linhas()).toHaveLength(1)
+  })
+  it('a consulta de exclusao que falha no banco vai ao log', async () => {
+    rpc.mockResolvedValue({ data: null, error: { code: 'PGRST301', message: 'texto cru' } })
+    expect(await chamar(acoes.excluirConta, EXCLUIR)).toMatchObject({ ok: false, erro: 'tente_de_novo' })
+    expect(linhas()).toEqual([['Falha do Supabase', { onde: 'pode_excluir_conta', code: 'PGRST301', status: null, name: null }]])
+  })
+  it('sair com o Supabase recusando vai ao log', async () => {
+    auth.signOut.mockResolvedValue({ data: {}, error: { code: 'unexpected_failure', status: 500 } })
+    await expect(acoes.sair()).rejects.toThrow('REDIRECIONOU /')
+    expect(linhas()).toEqual([['Falha do Supabase', { onde: 'sair', code: 'unexpected_failure', status: 500, name: null }]])
+  })
+  it('sem erro, nada no log', async () => {
+    await chamar(acoes.entrar, ENTRAR)
+    expect(linhas()).toEqual([])
   })
 })
 

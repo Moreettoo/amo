@@ -1,4 +1,5 @@
 import 'server-only'
+import { registrarFalha } from '@/lib/dados/erros'
 
 /**
  * O que a tela da conta pode ouvir. A mensagem crua do Supabase nunca passa:
@@ -18,7 +19,17 @@ export type CodigoDaConta =
 
 type ErroDoAuth = { code?: string; status?: number; reasons?: string[] } | null | undefined
 
-export function traduzirErroDoAuth(erro: ErroDoAuth): CodigoDaConta {
+/**
+ * O codigo da tela para um erro do Auth; o erro vai ao log do servidor
+ * (registrarFalha: o lugar, o codigo, o status e o nome). Uma chamada por
+ * erro recebido, ate quando a tela o responde como sucesso.
+ */
+export function traduzirErroDoAuth(erro: ErroDoAuth, onde: string): CodigoDaConta {
+  if (erro) registrarFalha(onde, erro)
+  return codigoDoAuth(erro)
+}
+
+function codigoDoAuth(erro: ErroDoAuth): CodigoDaConta {
   switch (erro?.code) {
     case 'invalid_credentials':
       return 'credenciais'
@@ -53,7 +64,7 @@ export const limiteDeEmailDoSupabase = (erro: ErroDoAuth): boolean => erro?.code
 /** Erro 4xx que nao e CAPTCHA nem limite por IP: nao diz nada sobre a conta existir. */
 export function erroQueNaoRevelaNada(erro: ErroDoAuth): boolean {
   if (limiteDeEmailDoSupabase(erro)) return true
-  const codigo = traduzirErroDoAuth(erro)
+  const codigo = codigoDoAuth(erro)
   const status = erro?.status ?? 0
   return status >= 400 && status < 500 && codigo !== 'captcha' && codigo !== 'muitas_tentativas'
 }
