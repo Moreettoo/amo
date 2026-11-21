@@ -50,6 +50,9 @@ export const UFS: readonly string[] = [
   'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
 ]
 
+/** Quantos enderecos a cliente guarda: o banco tambem para em 5 (gatilho limitar_enderecos). */
+export const MAXIMO_DE_ENDERECOS = 5
+
 export type CampoDoEndereco = 'apelido' | 'cep' | 'logradouro' | 'numero' | 'complemento' | 'bairro' | 'cidade' | 'uf'
 
 export type EnderecoNovo = {

@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { useEffect, useState } from 'react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { MAXIMO_DE_ENDERECOS } from '@/lib/conta/regras'
 
 /**
  * Os formularios de Minha conta no navegador: o que acontece depois de cada
@@ -162,13 +164,14 @@ describe('o endereco guardado', () => {
     expect(screen.getByRole('button', { name: 'Alterar Casa' })).toHaveFocus()
   })
 
+  // o primeiro "Remover Casa" e o de confirmar no lugar; o outro e o de sem JavaScript, que o CSS esconde com JavaScript
   it('remover pede confirmacao e leva o foco a ela; manter devolve o foco', async () => {
     const user = userEvent.setup()
     render(<ItemDeEndereco id="00000000-0000-4000-8000-000000000001" endereco={endereco} texto="Rua Cuiabá, 412" nome="Casa" />)
-    await user.click(screen.getByRole('button', { name: 'Remover Casa' }))
+    await user.click(screen.getAllByRole('button', { name: 'Remover Casa' })[0])
     expect(screen.getByRole('button', { name: 'Sim, remover' })).toHaveFocus()
     await user.click(screen.getByRole('button', { name: 'Manter' }))
-    expect(screen.getByRole('button', { name: 'Remover Casa' })).toHaveFocus()
+    expect(screen.getAllByRole('button', { name: 'Remover Casa' })[0]).toHaveFocus()
   })
 })
 
@@ -199,9 +202,64 @@ describe('o CEP que volta tarde', () => {
     resolver(achado)
     await waitFor(() => expect(screen.getByLabelText('Rua')).toHaveValue('Rua Cuiabá'))
   })
+
+  // dois CEPs seguidos: a busca do primeiro ainda nao voltou quando a do segundo sai
+  async function doisCeps() {
+    const soltar: Record<'antigo' | 'novo', (v: unknown) => void> = { antigo: () => {}, novo: () => {} }
+    m.consultarCep
+      .mockReturnValueOnce(new Promise((r) => (soltar.antigo = r)))
+      .mockReturnValueOnce(new Promise((r) => (soltar.novo = r)))
+    const user = userEvent.setup()
+    render(<NovoEndereco primeiro cheio={false} />)
+    const cep = screen.getByLabelText('CEP')
+    await user.type(cep, '03183-002')
+    await user.tab()
+    await user.clear(cep)
+    await user.type(cep, '20040-002')
+    await user.tab()
+    expect(m.consultarCep).toHaveBeenCalledTimes(2)
+    return soltar
+  }
+  const doRio = { logradouro: 'Avenida Rio Branco', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ' }
+
+  it('a busca antiga que volta por ultimo nao troca o endereco do CEP novo', async () => {
+    const soltar = await doisCeps()
+    await act(async () => soltar.novo(doRio))
+    expect(screen.getByLabelText('Cidade')).toHaveValue('Rio de Janeiro')
+    await act(async () => soltar.antigo(achado))
+    expect(screen.getByLabelText('Rua')).toHaveValue('Avenida Rio Branco')
+    expect(screen.getByLabelText('Bairro')).toHaveValue('Centro')
+    expect(screen.getByLabelText('Cidade')).toHaveValue('Rio de Janeiro')
+    expect(screen.getByLabelText('Estado')).toHaveValue('RJ')
+  })
+
+  it('a busca antiga que volta antes, sem achar, nao desliga o "buscando" da nova nem diz que nao achou', async () => {
+    const soltar = await doisCeps()
+    await act(async () => soltar.antigo(null))
+    expect(screen.getByLabelText('CEP (buscando o endereço)')).toBeInTheDocument()
+    expect(screen.queryByText(/Não achamos esse CEP/)).toBeNull()
+    await act(async () => soltar.novo(doRio))
+    expect(screen.getByLabelText('CEP')).toBeInTheDocument()
+    expect(screen.getByLabelText('Cidade')).toHaveValue('Rio de Janeiro')
+  })
 })
 
+/**
+ * A pagina de verdade volta junto com a resposta da acao (o refresh do Next):
+ * a resposta e os 5 enderecos chegam no mesmo commit. Aqui o cheio muda dentro
+ * da acao, para chegar junto com a resposta.
+ */
+function PaginaQueEnche({ aoMontar }: { aoMontar: (encher: () => void) => void }) {
+  const [cheio, setCheio] = useState(false)
+  useEffect(() => {
+    aoMontar(() => setCheio(true))
+  }, [aoMontar])
+  return <NovoEndereco primeiro={false} cheio={cheio} />
+}
+
 describe('o quinto endereco', () => {
+  const notaDeCheio = `Já são ${MAXIMO_DE_ENDERECOS} endereços: para guardar outro, remova um.`
+
   it('guardado o quinto, a regiao viva segue e a nota de 5 ocupa o lugar do botao', async () => {
     const user = userEvent.setup()
     const { rerender } = render(<NovoEndereco primeiro={false} cheio={false} />)
@@ -214,6 +272,35 @@ describe('o quinto endereco', () => {
     expect(screen.getByText('Já são 5 endereços: para guardar outro, remova um.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Adicionar endereço' })).toBeNull()
     expect(screen.queryByLabelText('Rua')).toBeNull()
+  })
+
+  // o botao que tinha o foco sai com o formulario, e nao ha "Adicionar endereco" para recebe-lo (revisao final de 2026-11-21)
+  it('com a pagina cheia chegando junto com a resposta, o aviso sai e o foco vai para a nota, e nao ao body', async () => {
+    let encher = () => {}
+    m.salvarEndereco.mockImplementationOnce(async () => {
+      encher()
+      return { ok: true, aviso: 'salvo' }
+    })
+    const user = userEvent.setup()
+    render(
+      <PaginaQueEnche
+        aoMontar={(f) => {
+          encher = f
+        }}
+      />,
+    )
+    await user.click(screen.getByRole('button', { name: 'Adicionar endereço' }))
+    await preencher(user)
+    await user.click(screen.getByRole('button', { name: 'Guardar o endereço' }))
+    const nota = await screen.findByText(notaDeCheio)
+    await waitFor(() => expect(nota).toHaveFocus())
+    expect(screen.getByText('Endereço guardado.')).toHaveAttribute('aria-live', 'polite')
+    expect(screen.queryByLabelText('Rua')).toBeNull()
+  })
+
+  it('a nota diz o limite das regras de entrada, o mesmo da pagina', () => {
+    render(<NovoEndereco primeiro={false} cheio />)
+    expect(screen.getByText(notaDeCheio)).toBeInTheDocument()
   })
 })
 
@@ -228,13 +315,31 @@ describe('as novidades que nao salvam', () => {
     await waitFor(() => expect(document.querySelector('.painel__resposta--erro')).toHaveTextContent(/\S/))
     await waitFor(() => expect(screen.getByRole('checkbox')).not.toBeChecked())
   })
+
+  // a escolha salva volta na pagina renovada pelo servidor (o refresh da acao); a que falha volta a ela
+  it('depois de uma escolha salva, a que falha volta a salva', async () => {
+    m.definirMarketing.mockClear()
+    m.definirMarketing.mockResolvedValueOnce({ ok: true, aviso: 'salvo' })
+    const user = userEvent.setup()
+    const { rerender } = render(<FormNovidades aceita={false} />)
+    await user.click(screen.getByRole('checkbox'))
+    await waitFor(() => expect(m.definirMarketing).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(screen.getByText('Salvo.')).toBeInTheDocument())
+    expect(screen.getByRole('checkbox')).toBeChecked()
+    rerender(<FormNovidades aceita />)
+    m.definirMarketing.mockResolvedValueOnce({ ok: false, erro: 'tente_de_novo' })
+    await user.click(screen.getByRole('checkbox'))
+    await waitFor(() => expect(document.querySelector('.painel__resposta--erro')).toHaveTextContent(/\S/))
+    await waitFor(() => expect(screen.getByRole('checkbox')).toBeChecked())
+  })
 })
 
 describe('sem JavaScript', () => {
-  it('remover tem o botao de confirmar (so-js) e o de enviar direto (painel__sem-js)', async () => {
+  it('remover tem o botao de confirmar (so-js) e o de enviar direto (painel__sem-js), os dois com o nome do endereco', async () => {
     render(<ItemDeEndereco id="00000000-0000-4000-8000-000000000001" endereco={endereco} texto="Rua Cuiabá, 412" nome="Casa" />)
-    expect(screen.getByRole('button', { name: 'Remover Casa' })).toHaveClass('so-js')
-    const direto = document.querySelector('button.painel__sem-js') as HTMLButtonElement
+    const [confirmar, direto] = screen.getAllByRole('button', { name: 'Remover Casa' }) as HTMLButtonElement[]
+    expect(confirmar).toHaveClass('so-js')
+    expect(direto).toHaveClass('painel__sem-js')
     expect(direto).toHaveTextContent('Remover')
     expect(direto.type).toBe('submit')
     const form = direto.closest('form') as HTMLFormElement

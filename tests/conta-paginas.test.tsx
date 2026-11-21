@@ -417,7 +417,8 @@ describe('/conta/perfil/enderecos', () => {
     expect(itens[0]).toHaveTextContent('Casa')
     expect(itens[0]).toHaveTextContent('Principal')
     expect(within(itens[1]).getByRole('button', { name: /tornar principal/i })).toBeInTheDocument()
-    expect(within(itens[1]).getByRole('button', { name: /^remover \w/i })).toBeInTheDocument()
+    // os dois "Remover" dizem qual endereco: o de confirmar no lugar e o de sem JavaScript
+    expect(within(itens[1]).getAllByRole('button', { name: /^remover \w/i })).toHaveLength(2)
     expect(within(principal()).getByRole('button', { name: 'Adicionar endereço' })).toBeInTheDocument()
   })
 

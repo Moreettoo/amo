@@ -272,6 +272,11 @@ describe('estilos', () => {
     expect(ultimo(regra(ler('conta.css'), '.painel__nota a'), 'text-decoration-line')).toBe('underline')
   })
 
+  // como o nome da etapa da sacola: o foco chega pelo script, e a nota nao e controle
+  it('a nota dos 5 enderecos recebe o foco sem o anel dos controles', () => {
+    expect(ultimo(regra(ler('conta.css'), '.novo-endereco > .painel__nota:focus-visible'), 'outline')).toBe('none')
+  })
+
   it('o campo de senha tem um "mostrar" so: o olho proprio do Edge fica escondido', () => {
     expect(ultimo(regra(ler('auth.css'), '.campo__senha input::-ms-reveal'), 'display')).toBe('none')
   })

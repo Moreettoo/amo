@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useRef, useState } from 'react'
+import { useActionState, useEffect, useEffectEvent, useLayoutEffect, useRef, useState } from 'react'
 import { Campo, CampoSenha, Enviar } from '@/components/conta/pecas'
 import { Turnstile } from '@/components/conta/Turnstile'
 import {
@@ -15,7 +15,7 @@ import {
   trocarSenha,
   type Resposta,
 } from '@/app/conta/acoes'
-import { UFS, type EnderecoNovo } from '@/lib/conta/regras'
+import { MAXIMO_DE_ENDERECOS, UFS, type EnderecoNovo } from '@/lib/conta/regras'
 import { AVISOS, MENSAGENS } from '@/lib/conta/mensagens'
 import { mascararCelular } from '@/lib/pedido'
 
@@ -66,18 +66,21 @@ export function FormPerfil({ nome, celular }: { nome: string; celular: string })
   )
 }
 
-/** Com JavaScript a caixa salva sozinha ao mudar; sem ele, o botao de texto envia. */
+/**
+ * Com JavaScript a caixa salva sozinha ao mudar; sem ele, o botao de texto envia.
+ * A acao vai direto ao useActionState, sem funcao em volta: so com a referencia
+ * da acao de servidor o servidor escreve o formulario que envia sem JavaScript.
+ */
 export function FormNovidades({ aceita }: { aceita: boolean }) {
   // a caixa segue o estado pelo defaultChecked: e a ele que o reinicio do formulario volta
   const [marcada, setMarcada] = useState(aceita)
-  // a escolha que o servidor confirmou: se a acao falha, a caixa volta a ela
-  const confirmada = useRef(aceita)
-  const [resposta, enviar] = useActionState<Resposta | null, FormData>(async (anterior, form) => {
-    const r = await definirMarketing(anterior, form)
-    if (r.ok) confirmada.current = form.get('novidades') !== null
-    else setMarcada(confirmada.current)
-    return r
-  }, null)
+  const [resposta, enviar] = useActionState<Resposta | null, FormData>(definirMarketing, null)
+  // a escolha que nao salvou volta a do banco: `aceita`, que a pagina traz de novo depois de cada escolha salva
+  const [respostaVista, setRespostaVista] = useState(resposta)
+  if (resposta !== respostaVista) {
+    setRespostaVista(resposta)
+    if (resposta && !resposta.ok) setMarcada(aceita)
+  }
   return (
     <form action={enviar} className="painel__form painel__form--linha">
       <div className="marcar">
@@ -128,6 +131,8 @@ type FormEnderecoProps = {
 /**
  * Um endereco, novo ou para alterar. O CEP completo preenche rua, bairro,
  * cidade e estado (ViaCEP, pelo servidor); o que a cliente ja escreveu fica.
+ * A acao vai direto ao useActionState, como nas novidades: sem JavaScript o
+ * formulario do endereco novo nasce aberto e envia.
  */
 export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = false, focar = false, aoDesistir, aoSalvar }: FormEnderecoProps) {
   const [campos, setCampos] = useState({ ...inicial, cep: cepComTraco(inicial.cep) })
@@ -137,16 +142,23 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
   const [cepNaoAchado, setCepNaoAchado] = useState(false)
   // o ultimo CEP buscado (ou o guardado): passar pelo campo sem mudar nao busca nem troca a rua corrigida a mao
   const cepBuscado = useRef(inicial.cep.replace(/\D/g, ''))
-  const [resposta, enviar, enviando] = useActionState<Resposta | null, FormData>(async (anterior, form) => {
-    const r = await salvarEndereco(anterior, form)
-    if (r.ok) {
-      // o endereco novo foi guardado: o formulario volta vazio, para nao guardar de novo
+  // cada busca leva um numero: a que volta depois de outra ter saido e de um CEP que ja nao esta no campo
+  const buscaDoCep = useRef(0)
+  const [resposta, enviar, enviando] = useActionState<Resposta | null, FormData>(salvarEndereco, null)
+  // cada resposta e vista uma vez: o endereco novo guardado volta vazio, para nao guardar de novo
+  const [respostaVista, setRespostaVista] = useState(resposta)
+  if (resposta !== respostaVista) {
+    setRespostaVista(resposta)
+    if (resposta?.ok) {
       if (!id) setCampos({ ...ENDERECO_VAZIO })
       setAvisoDoCep('')
-      aoSalvar?.()
     }
-    return r
-  }, null)
+  }
+  // e quem abriu o formulario o fecha
+  const depoisDeGuardar = useEffectEvent(() => aoSalvar?.())
+  useLayoutEffect(() => {
+    if (resposta?.ok) depoisDeGuardar()
+  }, [resposta])
   const mudar = (campo: keyof EnderecoNovo) => (e: { target: { value: string } }) => setCampos((c) => ({ ...c, [campo]: e.target.value }))
   const erro = (campo: string) => erroDoCampo(resposta, campo)
 
@@ -155,10 +167,13 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
     const digitos = valor.replace(/\D/g, '')
     if (digitos === cepBuscado.current) return
     cepBuscado.current = digitos
+    const busca = ++buscaDoCep.current
     // a rua e o bairro do comeco da busca: na volta, so troca o campo que ainda esta igual
     const { logradouro: ruaAntes, bairro: bairroAntes } = campos
     setBuscando(true)
     const achado = await consultarCep(valor)
+    // outra busca saiu depois desta: a resposta velha nao mexe em nada, nem no "buscando" da nova
+    if (busca !== buscaDoCep.current) return
     setBuscando(false)
     if (!achado) {
       cepBuscado.current = '' // nao achou (ou o limite estourou): passar de novo tenta de novo
@@ -235,13 +250,29 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
   )
 }
 
-/** Um botao de acao sobre um endereco, num formulario so dele. */
-function AcaoDoEndereco({ acao, id, rotulo, rotuloEnviando, focar = false, semJs = false }: { acao: Acao; id: string; rotulo: string; rotuloEnviando: string; focar?: boolean; semJs?: boolean }) {
+/** Um botao de acao sobre um endereco, num formulario so dele; o aria-label diz de qual endereco, quando o texto nao diz. */
+function AcaoDoEndereco({
+  acao,
+  id,
+  rotulo,
+  rotuloEnviando,
+  focar = false,
+  semJs = false,
+  'aria-label': nomeLido,
+}: {
+  acao: Acao
+  id: string
+  rotulo: string
+  rotuloEnviando: string
+  focar?: boolean
+  semJs?: boolean
+  'aria-label'?: string
+}) {
   const [resposta, enviar, enviando] = useActionState<Resposta | null, FormData>(acao, null)
   return (
     <form action={enviar} className={semJs ? 'painel__acao painel__sem-js' : 'painel__acao'}>
       <input type="hidden" name="id" value={id} />
-      <button type="submit" className={semJs ? 'conta__texto-botao painel__sem-js' : 'conta__texto-botao'} disabled={enviando} autoFocus={focar}>
+      <button type="submit" className={semJs ? 'conta__texto-botao painel__sem-js' : 'conta__texto-botao'} disabled={enviando} autoFocus={focar} aria-label={nomeLido}>
         {enviando ? rotuloEnviando : rotulo}
       </button>
       <RespostaDaAcao resposta={resposta} />
@@ -294,7 +325,7 @@ export function ItemDeEndereco({ id, endereco, texto, nome }: ItemProps) {
               Remover
             </button>
             {/* sem JavaScript nao ha confirmacao no lugar: o botao envia direto */}
-            <AcaoDoEndereco acao={removerEndereco} id={id} rotulo="Remover" rotuloEnviando="Removendo" semJs />
+            <AcaoDoEndereco acao={removerEndereco} id={id} rotulo="Remover" rotuloEnviando="Removendo" semJs aria-label={`Remover ${nome}`} />
           </>
         )}
       </div>
@@ -309,11 +340,19 @@ export function NovoEndereco({ primeiro, cheio }: { primeiro: boolean; cheio: bo
   const [voltar, setVoltar] = useState(false)
   // cada abertura monta um formulario novo: sem a resposta da vez anterior, e o autoFocus age
   const [vez, setVez] = useState(0)
+  const nota = useRef<HTMLParagraphElement>(null)
   const fechar = (texto: string) => {
     setAberto(false)
     setAviso(texto)
     setVoltar(true)
   }
+  // aberto, o formulario fica mesmo com 5: a resposta do quinto chega junto com a pagina cheia, e e ele quem fecha
+  const comFormulario = aberto || !cheio
+  // fechado com 5, o botao que tinha o foco saiu e nao ha "Adicionar endereco": o foco vai para a nota
+  const focarNota = !comFormulario && voltar
+  useLayoutEffect(() => {
+    if (focarNota) nota.current?.focus()
+  }, [focarNota])
   return (
     <div className={aberto ? 'novo-endereco novo-endereco--aberto' : 'novo-endereco'}>
       {aberto || cheio ? null : (
@@ -333,9 +372,7 @@ export function NovoEndereco({ primeiro, cheio }: { primeiro: boolean; cheio: bo
       <p className="painel__resposta" aria-live="polite">
         {aviso}
       </p>
-      {cheio ? (
-        <p className="painel__nota">Já são 5 endereços: para guardar outro, remova um.</p>
-      ) : (
+      {comFormulario ? (
         <div className="novo-endereco__form">
           <FormEndereco
             key={vez}
@@ -345,6 +382,10 @@ export function NovoEndereco({ primeiro, cheio }: { primeiro: boolean; cheio: bo
             aoSalvar={() => fechar('Endereço guardado.')}
           />
         </div>
+      ) : (
+        <p ref={nota} className="painel__nota" tabIndex={focarNota ? -1 : undefined}>
+          {`Já são ${MAXIMO_DE_ENDERECOS} endereços: para guardar outro, remova um.`}
+        </p>
       )}
     </div>
   )

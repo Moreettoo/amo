@@ -224,6 +224,8 @@
   .painel__acao .painel__resposta { min-height: 0; font-size: 13px; }
   .novo-endereco { max-width: 560px; }
   .novo-endereco > .painel__resposta { margin-top: 10px; }
+  /* a nota dos 5 so recebe o foco pelo script, depois de guardar o quinto; nao e controle, entao nao ganha anel */
+  .novo-endereco > .painel__nota:focus-visible { outline: none; }
   .painel__endereco .painel__nota:empty { display: none; }
   html.js .novo-endereco:not(.novo-endereco--aberto) .novo-endereco__form { display: none; }
   .painel__endereco .campos { display: flex; flex-wrap: wrap; gap: 14px 10px; }
