@@ -3,7 +3,7 @@ import { ErroDeRegra, registrarFalha } from '@/lib/dados/erros'
 import { concluirEventoWebhook, registrarEventoWebhook } from '@/lib/dados/pagamentos'
 import { conferirAssinatura } from '@/lib/mercadopago/assinatura'
 import { lerPedidoMp } from '@/lib/mercadopago/cliente'
-import { aplicarRespostaDoMp } from '@/lib/mercadopago/sincronizar'
+import { aplicarRespostaDoMp, guardarIdsDoMp } from '@/lib/mercadopago/sincronizar'
 
 const TIPOS = new Set(['order', 'topic_chargebacks_wh'])
 const DATA_ID = /^[A-Za-z0-9_-]{1,64}$/
@@ -77,6 +77,13 @@ export async function POST(request: Request): Promise<Response> {
     if (!pedido.referencia) {
       await concluir(null)
       return vazio(200)
+    }
+    // Os ids do pedido la primeiro: o pagamento criado durante um timeout fica achavel
+    // mesmo que aplicar recuse (ex.: valor ilegivel). A falha daqui so vai ao log.
+    try {
+      await guardarIdsDoMp(pedido.referencia, pedido)
+    } catch (erro) {
+      registrarFalha('mercadopago.aviso', { code: erro instanceof ErroDeRegra ? erro.codigo : 'guardar_ids_falhou' })
     }
     const aplicado = await aplicarRespostaDoMp(pedido.referencia, pedido)
     // Recusa e deterministica (traducao ou referencia): tentar de novo recusaria de novo.

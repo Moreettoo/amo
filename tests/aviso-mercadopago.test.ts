@@ -7,6 +7,7 @@ const m = vi.hoisted(() => ({
   registrarEventoWebhook: vi.fn(),
   concluirEventoWebhook: vi.fn(),
   aplicarRespostaDoMp: vi.fn(),
+  guardarIdsDoMp: vi.fn(),
   variavel: vi.fn(),
   registrarFalha: vi.fn(),
 }))
@@ -17,7 +18,7 @@ vi.mock('@/lib/dados/pagamentos', () => ({
   registrarEventoWebhook: m.registrarEventoWebhook,
   concluirEventoWebhook: m.concluirEventoWebhook,
 }))
-vi.mock('@/lib/mercadopago/sincronizar', () => ({ aplicarRespostaDoMp: m.aplicarRespostaDoMp }))
+vi.mock('@/lib/mercadopago/sincronizar', () => ({ aplicarRespostaDoMp: m.aplicarRespostaDoMp, guardarIdsDoMp: m.guardarIdsDoMp }))
 vi.mock('@/lib/dados/ambiente', () => ({ variavel: m.variavel }))
 vi.mock('@/lib/dados/erros', async (original) => ({
   ...(await original<typeof import('@/lib/dados/erros')>()),
@@ -45,6 +46,7 @@ beforeEach(() => {
   m.registrarEventoWebhook.mockResolvedValue({ evento: 7, situacao: 'novo' })
   m.lerPedidoMp.mockResolvedValue({ ok: true, pedido })
   m.aplicarRespostaDoMp.mockResolvedValue({ tentativa: 'x', pedido: 'y' })
+  m.guardarIdsDoMp.mockResolvedValue(undefined)
   m.concluirEventoWebhook.mockResolvedValue(undefined)
 })
 
@@ -160,6 +162,23 @@ describe('aviso do Mercado Pago', () => {
     m.lerPedidoMp.mockResolvedValue({ ok: true, pedido: { id: 'ORD1', referencia: null } })
     expect((await aviso()).status).toBe(200)
     expect(m.aplicarRespostaDoMp).not.toHaveBeenCalled()
+    expect(m.guardarIdsDoMp).not.toHaveBeenCalled()
+    expect(m.concluirEventoWebhook).toHaveBeenCalledWith(7, null)
+  })
+
+  it('guarda os ids do Mercado Pago pela referencia antes de aplicar, e eles ficam mesmo quando aplicar recusa', async () => {
+    m.aplicarRespostaDoMp.mockResolvedValue(null)
+    expect((await aviso()).status).toBe(200)
+    expect(m.guardarIdsDoMp).toHaveBeenCalledWith('tent-1', pedido)
+    expect(m.guardarIdsDoMp.mock.invocationCallOrder[0]).toBeLessThan(m.aplicarRespostaDoMp.mock.invocationCallOrder[0])
+    expect(m.concluirEventoWebhook).toHaveBeenCalledWith(7, 'aplicar_recusou')
+  })
+
+  it('guardar os ids falhando: so vai ao log, e o aviso aplica e conclui como antes', async () => {
+    m.guardarIdsDoMp.mockRejectedValue(new Error('segredo do banco'))
+    expect((await aviso()).status).toBe(200)
+    expect(m.registrarFalha).toHaveBeenCalledWith('mercadopago.aviso', { code: 'guardar_ids_falhou' })
+    expect(m.aplicarRespostaDoMp).toHaveBeenCalledWith('tent-1', pedido)
     expect(m.concluirEventoWebhook).toHaveBeenCalledWith(7, null)
   })
 
