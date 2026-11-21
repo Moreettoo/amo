@@ -26,6 +26,7 @@ export type ResultadoMp = { ok: true; pedido: PedidoMp } | { ok: false; status: 
 
 /** Centavos inteiros em texto com duas casas (9280 vira '92.80'). */
 export function valorEmReais(centavos: number): string {
+  if (!Number.isSafeInteger(centavos) || centavos < 0) throw new RangeError('centavos invalidos')
   return (centavos / 100).toFixed(2)
 }
 
@@ -36,6 +37,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const VALOR = /^\d+(\.\d{1,2})?$/
 const BASE64 = /^[A-Za-z0-9+/=]{1,40000}$/
 const BANDEIRA = /^[a-z_]{2,20}$/
+const DATA = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/
 const CODIGO = /^[a-z0-9_]{1,60}$/
 
 type Obj = Record<string, unknown>
@@ -61,7 +63,7 @@ function copiaECola(v: unknown): string | null {
 }
 
 function dataIso(v: unknown): string | null {
-  if (typeof v !== 'string' || v.length > 40) return null
+  if (typeof v !== 'string' || !DATA.test(v)) return null
   const d = new Date(v)
   return Number.isNaN(d.getTime()) ? null : d.toISOString()
 }
@@ -72,7 +74,7 @@ function urlDoDesafio(v: unknown): string | null {
     const u = new URL(v)
     const h = u.hostname.toLowerCase()
     const host = h === 'mercadopago.com.br' || h === 'mercadopago.com' || h.endsWith('.mercadopago.com.br') || h.endsWith('.mercadopago.com')
-    return u.protocol === 'https:' && host ? u.toString() : null
+    return u.protocol === 'https:' && host && !u.username && !u.password && !u.port ? u.toString() : null
   } catch {
     return null
   }
@@ -122,6 +124,9 @@ function codigoDoErro(corpo: unknown): string | null {
   return texto(primeiro?.code, CODIGO) ?? texto(o.code, CODIGO)
 }
 
+const FALHA_LOCAL: Promise<ResultadoMp> = Promise.resolve({ ok: false, status: 0, codigo: null })
+const totalValido = (c: number) => Number.isSafeInteger(c) && c >= 0
+
 async function chamar(
   operacao: string,
   metodo: 'GET' | 'POST',
@@ -133,7 +138,7 @@ async function chamar(
   try {
     const cabecalhos: Record<string, string> = { Authorization: `Bearer ${variavel('MERCADOPAGO_ACCESS_TOKEN')}` }
     if (chave) cabecalhos['X-Idempotency-Key'] = chave
-    if (corpo !== undefined) cabecalhos['Content-Type'] = 'application/json'
+    if (metodo === 'POST') cabecalhos['Content-Type'] = 'application/json'
 
     const limite = new Promise<never>((_, rejeitar) => {
       temporizador = setTimeout(() => rejeitar(new Error('prazo')), PRAZO_MS)
@@ -174,6 +179,7 @@ async function chamar(
 }
 
 export function criarPedidoPix(p: { tentativa: string; totalCentavos: number; email: string }): Promise<ResultadoMp> {
+  if (!totalValido(p.totalCentavos)) return FALHA_LOCAL
   const valor = valorEmReais(p.totalCentavos)
   return chamar('criar_pix', 'POST', '', p.tentativa, {
     type: 'online',
@@ -194,6 +200,7 @@ export function criarPedidoCartao(p: {
   cartao: { token: string; bandeira: string; tipo: 'credit_card' | 'debit_card'; parcelas: number }
   documento: { tipo: 'CPF'; numero: string } | null
 }): Promise<ResultadoMp> {
+  if (!totalValido(p.totalCentavos)) return FALHA_LOCAL
   const valor = valorEmReais(p.totalCentavos)
   const payer: Obj = { email: p.email }
   if (p.documento) payer.identification = { type: p.documento.tipo, number: p.documento.numero }
@@ -216,13 +223,16 @@ export function criarPedidoCartao(p: {
 }
 
 export function lerPedidoMp(id: string): Promise<ResultadoMp> {
-  return chamar('ler', 'GET', `/${encodeURIComponent(id)}`, null, undefined)
+  if (!ID.test(id)) return FALHA_LOCAL
+  return chamar('ler', 'GET', `/${id}`, null, undefined)
 }
 
 export function cancelarPedidoMp(id: string, tentativa: string): Promise<ResultadoMp> {
-  return chamar('cancelar', 'POST', `/${encodeURIComponent(id)}/cancel`, `${tentativa}-cancelar`, undefined)
+  if (!ID.test(id)) return FALHA_LOCAL
+  return chamar('cancelar', 'POST', `/${id}/cancel`, `${tentativa}-cancelar`, undefined)
 }
 
 export function estornarPedidoMp(id: string, tentativa: string): Promise<ResultadoMp> {
-  return chamar('estornar', 'POST', `/${encodeURIComponent(id)}/refund`, `${tentativa}-estornar`, undefined)
+  if (!ID.test(id)) return FALHA_LOCAL
+  return chamar('estornar', 'POST', `/${id}/refund`, `${tentativa}-estornar`, undefined)
 }

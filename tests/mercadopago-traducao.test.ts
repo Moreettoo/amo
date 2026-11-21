@@ -52,6 +52,18 @@ describe('traduzir', () => {
     expect(traduzir(p)).toEqual({ status: 'pendente', detalhe: 'waiting_transfer', recusa: null })
   })
 
+  it('sem status_detail, o detalhe e o status e a recusa e null', () => {
+    expect(traduzir(pedido('failed', ''))).toEqual({ status: 'recusado', detalhe: 'failed', recusa: null })
+    expect(traduzir(pedido('charged_back', ''))).toEqual({ status: 'contestado', detalhe: 'charged_back', recusa: null })
+    expect(traduzir(pedido('created', ''))).toEqual({ status: 'pendente', detalhe: 'created', recusa: null })
+  })
+
+  it('recusa com mais de 60 caracteres vira null', () => {
+    const longo = 'a'.repeat(61)
+    expect(traduzir(pedido('failed', longo))).toEqual({ status: 'recusado', detalhe: longo, recusa: null })
+    expect(traduzir(pedido('failed', 'a'.repeat(60)))?.recusa).toBe('a'.repeat(60))
+  })
+
   it('fora da tabela, devolve null', () => {
     expect(traduzir({ ...pedido('', '', false), status: 'novo_estado', detalhe: 'x' })).toBeNull()
     expect(traduzir(pedido('processed', 'outro'))).toBeNull()

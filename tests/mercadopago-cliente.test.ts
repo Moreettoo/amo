@@ -74,6 +74,9 @@ describe('valorEmReais', () => {
     expect(valorEmReais(9280)).toBe('92.80')
     expect(valorEmReais(5)).toBe('0.05')
   })
+  it('recusa o que nao e inteiro seguro nao negativo', () => {
+    for (const v of [NaN, -1, 1.5, Infinity, 2 ** 60]) expect(() => valorEmReais(v)).toThrow()
+  })
 })
 
 describe('criarPedidoPix', () => {
@@ -136,14 +139,21 @@ describe('criarPedidoCartao', () => {
   it('manda o corpo do contrato, sem identification quando não há documento', async () => {
     fetchFalso.mockResolvedValue(resposta(201, pedidoCartao('processed', 'accredited')))
     const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co', cartao: CARTAO, documento: null })
-    const corpo = JSON.parse(fetchFalso.mock.calls[0][1].body)
-    expect(corpo.payer).toEqual({ email: 'a@b.co' })
-    expect(corpo.total_amount).toBe('92.80')
-    expect(corpo.transactions.payments[0]).toEqual({
-      amount: '92.80',
-      payment_method: { id: 'master', type: 'credit_card', token: CARTAO.token, installments: 1 },
+    const init = fetchFalso.mock.calls[0][1]
+    expect(fetchFalso.mock.calls[0][0]).toBe('https://api.mercadopago.com/v1/orders')
+    expect(init.method).toBe('POST')
+    expect(init.headers).toEqual({ Authorization: `Bearer ${TOKEN}`, 'X-Idempotency-Key': TENTATIVA, 'Content-Type': 'application/json' })
+    expect(JSON.parse(init.body)).toEqual({
+      type: 'online',
+      processing_mode: 'automatic',
+      total_amount: '92.80',
+      external_reference: TENTATIVA,
+      payer: { email: 'a@b.co' },
+      transactions: {
+        payments: [{ amount: '92.80', payment_method: { id: 'master', type: 'credit_card', token: CARTAO.token, installments: 1 } }],
+      },
+      config: { online: { transaction_security: { validation: 'on_fraud_risk', liability_shift: 'required' } } },
     })
-    expect(corpo.config).toEqual({ online: { transaction_security: { validation: 'on_fraud_risk', liability_shift: 'required' } } })
     expect(r.ok && r.pedido.pagamento).toMatchObject({ bandeira: 'master', parcelas: 3 })
   })
 
@@ -162,7 +172,7 @@ describe('criarPedidoCartao', () => {
     const boa = await chamar()
     expect(boa.ok && boa.pedido.pagamento?.desafioUrl).toBe('https://www.mercadopago.com.br/3ds/x')
 
-    for (const ruim of ['http://www.mercadopago.com.br/3ds', 'https://evil.com/3ds', 'https://mercadopago.com.br.evil.com/x', 'nao e url']) {
+    for (const ruim of ['http://www.mercadopago.com.br/3ds', 'https://evil.com/3ds', 'https://mercadopago.com.br.evil.com/x', 'https://user:senha@www.mercadopago.com.br/x', 'https://www.mercadopago.com.br:8443/x', 'nao e url']) {
       fetchFalso.mockResolvedValueOnce(com(ruim))
       const r = await chamar()
       expect(r.ok && r.pedido.pagamento?.desafioUrl).toBeNull()
@@ -197,7 +207,7 @@ describe('ler, cancelar e estornar', () => {
     expect(await lerPedidoMp('ORD1')).toEqual({ ok: false, status: 400, codigo: null })
   })
 
-  it('cancelar e estornar fazem POST sem corpo, com a chave própria', async () => {
+  it('cancelar e estornar fazem POST sem corpo, com o cabecalho completo', async () => {
     fetchFalso.mockResolvedValue(resposta(200, pedidoPix()))
     await cancelarPedidoMp('ORD1', TENTATIVA)
     await estornarPedidoMp('ORD1', TENTATIVA)
@@ -205,10 +215,29 @@ describe('ler, cancelar e estornar', () => {
     const [u2, i2] = fetchFalso.mock.calls[1]
     expect(u1).toBe('https://api.mercadopago.com/v1/orders/ORD1/cancel')
     expect(u2).toBe('https://api.mercadopago.com/v1/orders/ORD1/refund')
-    expect(i1.method).toBe('POST')
-    expect(i1.body).toBeUndefined()
-    expect(i1.headers['X-Idempotency-Key']).toBe(`${TENTATIVA}-cancelar`)
-    expect(i2.headers['X-Idempotency-Key']).toBe(`${TENTATIVA}-estornar`)
+    for (const i of [i1, i2]) {
+      expect(i.method).toBe('POST')
+      expect(i.body).toBeUndefined()
+    }
+    expect(i1.headers).toEqual({ Authorization: `Bearer ${TOKEN}`, 'X-Idempotency-Key': `${TENTATIVA}-cancelar`, 'Content-Type': 'application/json' })
+    expect(i2.headers).toEqual({ Authorization: `Bearer ${TOKEN}`, 'X-Idempotency-Key': `${TENTATIVA}-estornar`, 'Content-Type': 'application/json' })
+  })
+
+  it('id fora do formato nao chama o fetch', async () => {
+    for (const id of ['', 'ORD 1', 'ORD/../x', 'a'.repeat(65), 'ORD\ud800']) {
+      expect(await lerPedidoMp(id)).toEqual({ ok: false, status: 0, codigo: null })
+      expect(await cancelarPedidoMp(id, TENTATIVA)).toEqual({ ok: false, status: 0, codigo: null })
+      expect(await estornarPedidoMp(id, TENTATIVA)).toEqual({ ok: false, status: 0, codigo: null })
+    }
+    expect(fetchFalso).not.toHaveBeenCalled()
+  })
+
+  it('total invalido nao chama o fetch', async () => {
+    for (const total of [NaN, -1, 1.5, Infinity]) {
+      expect(await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: total, email: 'a@b.co' })).toEqual({ ok: false, status: 0, codigo: null })
+      expect(await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: total, email: 'a@b.co', cartao: CARTAO, documento: null })).toEqual({ ok: false, status: 0, codigo: null })
+    }
+    expect(fetchFalso).not.toHaveBeenCalled()
   })
 })
 
@@ -245,6 +274,32 @@ describe('resposta hostil', () => {
     expect(r.ok && r.pedido.referencia).toBeNull()
     expect(r.ok && r.pedido.valorCentavos).toBeNull()
     expect(r.ok && r.pedido.pagamento).toMatchObject({ id: null, bandeira: null, parcelas: null, pix: null })
+  })
+
+  it.each([
+    ['qr_code com <', { qr_code: 'abc<def' }],
+    ['qr_code com controle', { qr_code: 'abc\u0007def' }],
+    ['qr_code com mais de 1000', { qr_code: 'a'.repeat(1001) }],
+    ['qr_code vazio', { qr_code: '' }],
+    ['base64 com mais de 40000', { qr_code_base64: 'A'.repeat(40001) }],
+    ['base64 com caractere invalido', { qr_code_base64: 'AB*CD' }],
+  ])('%s deixa o pix nulo, com o outro campo valido', async (_nome, ruim) => {
+    const corpo = pedidoPix({ payment_method: { id: 'pix', qr_code: QR, qr_code_base64: 'iVBORw0KGgo=', ...ruim } })
+    fetchFalso.mockResolvedValue(resposta(200, corpo))
+    const r = await lerPedidoMp('ORD1')
+    expect(r.ok && r.pedido.pagamento?.pix).toBeNull()
+  })
+
+  it.each(['0', 'Nov 21 2026', '2026-11-21', '2026-11-21T10:00:00', '2026-13-45T10:00:00Z'])('data %s vira null', async (data) => {
+    fetchFalso.mockResolvedValue(resposta(200, pedidoPix({ date_of_expiration: data })))
+    const r = await lerPedidoMp('ORD1')
+    expect(r.ok && r.pedido.pagamento?.pix?.expiraEm).toBeNull()
+  })
+
+  it('data ISO com deslocamento vale', async () => {
+    fetchFalso.mockResolvedValue(resposta(200, pedidoPix({ date_of_expiration: '2025-11-27T11:56:55.983+00:00' })))
+    const r = await lerPedidoMp('ORD1')
+    expect(r.ok && r.pedido.pagamento?.pix?.expiraEm).toBe('2025-11-27T11:56:55.983Z')
   })
 
   it('pedido sem id ou sem status válidos não é aceito', async () => {

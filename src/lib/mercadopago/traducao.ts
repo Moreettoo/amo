@@ -6,6 +6,7 @@ export type EstadoDaTentativa = 'pendente' | 'aprovado' | 'recusado' | 'cancelad
 
 type Traducao = { status: EstadoDaTentativa; detalhe: string; recusa: string | null }
 
+const RECUSA = /^[a-z0-9_]{1,60}$/
 const ESPERA_ACAO = new Set(['waiting_transfer', 'waiting_payment', 'pending_challenge', 'waiting_capture', 'waiting_retry'])
 const ESPERA_PROCESSO = new Set(['in_process', 'pending_review_manual', 'in_review'])
 
@@ -16,7 +17,9 @@ const ESPERA_PROCESSO = new Set(['in_process', 'pending_review_manual', 'in_revi
  */
 export function traduzir(p: PedidoMp): Traducao | null {
   const status = p.pagamento ? p.pagamento.status : p.status
-  const detalhe = p.pagamento ? p.pagamento.detalhe : p.detalhe
+  // detalhe nunca vazio: sem ele, o proprio status do Mercado Pago
+  const bruto = p.pagamento ? p.pagamento.detalhe : p.detalhe
+  const detalhe = bruto || status
   const ok = (s: EstadoDaTentativa, recusa: string | null = null): Traducao => ({ status: s, detalhe, recusa })
 
   switch (status) {
@@ -32,7 +35,7 @@ export function traduzir(p: PedidoMp): Traducao | null {
     case 'processing':
       return ESPERA_PROCESSO.has(detalhe) ? ok('pendente') : null
     case 'failed':
-      return detalhe === 'expired' ? ok('expirado') : ok('recusado', detalhe)
+      return detalhe === 'expired' ? ok('expirado') : ok('recusado', RECUSA.test(bruto) ? bruto : null)
     case 'canceled':
       if (detalhe === 'canceled' || detalhe === 'canceled_transaction') return ok('cancelado')
       if (detalhe === 'expired') return ok('expirado')
