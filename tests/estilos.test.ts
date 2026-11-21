@@ -25,6 +25,19 @@ function regra(css: string, seletor: string): string {
 const ultimo = (corpo: string, propriedade: string) =>
   [...corpo.matchAll(new RegExp(`(?<![-\\w])${propriedade}:\\s*([^;]+);`, 'g'))].at(-1)?.[1].trim()
 
+/** O miolo do bloco `@media <condicao>`, com as regras de dentro. */
+function dentroDe(css: string, condicao: string): string {
+  const inicio = css.indexOf(`@media ${condicao} {`)
+  if (inicio < 0) throw new Error(`@media ${condicao} não encontrado`)
+  const abre = css.indexOf('{', inicio)
+  let nivel = 0
+  for (let i = abre; i < css.length; i++) {
+    if (css[i] === '{') nivel++
+    else if (css[i] === '}' && --nivel === 0) return css.slice(abre + 1, i)
+  }
+  throw new Error(`@media ${condicao} sem fim`)
+}
+
 describe('estilos', () => {
   it('o modo de aproveitar é numerado: o preflight do Tailwind zera o list-style do ol', () => {
     expect(ultimo(regra(ler('rotulos.css'), '.papel-rotulo__modo ol'), 'list-style')).toBe('decimal')
@@ -197,6 +210,37 @@ describe('estilos', () => {
   })
 
   // Achados da revisao final do catalogo.
+
+  // Achados da revisao final da autenticacao (2026-11-20).
+
+  it('"Reenviar código" fica a 22 px do Confirmar (o meio da linha a uns 32 px), não mais a 77', () => {
+    const auth = ler('auth.css')
+    expect(ultimo(regra(auth, '.porta__codigo'), 'gap')).toBe('4px')
+    expect(ultimo(regra(auth, '.porta__reenviar'), 'margin-top')).toBe('18px')
+  })
+
+  it('no celular os passos da recuperação recuam 30 px, como as etapas da sacola, com o coração no fio', () => {
+    const celular = dentroDe(ler('auth.css'), '(max-width: 820px)')
+    expect(ultimo(regra(celular, '.passos'), 'padding-left')).toBe('30px')
+    expect(ultimo(regra(celular, '.passo--atual::before'), 'left')).toBe('-30px')
+    expect(ultimo(regra(dentroDe(ler('sacola.css'), '(max-width: 820px)'), '.etapas'), 'padding-left')).toBe('30px')
+  })
+
+  it('a caixa de marcar tem o contorno fino dos campos, foco visível e o marcado em expresso', () => {
+    const auth = ler('auth.css')
+    const caixa = regra(auth, '.marcar input')
+    expect(ultimo(caixa, 'appearance')).toBe('none')
+    expect(ultimo(caixa, 'border')).toBe('1px solid rgb(43 27 22 / .38)')
+    expect(ultimo(caixa, 'border-radius')).toBe('2px')
+    expect(ultimo(regra(auth, '.marcar input:checked'), 'background-color')).toBe('var(--color-expresso)')
+    expect(ultimo(regra(auth, '.marcar input:focus-visible'), 'border-color')).toBe('var(--color-expresso)')
+    expect(ultimo(regra(auth, '.marcar input[aria-invalid="true"]'), 'border-color')).toBe('var(--color-cobre-texto)')
+    // o visto e um desenho na cor da casa (mascara), sem cor escrita no svg
+    expect(ultimo(regra(auth, '.marcar__visto'), 'background-color')).toBe('var(--color-creme)')
+    expect(ultimo(regra(auth, '.marcar input:checked + .marcar__visto'), 'opacity')).toBe('1')
+    // em alto contraste do sistema volta a caixa nativa
+    expect(ultimo(regra(dentroDe(auth, '(forced-colors: active)'), '.marcar input[type="checkbox"]'), 'appearance')).toBe('auto')
+  })
 
   it('bolo inteiro: a moldura contém a margem do círculo', () => {
     // sem conter a margem (margin collapse), a moldura media so o circulo e

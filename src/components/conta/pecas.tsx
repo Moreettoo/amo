@@ -83,6 +83,7 @@ export function Marcar({ nome, children, erro }: { nome: string; children: React
         aria-invalid={erro ? true : undefined}
         aria-describedby={erro ? `${id}-erro` : undefined}
       />
+      <span className="marcar__visto" aria-hidden="true" />
       <label htmlFor={id}>{children}</label>
       {erro ? (
         <span id={`${id}-erro`} className="campo__erro">

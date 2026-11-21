@@ -174,11 +174,6 @@ function FormCodigo({ email, volta, verificacao, enviarAoAbrir, aoTrocarEmail }:
       </form>
       <form ref={formDoReenvio} action={reenviar} className="porta__reenviar" noValidate>
         <input type="hidden" name="email" value={email} />
-        <Turnstile {...verificacao} reiniciar={reenvio} />
-        <ErroGeral resposta={reenvio} />
-        <p className="conta__nota" aria-live="polite">
-          {reenvio?.ok && reenvio.aviso === 'codigo_reenviado' && enviados > 1 ? 'Enviamos outro código.' : ''}
-        </p>
         <div className="conta__acoes">
           <button type="submit" className="conta__texto-botao" disabled={reenviando}>
             {jaEnviou ? (reenviando ? 'Reenviando' : 'Reenviar código') : reenviando ? 'Enviando' : 'Enviar código'}
@@ -187,6 +182,11 @@ function FormCodigo({ email, volta, verificacao, enviarAoAbrir, aoTrocarEmail }:
             Usar outro e-mail
           </button>
         </div>
+        <Turnstile {...verificacao} reiniciar={reenvio} />
+        <ErroGeral resposta={reenvio} />
+        <p className="conta__nota" aria-live="polite">
+          {reenvio?.ok && reenvio.aviso === 'codigo_reenviado' && enviados > 1 ? 'Enviamos outro código.' : ''}
+        </p>
       </form>
     </div>
   )

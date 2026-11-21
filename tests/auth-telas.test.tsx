@@ -228,6 +228,18 @@ describe('entrar com o e-mail ainda nao confirmado', () => {
     expect(acoes.reenviarCodigo).toHaveBeenCalledTimes(2)
   })
 
+  it('os botoes de texto vem logo depois do Confirmar; o erro e o aviso do reenvio ficam embaixo deles', async () => {
+    respostas.reenviarCodigo = ENVIADO
+    await entrarSemConfirmar()
+    const reenviar = (await screen.findByRole('button', { name: 'Reenviar código' })).closest('form')!
+    const visiveis = [...reenviar.children].filter((el) => !(el instanceof HTMLInputElement && el.type === 'hidden'))
+    expect(visiveis[0]).toHaveClass('conta__acoes')
+    const acoes = reenviar.querySelector('.conta__acoes')!
+    for (const linha of reenviar.querySelectorAll('.conta__erro, .conta__nota')) {
+      expect(acoes.compareDocumentPosition(linha) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    }
+  })
+
   it('depois de criar a conta o codigo ja saiu: a tela nao pede outro sozinha', async () => {
     respostas.cadastrar = { ok: true, passo: 'codigo', email: 'maria@exemplo.com' }
     const u = userEvent.setup()
