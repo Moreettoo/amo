@@ -336,12 +336,18 @@ export function FormEmail({ email }: { email: string }) {
       <p className="painel__valor">
         Agora: <b>{email}</b>
       </p>
-      <Campo rotulo="E-mail novo" name="email" type="email" autoComplete="email" erro={erroDoCampo(resposta, 'email')} />
+      <Campo
+        rotulo="E-mail novo"
+        name="email"
+        type="email"
+        autoComplete="email"
+        dica="A troca vale depois que você confirmar nos dois e-mails, o atual e o novo."
+        erro={erroDoCampo(resposta, 'email')}
+      />
       <div className="painel__fim painel__fim--largo">
         <Enviar enviando={enviando} rotulo="Trocar o e-mail" rotuloEnviando="Enviando" />
         <RespostaDaAcao resposta={resposta} />
       </div>
-      <p className="painel__nota">A troca vale depois que você confirmar nos dois e-mails, o atual e o novo.</p>
     </form>
   )
 }
@@ -369,12 +375,15 @@ export function FormSenha({ chave, nonce }: { chave: string; nonce: string }) {
         onChange={(e) => setNova(e.target.value)}
         erro={erroDoCampo(resposta, 'nova')}
       />
+      {/* como nas portas: a resposta em cima do botao; a nota e "Esqueci a senha" logo embaixo */}
       <div className="painel__fim painel__fim--largo">
         <Turnstile chave={chave} nonce={nonce} reiniciar={resposta} />
-        <Enviar enviando={enviando} rotulo="Trocar a senha" rotuloEnviando="Trocando a senha" />
         <RespostaDaAcao resposta={resposta} />
+        <Enviar enviando={enviando} rotulo="Trocar a senha" rotuloEnviando="Trocando a senha" />
+        <p className="painel__nota">
+          Trocar a senha encerra a conta nos outros aparelhos. <a href="/esqueci-a-senha">Esqueci a senha</a>
+        </p>
       </div>
-      <p className="painel__nota">Trocar a senha encerra a conta nos outros aparelhos.</p>
     </form>
   )
 }

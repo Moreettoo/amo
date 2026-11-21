@@ -70,6 +70,12 @@
   .painel__lead { max-width: 52ch; margin: 16px 0 0; font-size: 16px; line-height: 1.65; color: var(--color-suave); text-wrap: pretty; }
   .painel__mais { margin: 22px 0 0; }
   .painel__nota { margin: 0; font-size: 13px; line-height: 1.6; color: var(--color-suave); }
+  .painel__nota a {
+    margin-left: 4px; color: var(--color-expresso); text-underline-offset: 4px; text-decoration-color: var(--fio);
+    transition: color .2s ease, text-decoration-color .2s ease;
+  }
+  .painel__nota a:focus-visible { color: var(--color-cobre-texto); text-decoration-color: var(--color-cobre); }
+  @media (hover: hover) { .painel__nota a:hover { color: var(--color-cobre-texto); text-decoration-color: var(--color-cobre); } }
   @media (hover: hover) { .painel__trilha a:hover { color: var(--color-cobre-texto); } }
 
   /* o link que leva a outro lugar: a seta fina anda 3 px no hover e no foco */

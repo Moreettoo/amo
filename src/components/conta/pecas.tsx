@@ -23,13 +23,19 @@ function useValorProprio(input: InputHTMLAttributes<HTMLInputElement>) {
   return { value: valor, defaultValue: undefined, onChange: (e: ChangeEvent<HTMLInputElement>) => setValor(e.target.value) }
 }
 
-export function Campo({ rotulo, erro, largura = 'largo', ...input }: CampoProps) {
+export function Campo({ rotulo, erro, dica, largura = 'largo', ...input }: CampoProps & { dica?: string }) {
   const id = useId()
   const proprio = useValorProprio(input)
+  const descricao = [erro && `${id}-erro`, dica && `${id}-dica`].filter(Boolean).join(' ') || undefined
   return (
     <div className={`campo campo--${largura}`}>
       <label htmlFor={id}>{rotulo}</label>
-      <input id={id} aria-invalid={erro ? true : undefined} aria-describedby={erro ? `${id}-erro` : undefined} {...input} {...proprio} />
+      <input id={id} aria-invalid={erro ? true : undefined} aria-describedby={descricao} {...input} {...proprio} />
+      {dica && !erro ? (
+        <span id={`${id}-dica`} className="campo__dica">
+          {dica}
+        </span>
+      ) : null}
       {erro ? (
         <span id={`${id}-erro`} className="campo__erro">
           {erro}

@@ -460,4 +460,19 @@ describe('/conta/perfil/email-e-senha', () => {
     expect(within(principal()).getByRole('button', { name: 'Trocar o e-mail' })).toBeInTheDocument()
     expect(within(principal()).getByRole('button', { name: 'Trocar a senha' })).toBeInTheDocument()
   })
+
+  it('a regra da troca de e-mail e a dica do proprio campo (revisao de acabamento)', async () => {
+    render(await EmailESenha.default(comBusca()))
+    expect(screen.getByLabelText('E-mail novo')).toHaveAccessibleDescription('A troca vale depois que você confirmar nos dois e-mails, o atual e o novo.')
+  })
+
+  it('na troca de senha: a resposta em cima do botao, a nota e "Esqueci a senha" embaixo (revisao de acabamento)', async () => {
+    render(await EmailESenha.default(comBusca()))
+    const form = within(principal()).getByRole('button', { name: 'Trocar a senha' }).closest('form')!
+    const botao = within(form).getByRole('button', { name: 'Trocar a senha' })
+    const resposta = form.querySelector('.painel__resposta')!
+    expect(resposta.compareDocumentPosition(botao) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(within(form).getByRole('link', { name: 'Esqueci a senha' })).toHaveAttribute('href', '/esqueci-a-senha')
+    expect(form).toHaveTextContent('Trocar a senha encerra a conta nos outros aparelhos.')
+  })
 })
