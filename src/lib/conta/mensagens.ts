@@ -27,6 +27,7 @@ export type CodigoDeErro =
   | 'senha_vazada'
   | 'senha_igual'
   | 'captcha'
+  | 'entre_de_novo'
 
 export const MENSAGENS: Record<CodigoDeErro, string> = {
   campos_invalidos: MENSAGENS_DA_CONTA.campos_invalidos,
@@ -40,6 +41,7 @@ export const MENSAGENS: Record<CodigoDeErro, string> = {
   senha_vazada: MENSAGENS_DA_CONTA.senha_vazada,
   senha_igual: MENSAGENS_DA_CONTA.senha_igual,
   captcha: MENSAGENS_DA_CONTA.captcha,
+  entre_de_novo: 'Por segurança, saia e entre de novo na sua conta para trocar a senha.',
 }
 
 export type AvisoDaConta = 'salvo' | 'confira_os_dois_emails' | 'senha_trocada' | 'pedido_cancelado'

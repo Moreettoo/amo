@@ -71,6 +71,24 @@ describe('o endereco novo', () => {
     expect(screen.getByLabelText('CEP')).toHaveValue('')
   })
 
+  it('reaberto depois de guardar, nao traz a resposta velha (ensaio de 2026-11-20)', async () => {
+    const user = userEvent.setup()
+    render(<NovoEndereco primeiro={false} />)
+    await user.click(screen.getByRole('button', { name: 'Adicionar endereço' }))
+    await preencher(user)
+    await user.click(screen.getByRole('button', { name: 'Guardar o endereço' }))
+    expect(await screen.findByText('Endereço guardado.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Adicionar endereço' }))
+    expect(screen.queryByText('Salvo.')).toBeNull()
+  })
+
+  it('abrir leva o foco ao primeiro campo, e nao ao body (ensaio de 2026-11-20)', async () => {
+    const user = userEvent.setup()
+    render(<NovoEndereco primeiro={false} />)
+    await user.click(screen.getByRole('button', { name: 'Adicionar endereço' }))
+    expect(screen.getByLabelText('Nome do lugar (opcional)')).toHaveFocus()
+  })
+
   it('com erro, o formulario fica aberto com o que foi digitado', async () => {
     m.salvarEndereco.mockResolvedValueOnce({ ok: false, erro: 'campos_invalidos', campos: { numero: 'Confira o número, como 412 ou S/N.' } })
     const user = userEvent.setup()
@@ -105,6 +123,30 @@ describe('o endereco novo', () => {
 })
 
 describe('o endereco guardado', () => {
+  it('passar pelo CEP sem mudar nao busca de novo nem troca a rua corrigida a mao', async () => {
+    m.consultarCep.mockResolvedValue({ logradouro: 'Rua Cuiabá', bairro: 'Alto da Mooca', cidade: 'São Paulo', uf: 'SP' })
+    const user = userEvent.setup()
+    render(<ItemDeEndereco id="00000000-0000-4000-8000-000000000001" endereco={{ ...endereco, logradouro: 'Rua Cuiabá (fundos)' }} texto="Rua Cuiabá, 412" nome="Casa" />)
+    await user.click(screen.getByRole('button', { name: 'Alterar Casa' }))
+    await user.click(screen.getByLabelText('CEP'))
+    await user.tab()
+    await user.type(screen.getByLabelText('Complemento (opcional)'), 'casa 2')
+    expect(m.consultarCep).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Rua')).toHaveValue('Rua Cuiabá (fundos)')
+  })
+
+  it('mudar o CEP busca de novo', async () => {
+    m.consultarCep.mockResolvedValue({ logradouro: 'Avenida Paulista', bairro: 'Bela Vista', cidade: 'São Paulo', uf: 'SP' })
+    const user = userEvent.setup()
+    render(<ItemDeEndereco id="00000000-0000-4000-8000-000000000001" endereco={endereco} texto="Rua Cuiabá, 412" nome="Casa" />)
+    await user.click(screen.getByRole('button', { name: 'Alterar Casa' }))
+    await user.clear(screen.getByLabelText('CEP'))
+    await user.type(screen.getByLabelText('CEP'), '01310-100')
+    await user.tab()
+    await waitFor(() => expect(screen.getByLabelText('Rua')).toHaveValue('Avenida Paulista'))
+    expect(m.consultarCep).toHaveBeenCalledTimes(1)
+  })
+
   it('alterado e salvo, o formulario fecha', async () => {
     const user = userEvent.setup()
     render(<ItemDeEndereco id="00000000-0000-4000-8000-000000000001" endereco={endereco} texto="Rua Cuiabá, 412" nome="Casa" />)

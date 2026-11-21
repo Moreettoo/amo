@@ -261,6 +261,8 @@ describe('trocarSenha', () => {
     [{ code: 'weak_password', reasons: ['pwned'] }, 'senha_vazada'],
     [{ code: 'same_password' }, 'senha_igual'],
     [{ code: 'over_request_rate_limit' }, 'muitas_tentativas'],
+    // "Secure password change" ligado no painel e sessao com mais de 24 h
+    [{ code: 'reauthentication_needed' }, 'entre_de_novo'],
     [{ code: 'unexpected_failure', message: 'segredo' }, 'tente_de_novo'],
   ])('erro do Supabase %j vira %s, sem signOut', async (error, erro) => {
     m.updateUser.mockResolvedValueOnce({ data: null, error })
@@ -297,7 +299,8 @@ describe('trocarEmail', () => {
 
   it.each([
     [{ code: 'email_address_invalid' }, { ok: false, erro: 'campos_invalidos', campos: { email: expect.any(String) } }],
-    [{ code: 'over_email_send_rate_limit' }, { ok: false, erro: 'muitas_tentativas' }],
+    // o limite de envio vem depois da conferencia de e-mail repetido no GoTrue: responde como o sucesso, para nao revelar quem tem conta
+    [{ code: 'over_email_send_rate_limit' }, { ok: true, aviso: 'confira_os_dois_emails' }],
     [{ code: 'over_request_rate_limit' }, { ok: false, erro: 'muitas_tentativas' }],
     [{ code: 'unexpected_failure' }, { ok: false, erro: 'tente_de_novo' }],
   ])('erro %j', async (error, esperado) => {

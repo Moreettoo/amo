@@ -139,6 +139,9 @@ const ERRO_DA_TROCA_DE_SENHA = (erro: { code?: string; reasons?: string[] }): Co
       return 'senha_igual'
     case 'over_request_rate_limit':
       return 'muitas_tentativas'
+    // "Secure password change" no painel pede login recente (24 h): diz o caminho em vez de "tente de novo"
+    case 'reauthentication_needed':
+      return 'entre_de_novo'
     default:
       return 'tente_de_novo'
   }
@@ -174,7 +177,9 @@ export async function trocarSenha(_: Resposta | null, form: FormData): Promise<R
 /**
  * O e-mail novo so vale depois de confirmado no atual e no novo ("Secure email
  * change" do painel). E-mail que ja tem cadastro responde igual ao sucesso:
- * a tela nao revela quem tem conta.
+ * a tela nao revela quem tem conta. O limite de envio de e-mail tambem: o
+ * GoTrue confere o e-mail repetido antes de enviar, entao so o e-mail sem
+ * conta chegaria ao limite (como limiteDeEmailDoSupabase em src/lib/auth/erros.ts).
  */
 export async function trocarEmail(_: Resposta | null, form: FormData): Promise<Resposta> {
   return comSessao(EMAIL_E_SENHA, async (usuario) => {
@@ -187,10 +192,10 @@ export async function trocarEmail(_: Resposta | null, form: FormData): Promise<R
     switch (error?.code) {
       case undefined:
       case 'email_exists':
+      case 'over_email_send_rate_limit':
         return feito('confira_os_dois_emails')
       case 'email_address_invalid':
         return falha('campos_invalidos', campoEmail)
-      case 'over_email_send_rate_limit':
       case 'over_request_rate_limit':
         return falha('muitas_tentativas')
       default:

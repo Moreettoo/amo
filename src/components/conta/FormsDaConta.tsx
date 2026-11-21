@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useEffect, useState } from 'react'
+import { useActionState, useEffect, useRef, useState } from 'react'
 import { Campo, CampoSenha, Enviar } from '@/components/conta/pecas'
 import { Turnstile } from '@/components/conta/Turnstile'
 import {
@@ -126,6 +126,8 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
   const [campos, setCampos] = useState({ ...inicial, cep: cepComTraco(inicial.cep) })
   const [buscando, setBuscando] = useState(false)
   const [avisoDoCep, setAvisoDoCep] = useState('')
+  // o ultimo CEP buscado (ou o guardado): passar pelo campo sem mudar nao busca nem troca a rua corrigida a mao
+  const cepBuscado = useRef(inicial.cep.replace(/\D/g, ''))
   const [resposta, enviar, enviando] = useActionState<Resposta | null, FormData>(async (anterior, form) => {
     const r = await salvarEndereco(anterior, form)
     if (r.ok) {
@@ -141,10 +143,14 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
 
   async function preencherPeloCep(valor: string) {
     if (!/^\d{5}-?\d{3}$/.test(valor.trim())) return
+    const digitos = valor.replace(/\D/g, '')
+    if (digitos === cepBuscado.current) return
+    cepBuscado.current = digitos
     setBuscando(true)
     const achado = await consultarCep(valor)
     setBuscando(false)
     if (!achado) {
+      cepBuscado.current = '' // nao achou (ou o limite estourou): passar de novo tenta de novo
       setAvisoDoCep('Não achamos esse CEP. Confira os números ou escreva a rua, o bairro e a cidade.')
       return
     }
@@ -284,6 +290,8 @@ export function NovoEndereco({ primeiro }: { primeiro: boolean }) {
   const [aberto, setAberto] = useState(primeiro)
   const [aviso, setAviso] = useState('')
   const [voltar, setVoltar] = useState(false)
+  // cada abertura monta um formulario novo: sem a resposta da vez anterior, e o autoFocus age
+  const [vez, setVez] = useState(0)
   const fechar = (texto: string) => {
     setAberto(false)
     setAviso(texto)
@@ -299,6 +307,7 @@ export function NovoEndereco({ primeiro }: { primeiro: boolean }) {
           onClick={() => {
             setAberto(true)
             setAviso('')
+            setVez((v) => v + 1)
           }}
         >
           Adicionar endereço
@@ -309,6 +318,7 @@ export function NovoEndereco({ primeiro }: { primeiro: boolean }) {
       </p>
       <div className="novo-endereco__form">
         <FormEndereco
+          key={vez}
           primeiro={primeiro}
           focar={aberto && !primeiro}
           aoDesistir={primeiro ? undefined : () => fechar('')}
