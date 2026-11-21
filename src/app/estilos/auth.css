@@ -72,7 +72,8 @@
   .porta__codigo .porta__form { margin-top: 14px; }
   .porta__reenviar { display: grid; gap: 8px; margin-top: 12px; }
   .conta__fim { display: grid; gap: 22px; margin-top: 30px; }
-  .turnstile:empty { display: none; }
+  /* o widget e a linha de quem enviou antes do token: vazios, nao ocupam altura */
+  .turnstile__espera { margin: 0; font-size: 13px; line-height: 1.6; color: var(--color-suave); }
 
   /* recuperar a senha: dois passos sobre o fio, o coracao no atual */
   .passos { position: relative; margin: 30px 0 0; padding: 0 0 0 40px; list-style: none; }
