@@ -19,7 +19,7 @@ export default async function PaginaDoPedido({ params, searchParams }: Props) {
   const numero = conferirNumeroDoPedido(bruto)
   const usuario = await exigirUsuario(numero ? `/conta/pedidos/${numero}` : '/conta/pedidos')
   if (!numero) notFound()
-  const [dados, pedido] = await Promise.all([lerDadosDoPainel(), lerPedido(usuario.id, numero)])
+  const [dados, pedido] = await Promise.all([lerDadosDoPainel(usuario.id), lerPedido(usuario.id, numero)])
   if (!pedido) notFound()
 
   const potes = pedido.itens.reduce((soma, i) => soma + i.quantos, 0)

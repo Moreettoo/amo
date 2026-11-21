@@ -7,6 +7,8 @@ import { sair } from '@/lib/auth/acoes'
 import type { ImagemProduto } from '@/lib/catalogo'
 import { primeiroNome } from '@/lib/conta/textos'
 import { carregarCatalogo } from '@/lib/dados/catalogo'
+import { contarEnderecos } from '@/lib/dados/enderecos'
+import { contarPedidos } from '@/lib/dados/pedidos'
 import { linhasComProduto, montarGaveta } from '@/lib/visao'
 
 /**
@@ -19,23 +21,27 @@ import { linhasComProduto, montarGaveta } from '@/lib/visao'
 
 export type ParteDaConta = 'pedido' | 'pedidos' | 'perfil' | 'enderecos' | 'acesso'
 
-const PARTES: { parte: ParteDaConta; href: string; rotulo: string }[] = [
+type Contagens = { pedidos: number; enderecos: number }
+
+const PARTES: { parte: ParteDaConta; href: string; rotulo: string; conta?: keyof Contagens }[] = [
   { parte: 'pedido', href: '/conta', rotulo: 'Pedido atual' },
-  { parte: 'pedidos', href: '/conta/pedidos', rotulo: 'Pedidos' },
+  { parte: 'pedidos', href: '/conta/pedidos', rotulo: 'Pedidos', conta: 'pedidos' },
   { parte: 'perfil', href: '/conta/perfil', rotulo: 'Seus dados' },
-  { parte: 'enderecos', href: '/conta/perfil/enderecos', rotulo: 'Endereços' },
+  { parte: 'enderecos', href: '/conta/perfil/enderecos', rotulo: 'Endereços', conta: 'enderecos' },
   { parte: 'acesso', href: '/conta/perfil/email-e-senha', rotulo: 'E-mail e senha' },
 ]
 
 export type DadosDoPainel = Awaited<ReturnType<typeof lerDadosDoPainel>>
 
-/** A loja para a nav e o rodape, e a foto de cada sabor (as miniaturas dos pedidos). */
-export async function lerDadosDoPainel() {
-  const catalogo = await carregarCatalogo()
+/** A loja para a nav e o rodape, a foto de cada sabor (as miniaturas dos pedidos) e os numeros do sumario. */
+export async function lerDadosDoPainel(usuarioId: string) {
+  const [catalogo, pedidos, enderecos] = await Promise.all([carregarCatalogo(), contarPedidos(usuarioId), contarEnderecos(usuarioId)])
+  const contagens: Contagens = { pedidos, enderecos }
   return {
     gaveta: montarGaveta(catalogo),
     linhas: linhasComProduto(catalogo),
     fotos: new Map<string, ImagemProduto>(catalogo.produtos.map((p) => [p.slug, p.imagem])),
+    contagens,
   }
 }
 
@@ -57,10 +63,11 @@ export function PainelDaConta({ atual, usuario, dados, children }: Props) {
                 Sua conta
               </p>
               <ul className="painel__trilho">
-                {PARTES.map(({ parte, href, rotulo }) => (
+                {PARTES.map(({ parte, href, rotulo, conta }) => (
                   <li key={parte} className={parte === atual ? 'painel__item painel__item--atual' : 'painel__item'}>
                     <a href={href} aria-current={parte === atual ? 'page' : undefined}>
                       {rotulo}
+                      {conta ? <small className="painel__quantos num">{dados.contagens[conta]}</small> : null}
                     </a>
                     {parte === atual ? <span className="painel__coracao" aria-hidden="true" /> : null}
                   </li>

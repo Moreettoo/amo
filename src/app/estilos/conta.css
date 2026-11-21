@@ -24,6 +24,9 @@
     color: var(--color-expresso); text-decoration: none; transition: color .2s ease, background-color .2s ease, border-color .2s ease;
   }
   .painel__item--atual a { font-weight: 500; }
+  /* a contagem, pela direita, como no sumario do catalogo */
+  .painel__item:has(.painel__quantos) a { display: flex; justify-content: space-between; gap: 12px; width: calc(100% + 16px); }
+  .painel__quantos { font-size: 12px; font-weight: 500; color: var(--color-suave); }
   .painel__item a:focus-visible { color: var(--color-cobre-texto); }
   /* o coracao do logo pousa no fio, na altura do item atual */
   .painel__coracao {
@@ -123,7 +126,7 @@
   .painel__total { display: flex; align-items: baseline; gap: 14px; margin: 0; padding-top: 14px; border-top: 1px solid var(--fio); }
   .painel__total b { font-size: 15px; font-weight: 500; }
   .painel__conta { flex: 1; font-size: 13px; line-height: 1.5; color: var(--color-suave); }
-  .painel__total strong { font-size: 30px; font-weight: 300; letter-spacing: -.02em; white-space: nowrap; }
+  .painel__total strong { font-size: 34px; font-weight: 300; letter-spacing: -.02em; white-space: nowrap; }
 
   .painel__bloco { margin-top: clamp(44px, 5vw, 60px); }
   .painel__bloco-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; }
@@ -198,7 +201,7 @@
   }
 
   /* os enderecos */
-  .enderecos { max-width: 780px; margin: 32px 0 0; padding: 0; list-style: none; }
+  .enderecos { margin: 32px 0 0; padding: 0; list-style: none; }
   .enderecos > li { padding: 22px 0; }
   .enderecos > li:first-child { padding-top: 0; }
   .enderecos > li + li { border-top: 1px solid var(--fio); }
@@ -207,6 +210,8 @@
   .endereco__nome b { display: block; font-size: 17px; font-weight: 400; line-height: 1.4; }
   .endereco__principal { display: block; margin-top: 2px; font-size: 13px; font-weight: 500; color: var(--color-cobre-texto); }
   .endereco__texto { margin: 0; font-size: 15px; line-height: 1.6; }
+  .endereco__linha { display: block; }
+  .endereco__cep { white-space: nowrap; }
   .endereco__acoes { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 4px 22px; padding-top: 2px; }
   .endereco__confirmar { display: inline-flex; align-items: baseline; gap: 16px; }
   .painel__acao { display: inline-grid; }
@@ -247,6 +252,8 @@
     .painel__item a { height: 44px; margin-left: 0; padding: 0 16px; border: 1px solid rgb(43 27 22 / .38); border-radius: 2px; font-size: 15px; white-space: nowrap; }
     .painel__item--atual a { border-color: var(--color-expresso); background: var(--color-expresso); color: var(--color-creme); font-weight: 400; }
     .painel__item--atual a:focus-visible { color: var(--color-creme); }
+    .painel__item:has(.painel__quantos) a { justify-content: flex-start; gap: 8px; width: auto; }
+    .painel__item--atual .painel__quantos { color: var(--color-claro-suave); }
     .painel__coracao { left: 50%; top: auto; bottom: -16px; width: 11px; height: 11px; margin: 0 0 0 -5.5px; mask-position: 50% calc(100% + 2px); }
     .painel__sair { margin: 0; padding: 0 var(--gutter) 8px 12px; }
     .painel__sair button { white-space: nowrap; }

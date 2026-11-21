@@ -18,7 +18,7 @@ type Props = { searchParams: Promise<{ aviso?: string | string[] }> }
 
 export default async function PaginaDoAcesso({ searchParams }: Props) {
   const usuario = await exigirUsuario('/conta/perfil/email-e-senha')
-  const dados = await lerDadosDoPainel()
+  const dados = await lerDadosDoPainel(usuario.id)
   const nonce = (await headers()).get('x-nonce') ?? ''
   const { aviso } = await searchParams
   const avisoDoLink = typeof aviso === 'string' && Object.hasOwn(AVISOS_DO_LINK, aviso) ? AVISOS_DO_LINK[aviso] : null

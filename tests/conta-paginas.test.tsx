@@ -17,6 +17,7 @@ const m = vi.hoisted(() => ({
   lidos: [] as string[],
   enderecos: [] as unknown[],
   pode: { pode: true, motivo: null } as { pode: boolean; motivo: string | null },
+  contagens: { pedidos: 4, enderecos: 2 },
 }))
 
 vi.mock('@/lib/auth', () => ({
@@ -28,12 +29,13 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/dados/perfil', () => ({ lerPerfil: async () => m.perfil, podeExcluirConta: async () => m.pode }))
 vi.mock('@/lib/dados/pedidos', () => ({
   lerPedidos: async () => m.pedidos,
+  contarPedidos: async () => m.contagens.pedidos,
   lerPedido: async (_: string, numero: string) => {
     m.lidos.push(numero)
     return m.pedido
   },
 }))
-vi.mock('@/lib/dados/enderecos', () => ({ lerEnderecos: async () => m.enderecos }))
+vi.mock('@/lib/dados/enderecos', () => ({ lerEnderecos: async () => m.enderecos, contarEnderecos: async () => m.contagens.enderecos }))
 vi.mock('@/app/conta/acoes', () => {
   const acao = async () => ({ ok: true })
   return {
@@ -183,6 +185,15 @@ describe.each([
     const esperado = rota.startsWith('/conta/pedidos') ? '/conta/pedidos' : rota
     expect(atual[0]).toHaveAttribute('href', esperado)
     expect(within(sumario).getByRole('button', { name: 'Sair' })).toBeInTheDocument()
+  })
+
+  it('o sumario conta os pedidos e os enderecos, como o esboco', async () => {
+    render(await montar())
+    const sumario = screen.getByRole('navigation', { name: 'Sua conta' })
+    const links = within(sumario).getAllByRole('link')
+    expect(links[1].querySelector('.painel__quantos')).toHaveTextContent('4')
+    expect(links[3].querySelector('.painel__quantos')).toHaveTextContent('2')
+    expect(links[0].querySelector('.painel__quantos')).toBeNull()
   })
 })
 
@@ -382,6 +393,13 @@ describe('/conta/perfil/enderecos', () => {
     expect(within(itens[1]).getByRole('button', { name: /tornar principal/i })).toBeInTheDocument()
     expect(within(itens[1]).getByRole('button', { name: /remover/i })).toBeInTheDocument()
     expect(within(principal()).getByRole('button', { name: 'Adicionar endereço' })).toBeInTheDocument()
+  })
+
+  it('cada endereco em duas linhas, como o "Entregar em" do pedido, com o CEP inteiro', async () => {
+    render(await Enderecos.default())
+    const linhas = within(principal()).getAllByRole('listitem')[0].querySelectorAll('.endereco__linha')
+    expect(linhas).toHaveLength(2)
+    expect(linhas[1].querySelector('.endereco__cep')).toHaveTextContent(/^CEP \d{5}-\d{3}$/)
   })
 
   it('cinco enderecos escondem "Adicionar endereco"', async () => {

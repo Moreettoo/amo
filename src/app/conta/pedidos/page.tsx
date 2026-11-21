@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Pedidos · AMO', robots: { index: fa
 
 export default async function PaginaDosPedidos() {
   const usuario = await exigirUsuario('/conta/pedidos')
-  const [dados, pedidos] = await Promise.all([lerDadosDoPainel(), lerPedidos(usuario.id)])
+  const [dados, pedidos] = await Promise.all([lerDadosDoPainel(usuario.id), lerPedidos(usuario.id)])
 
   return (
     <PainelDaConta atual="pedidos" usuario={usuario} dados={dados}>

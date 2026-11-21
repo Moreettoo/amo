@@ -10,12 +10,19 @@ export const metadata: Metadata = { title: 'Endereços · AMO', robots: { index:
 const MAXIMO = 5
 
 const cepComTraco = (cep: string) => `${cep.slice(0, 5)}-${cep.slice(5)}`
-const textoDoEndereco = (e: Endereco) =>
-  `${[e.logradouro, e.numero, e.complemento].filter(Boolean).join(', ')} · ${e.bairro}, ${e.cidade}, ${e.uf} · CEP ${cepComTraco(e.cep)}`
+/** Em duas linhas, como o "Entregar em" do pedido: a rua; o bairro, a cidade e o CEP inteiro. */
+const textoDoEndereco = (e: Endereco) => (
+  <>
+    <span className="endereco__linha">{[e.logradouro, e.numero, e.complemento].filter(Boolean).join(', ')}</span>
+    <span className="endereco__linha">
+      {e.bairro}, {e.cidade}, {e.uf} · <span className="endereco__cep num">CEP {cepComTraco(e.cep)}</span>
+    </span>
+  </>
+)
 
 export default async function PaginaDosEnderecos() {
   const usuario = await exigirUsuario('/conta/perfil/enderecos')
-  const [dados, enderecos] = await Promise.all([lerDadosDoPainel(), lerEnderecos(usuario.id)])
+  const [dados, enderecos] = await Promise.all([lerDadosDoPainel(usuario.id), lerEnderecos(usuario.id)])
 
   return (
     <PainelDaConta atual="enderecos" usuario={usuario} dados={dados}>

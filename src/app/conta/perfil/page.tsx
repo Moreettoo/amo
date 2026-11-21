@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'Seus dados · AMO', robots: { index:
 
 export default async function PaginaDoPerfil() {
   const usuario = await exigirUsuario('/conta/perfil')
-  const [dados, perfil, exclusao] = await Promise.all([lerDadosDoPainel(), lerPerfil(usuario.id), podeExcluirConta()])
+  const [dados, perfil, exclusao] = await Promise.all([lerDadosDoPainel(usuario.id), lerPerfil(usuario.id), podeExcluirConta()])
   const nome = perfil?.nome ?? usuario.nome
   const celular = perfil?.celular ?? usuario.celular
 

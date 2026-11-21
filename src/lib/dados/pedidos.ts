@@ -50,6 +50,14 @@ export function rastreioSeguro(url: unknown): string | null {
 }
 
 /** Os 50 mais recentes; potes e a soma de quantos de cada item. */
+/** Quantos pedidos ela tem (o numero do sumario), sem trazer as linhas. */
+export async function contarPedidos(usuarioId: string): Promise<number> {
+  const banco = await criarClienteServidor()
+  const { count, error } = await banco.from('pedidos').select('id', { count: 'exact', head: true }).eq('user_id', usuarioId)
+  if (error) throw falhaDoBanco('pedidos', error)
+  return count ?? 0
+}
+
 export async function lerPedidos(usuarioId: string): Promise<PedidoNaLista[]> {
   const banco = await criarClienteServidor()
   const { data, error } = await banco

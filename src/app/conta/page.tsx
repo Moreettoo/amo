@@ -81,7 +81,7 @@ function PedidoAtual({ pedido, fotos }: { pedido: PedidoCompleto; fotos: Awaited
 
 export default async function PaginaDaConta() {
   const usuario = await exigirUsuario('/conta')
-  const [dados, pedidos] = await Promise.all([lerDadosDoPainel(), lerPedidos(usuario.id)])
+  const [dados, pedidos] = await Promise.all([lerDadosDoPainel(usuario.id), lerPedidos(usuario.id)])
   const emAndamento = ADIANTADOS_PRIMEIRO.map((estado) => pedidos.find((p) => p.estado === estado)).find(Boolean)
   const atual = emAndamento ? await lerPedido(usuario.id, emAndamento.numero) : null
   const outros = pedidos.filter((p) => p.numero !== atual?.numero).slice(0, 2)

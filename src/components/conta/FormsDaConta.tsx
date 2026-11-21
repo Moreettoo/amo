@@ -180,7 +180,7 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
           value={campos.cep}
           onChange={mudar('cep')}
           onBlur={(e) => preencherPeloCep(e.target.value)}
-          erro={erro('cep')}
+          erro={erro('cep') || avisoDoCep}
         />
         <Campo rotulo="Rua" name="logradouro" autoComplete="address-line1" value={campos.logradouro} onChange={mudar('logradouro')} erro={erro('logradouro')} />
         <Campo rotulo="Número" name="numero" largura="numero" value={campos.numero} onChange={mudar('numero')} erro={erro('numero')} />
@@ -198,7 +198,7 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
           </select>
         </div>
       </div>
-      <p className="painel__nota" aria-live="polite">
+      <p className="sr-only" aria-live="polite">
         {avisoDoCep}
       </p>
       {!inicial.principal && !primeiro ? (
@@ -236,7 +236,7 @@ function AcaoDoEndereco({ acao, id, rotulo, rotuloEnviando, focar = false }: { a
   )
 }
 
-type ItemProps = { id: string; endereco: EnderecoNovo; texto: string; nome: string }
+type ItemProps = { id: string; endereco: EnderecoNovo; texto: React.ReactNode; nome: string }
 
 /** Um endereco guardado: o texto e as acoes; "Alterar" abre o formulario no lugar. */
 export function ItemDeEndereco({ id, endereco, texto, nome }: ItemProps) {

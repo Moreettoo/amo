@@ -5,10 +5,10 @@ import { senhaConfere } from '@/lib/auth/senha'
 import { criarClienteServidor } from '@/lib/auth/servidor'
 import { VERSAO_DOS_TERMOS } from '@/lib/auth/termos'
 import type { EnderecoNovo } from '@/lib/conta/regras'
-import { apagarEndereco, criarEndereco, lerEnderecos, tornarEnderecoPrincipal } from '@/lib/dados/enderecos'
+import { apagarEndereco, contarEnderecos, criarEndereco, lerEnderecos, tornarEnderecoPrincipal } from '@/lib/dados/enderecos'
 import { ErroDeRegra } from '@/lib/dados/erros'
 import { consumirLimite } from '@/lib/dados/limites'
-import { cancelarPedidoDaCliente, lerPedido, lerPedidos } from '@/lib/dados/pedidos'
+import { cancelarPedidoDaCliente, contarPedidos, lerPedido, lerPedidos } from '@/lib/dados/pedidos'
 import { gravarMarketing, gravarPerfil, lerPerfil, podeExcluirConta } from '@/lib/dados/perfil'
 
 /**
@@ -78,6 +78,7 @@ describe('a camada de dados da conta', () => {
     trocarNavegador('A')
     for (let n = 1; n <= 5; n++) await criarEndereco(endereco(n))
     expect(await lerEnderecos(clientes.A.id)).toHaveLength(5)
+    expect(await contarEnderecos(clientes.A.id)).toBe(5)
     const sexto = criarEndereco(endereco(6))
     await expect(sexto).rejects.toBeInstanceOf(ErroDeRegra)
     await expect(sexto).rejects.toMatchObject({ codigo: 'limite_de_enderecos' })
@@ -106,6 +107,7 @@ describe('a camada de dados da conta', () => {
     const deA = (await lerEnderecos(clientes.A.id))[0]
     trocarNavegador('B')
     expect(await lerEnderecos(clientes.A.id)).toEqual([])
+    expect(await contarEnderecos(clientes.A.id)).toBe(0)
     expect(await lerPerfil(clientes.A.id)).toBeNull()
     expect(await apagarEndereco(clientes.A.id, deA.id)).toBe(false)
     expect(await tornarEnderecoPrincipal(clientes.A.id, deA.id)).toBe(false)
@@ -117,6 +119,7 @@ describe('a camada de dados da conta', () => {
     trocarNavegador('A')
     const A = clientes.A.id
     expect(await lerPedidos(A)).toEqual([])
+    expect(await contarPedidos(A)).toBe(0)
     expect(await lerPedido(A, 'AMO-22222222')).toBeNull()
     const cancelar = cancelarPedidoDaCliente(A, 'AMO-22222222')
     await expect(cancelar).rejects.toBeInstanceOf(ErroDeRegra)

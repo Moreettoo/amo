@@ -117,7 +117,9 @@ describe('o endereco novo', () => {
     await user.type(screen.getByLabelText('Rua'), 'Rua Cuiabá')
     await user.type(screen.getByLabelText('CEP'), '99999-999')
     await user.tab()
-    expect(await screen.findByText(/Não achamos esse CEP/)).toBeInTheDocument()
+    expect((await screen.findAllByText(/Não achamos esse CEP/)).length).toBeGreaterThan(0)
+    // a frase fica junto do campo CEP (revisao de acabamento), e o leitor de tela ainda ouve
+    expect(screen.getByLabelText('CEP')).toHaveAccessibleDescription(/Não achamos esse CEP/)
     expect(screen.getByLabelText('Rua')).toHaveValue('Rua Cuiabá')
   })
 })

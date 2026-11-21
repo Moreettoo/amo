@@ -27,6 +27,14 @@ export async function lerEnderecos(usuarioId: string): Promise<Endereco[]> {
   return data
 }
 
+/** Quantos enderecos ela tem (o numero do sumario), sem trazer as linhas. */
+export async function contarEnderecos(usuarioId: string): Promise<number> {
+  const banco = await criarClienteServidor()
+  const { count, error } = await banco.from('enderecos').select('id', { count: 'exact', head: true }).eq('user_id', usuarioId)
+  if (error) throw falhaDoBanco('enderecos', error)
+  return count ?? 0
+}
+
 /** O dono vem da sessao (user_id tem auth.uid() por padrao). */
 export async function criarEndereco(novo: EnderecoNovo): Promise<void> {
   const banco = await criarClienteServidor()
