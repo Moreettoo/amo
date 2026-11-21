@@ -68,9 +68,16 @@ export function FormPerfil({ nome, celular }: { nome: string; celular: string })
 
 /** Com JavaScript a caixa salva sozinha ao mudar; sem ele, o botao de texto envia. */
 export function FormNovidades({ aceita }: { aceita: boolean }) {
-  const [resposta, enviar] = useActionState<Resposta | null, FormData>(definirMarketing, null)
   // a caixa segue o estado pelo defaultChecked: e a ele que o reinicio do formulario volta
   const [marcada, setMarcada] = useState(aceita)
+  // a escolha que o servidor confirmou: se a acao falha, a caixa volta a ela
+  const confirmada = useRef(aceita)
+  const [resposta, enviar] = useActionState<Resposta | null, FormData>(async (anterior, form) => {
+    const r = await definirMarketing(anterior, form)
+    if (r.ok) confirmada.current = form.get('novidades') !== null
+    else setMarcada(confirmada.current)
+    return r
+  }, null)
   return (
     <form action={enviar} className="painel__form painel__form--linha">
       <div className="marcar">
@@ -148,6 +155,8 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
     const digitos = valor.replace(/\D/g, '')
     if (digitos === cepBuscado.current) return
     cepBuscado.current = digitos
+    // a rua e o bairro do comeco da busca: na volta, so troca o campo que ainda esta igual
+    const { logradouro: ruaAntes, bairro: bairroAntes } = campos
     setBuscando(true)
     const achado = await consultarCep(valor)
     setBuscando(false)
@@ -162,8 +171,8 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
     // o CEP manda na rua, no bairro, na cidade e no estado; numero e complemento ficam
     setCampos((c) => ({
       ...c,
-      logradouro: achado.logradouro || c.logradouro,
-      bairro: achado.bairro || c.bairro,
+      logradouro: c.logradouro === ruaAntes ? achado.logradouro || c.logradouro : c.logradouro,
+      bairro: c.bairro === bairroAntes ? achado.bairro || c.bairro : c.bairro,
       cidade: achado.cidade,
       uf: achado.uf,
     }))
@@ -227,12 +236,12 @@ export function FormEndereco({ id = '', inicial = ENDERECO_VAZIO, primeiro = fal
 }
 
 /** Um botao de acao sobre um endereco, num formulario so dele. */
-function AcaoDoEndereco({ acao, id, rotulo, rotuloEnviando, focar = false }: { acao: Acao; id: string; rotulo: string; rotuloEnviando: string; focar?: boolean }) {
+function AcaoDoEndereco({ acao, id, rotulo, rotuloEnviando, focar = false, semJs = false }: { acao: Acao; id: string; rotulo: string; rotuloEnviando: string; focar?: boolean; semJs?: boolean }) {
   const [resposta, enviar, enviando] = useActionState<Resposta | null, FormData>(acao, null)
   return (
-    <form action={enviar} className="painel__acao">
+    <form action={enviar} className={semJs ? 'painel__acao painel__sem-js' : 'painel__acao'}>
       <input type="hidden" name="id" value={id} />
-      <button type="submit" className="conta__texto-botao" disabled={enviando} autoFocus={focar}>
+      <button type="submit" className={semJs ? 'conta__texto-botao painel__sem-js' : 'conta__texto-botao'} disabled={enviando} autoFocus={focar}>
         {enviando ? rotuloEnviando : rotulo}
       </button>
       <RespostaDaAcao resposta={resposta} />
@@ -280,9 +289,13 @@ export function ItemDeEndereco({ id, endereco, texto, nome }: ItemProps) {
             </button>
           </span>
         ) : (
-          <button type="button" className="conta__texto-botao" onClick={() => setRemovendo(true)} aria-label={`Remover ${nome}`} autoFocus={voltar === 'remover'}>
-            Remover
-          </button>
+          <>
+            <button type="button" className="conta__texto-botao so-js" onClick={() => setRemovendo(true)} aria-label={`Remover ${nome}`} autoFocus={voltar === 'remover'}>
+              Remover
+            </button>
+            {/* sem JavaScript nao ha confirmacao no lugar: o botao envia direto */}
+            <AcaoDoEndereco acao={removerEndereco} id={id} rotulo="Remover" rotuloEnviando="Removendo" semJs />
+          </>
         )}
       </div>
     </div>
@@ -290,7 +303,7 @@ export function ItemDeEndereco({ id, endereco, texto, nome }: ItemProps) {
 }
 
 /** O botao que abre o formulario do endereco novo; sem JavaScript o formulario ja nasce aberto. */
-export function NovoEndereco({ primeiro }: { primeiro: boolean }) {
+export function NovoEndereco({ primeiro, cheio }: { primeiro: boolean; cheio: boolean }) {
   const [aberto, setAberto] = useState(primeiro)
   const [aviso, setAviso] = useState('')
   const [voltar, setVoltar] = useState(false)
@@ -303,7 +316,7 @@ export function NovoEndereco({ primeiro }: { primeiro: boolean }) {
   }
   return (
     <div className={aberto ? 'novo-endereco novo-endereco--aberto' : 'novo-endereco'}>
-      {aberto ? null : (
+      {aberto || cheio ? null : (
         <button
           type="button"
           className="btn-retro btn-retro--escuro so-js"
@@ -320,15 +333,19 @@ export function NovoEndereco({ primeiro }: { primeiro: boolean }) {
       <p className="painel__resposta" aria-live="polite">
         {aviso}
       </p>
-      <div className="novo-endereco__form">
-        <FormEndereco
-          key={vez}
-          primeiro={primeiro}
-          focar={aberto && !primeiro}
-          aoDesistir={primeiro ? undefined : () => fechar('')}
-          aoSalvar={() => fechar('Endereço guardado.')}
-        />
-      </div>
+      {cheio ? (
+        <p className="painel__nota">Já são 5 endereços: para guardar outro, remova um.</p>
+      ) : (
+        <div className="novo-endereco__form">
+          <FormEndereco
+            key={vez}
+            primeiro={primeiro}
+            focar={aberto && !primeiro}
+            aoDesistir={primeiro ? undefined : () => fechar('')}
+            aoSalvar={() => fechar('Endereço guardado.')}
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -433,9 +450,15 @@ export function CancelarPedido({ numero }: { numero: string }) {
           </div>
         </>
       ) : (
-        <button type="button" className="conta__texto-botao" onClick={() => setCerteza(true)} autoFocus={voltar}>
-          Cancelar pedido
-        </button>
+        <>
+          <button type="button" className="conta__texto-botao so-js" onClick={() => setCerteza(true)} autoFocus={voltar}>
+            Cancelar pedido
+          </button>
+          {/* sem JavaScript nao ha confirmacao no lugar: o botao envia direto */}
+          <button type="submit" className="conta__texto-botao painel__sem-js">
+            Cancelar pedido
+          </button>
+        </>
       )}
       <RespostaDaAcao resposta={resposta} />
     </form>

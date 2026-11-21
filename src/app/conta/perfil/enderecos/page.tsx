@@ -20,13 +20,19 @@ const textoDoEndereco = (e: Endereco) => (
   </>
 )
 
+/** A frase ao lado do titulo: o limite e, com enderecos guardados, quantos ja ha. */
+const fraseDaConta = (n: number) =>
+  n === 0
+    ? `Até ${MAXIMO} endereços, um deles o principal: é o que a sacola sugere primeiro.`
+    : `${n} ${n === 1 ? 'guardado' : 'guardados'}, de até ${MAXIMO}. O principal é o que a sacola sugere primeiro.`
+
 export default async function PaginaDosEnderecos() {
   const usuario = await exigirUsuario('/conta/perfil/enderecos')
   const [dados, enderecos] = await Promise.all([lerDadosDoPainel(usuario.id), lerEnderecos(usuario.id)])
 
   return (
     <PainelDaConta atual="enderecos" usuario={usuario} dados={dados}>
-      <CabecaDaConta titulo="Endereços" frase="de entrega" lado={<p>Até {MAXIMO} endereços, um deles o principal: é o que a sacola sugere primeiro.</p>} />
+      <CabecaDaConta titulo="Endereços" frase="de entrega" lado={<p>{fraseDaConta(enderecos.length)}</p>} />
       {enderecos.length > 0 ? (
         <ul className="enderecos">
           {enderecos.map(({ id, ...endereco }, i) => (
@@ -38,13 +44,9 @@ export default async function PaginaDosEnderecos() {
       ) : (
         <p className="painel__lead">Nenhum endereço guardado ainda. O primeiro vira o principal.</p>
       )}
-      {enderecos.length < MAXIMO ? (
-        <section className="painel__bloco" aria-label="Novo endereço">
-          <NovoEndereco primeiro={enderecos.length === 0} />
-        </section>
-      ) : (
-        <p className="painel__nota">Já são {MAXIMO} endereços: para guardar outro, remova um.</p>
-      )}
+      <section className="painel__bloco" aria-label="Novo endereço">
+        <NovoEndereco primeiro={enderecos.length === 0} cheio={enderecos.length >= MAXIMO} />
+      </section>
     </PainelDaConta>
   )
 }

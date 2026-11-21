@@ -299,7 +299,7 @@ describe('/conta/pedidos/[numero]', () => {
   it('aguardando pagamento: da para cancelar', async () => {
     m.pedido = completo({ estado: 'aguardando_pagamento', pagamento: null, datas: { ...completo().datas, pago: null, emPreparo: null, aCaminho: null } })
     render(await Pedido.default(comNumero(NUMERO)))
-    expect(within(principal()).getByRole('button', { name: 'Cancelar pedido' })).toBeInTheDocument()
+    expect(within(principal()).getAllByRole('button', { name: 'Cancelar pedido' })[0]).toBeInTheDocument()
   })
 
   it('entregue: sem cancelar e sem rastreio', async () => {
@@ -398,7 +398,7 @@ describe('/conta/perfil/enderecos', () => {
     expect(itens[0]).toHaveTextContent('Casa')
     expect(itens[0]).toHaveTextContent('Principal')
     expect(within(itens[1]).getByRole('button', { name: /tornar principal/i })).toBeInTheDocument()
-    expect(within(itens[1]).getByRole('button', { name: /remover/i })).toBeInTheDocument()
+    expect(within(itens[1]).getByRole('button', { name: /^remover \w/i })).toBeInTheDocument()
     expect(within(principal()).getByRole('button', { name: 'Adicionar endereço' })).toBeInTheDocument()
   })
 
@@ -413,6 +413,25 @@ describe('/conta/perfil/enderecos', () => {
     m.enderecos = [1, 2, 3, 4, 5].map((n) => endereco(n, n === 1))
     render(await Enderecos.default())
     expect(within(principal()).queryByRole('button', { name: 'Adicionar endereço' })).toBeNull()
+  })
+
+  it.each([
+    [0, 'Até 5 endereços, um deles o principal: é o que a sacola sugere primeiro.'],
+    [1, '1 guardado, de até 5. O principal é o que a sacola sugere primeiro.'],
+    [2, '2 guardados, de até 5. O principal é o que a sacola sugere primeiro.'],
+  ])('com %i endereco(s), a frase ao lado do titulo conta', async (n, frase) => {
+    m.enderecos = Array.from({ length: n }, (_, i) => endereco(i + 1, i === 0))
+    render(await Enderecos.default())
+    expect(principal()).toHaveTextContent(frase)
+  })
+
+  it('cinco enderecos: a nota de 5 vem do NovoEndereco, dentro do bloco', async () => {
+    m.enderecos = [1, 2, 3, 4, 5].map((n) => endereco(n, n === 1))
+    render(await Enderecos.default())
+    const bloco = within(principal()).getByLabelText('Novo endereço')
+    expect(bloco).toHaveTextContent('Já são 5 endereços: para guardar outro, remova um.')
+    expect(bloco.querySelector('[aria-live="polite"]')).not.toBeNull()
+    expect(bloco.querySelector('form')).toBeNull()
   })
 
   it('sem endereco: a frase e o formulario', async () => {
