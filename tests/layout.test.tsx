@@ -81,6 +81,15 @@ describe('Nav', () => {
     expect(logo.closest('a')).toHaveAttribute('href', '/#topo')
   })
 
+  // o aviso de LCP do next/image so vale para imagem lazy (get-img-props.js):
+  // o logo do topo, eager, nunca o dispara
+  it('o logo do topo carrega na hora, sem preload (o guia do Next 16 pede um ou outro)', () => {
+    montarNav()
+    const logo = screen.getByAltText(/amo/i)
+    expect(logo).toHaveAttribute('loading', 'eager')
+    expect(document.head.querySelector('link[rel="preload"][as="image"]')).toBeNull()
+  })
+
   it('o botão Catálogo: só com JS, avisa que abre um diálogo e qual', () => {
     montarNav()
     const botao = screen.getByRole('button', { name: 'Catálogo' })
@@ -182,6 +191,11 @@ describe('Footer', () => {
     expect(screen.queryByRole('heading', { name: 'Contato' })).toBeNull()
     expect(screen.queryByText('(00) 00000-0000')).toBeNull()
     expect(screen.queryByText(/contato provisório/i)).toBeNull()
+  })
+
+  it('o logo do rodapé fica lazy: em página longa ele está longe da primeira tela', () => {
+    montar()
+    expect(screen.getByAltText(/para quem ama comer bem/)).toHaveAttribute('loading', 'lazy')
   })
 
   it('o AMO do copyright está blindado contra tradutor', () => {

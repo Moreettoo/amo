@@ -150,4 +150,12 @@ describe('consumirLimite', () => {
     vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('rede caida') }))
     expect(await consumirLimite('entrar:ip:1.2.3.4', 10, 900)).toBe(false)
   })
+  it('a consulta que falha vai ao log do servidor, sem a chave (que pode ter o e-mail)', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.stubGlobal('fetch', vi.fn(async () => json({ code: 'XX000', message: 'texto cru' }, 500)))
+    expect(await consumirLimite('entrar:email:maria@exemplo.com', 10, 900)).toBe(false)
+    expect(log).toHaveBeenCalledWith('Falha do Supabase', expect.objectContaining({ onde: 'consumir_limite', code: 'XX000' }))
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/maria|texto cru/)
+    log.mockRestore()
+  })
 })

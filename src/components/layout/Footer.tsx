@@ -31,6 +31,11 @@ export function Footer({ linhas }: Props) {
       <div className="wrap">
         <div className="rodape__grade">
           <div className="rodape__logo">
+            {/* Lazy de proposito. O aviso de LCP do next/image so vale para
+                imagem lazy: em tela curta e sem foto (a porta da conta, o 404)
+                este logo e o maior elemento visivel e o aviso aparece em
+                desenvolvimento. Eager, ele baixaria em toda pagina longa,
+                onde fica longe da primeira tela. O logo da Nav ja nasce eager. */}
             <Image
               src="/marca/logo-amo-lockup.png"
               alt="AMO Sabores Saudáveis · para quem ama comer bem"

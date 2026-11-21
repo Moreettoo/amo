@@ -7,6 +7,8 @@ import { variavel } from '@/lib/dados/ambiente'
 
 export const metadata: Metadata = { title: 'E-mail e senha · AMO', robots: { index: false } }
 
+const ACESSO = '/conta/perfil/email-e-senha'
+
 /** O que o link da troca de e-mail diz ao voltar (src/app/auth/callback/route.ts). */
 const AVISOS_DO_LINK: Record<string, string> = {
   'email-trocado': 'E-mail trocado. Ele já vale para entrar e para os pedidos.',
@@ -17,11 +19,14 @@ const AVISOS_DO_LINK: Record<string, string> = {
 type Props = { searchParams: Promise<{ aviso?: string | string[] }> }
 
 export default async function PaginaDoAcesso({ searchParams }: Props) {
-  const usuario = await exigirUsuario('/conta/perfil/email-e-senha')
+  const { aviso } = await searchParams
+  const conhecido = typeof aviso === 'string' && Object.hasOwn(AVISOS_DO_LINK, aviso) ? aviso : null
+  // sem sessao (o link aberto noutro navegador), o aviso ja conferido vai no
+  // volta: ela entra e o encontra aqui
+  const usuario = await exigirUsuario(conhecido ? `${ACESSO}?aviso=${conhecido}` : ACESSO)
   const dados = await lerDadosDoPainel(usuario.id)
   const nonce = (await headers()).get('x-nonce') ?? ''
-  const { aviso } = await searchParams
-  const avisoDoLink = typeof aviso === 'string' && Object.hasOwn(AVISOS_DO_LINK, aviso) ? AVISOS_DO_LINK[aviso] : null
+  const avisoDoLink = conhecido ? AVISOS_DO_LINK[conhecido] : null
 
   return (
     <PainelDaConta atual="acesso" usuario={usuario} dados={dados}>

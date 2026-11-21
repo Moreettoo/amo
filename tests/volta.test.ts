@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { voltaSegura } from '@/lib/auth/volta'
 
 describe('voltaSegura', () => {
-  it.each(['/conta', '/conta/pedidos/AMO-2B7KQ9XZ', '/sacola', '/catalogo/prestigio?x=1#y'])('aceita %s', (c) => {
+  it.each(['/conta', '/conta/pedidos/AMO-2B7KQ9XZ', '/sacola', '/catalogo/prestigio?x=1#y', '/conta/perfil/email-e-senha?aviso=link-invalido'])('aceita %s', (c) => {
     expect(voltaSegura(c)).toBe(c)
   })
   it.each([

@@ -14,5 +14,5 @@ export async function senhaConfere(email: string, senha: string, captchaToken: s
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
   })
   const { error } = await banco.auth.signInWithPassword({ email, password: senha, options: { captchaToken } })
-  return error ? traduzirErroDoAuth(error) : true
+  return error ? traduzirErroDoAuth(error, 'senhaConfere') : true
 }

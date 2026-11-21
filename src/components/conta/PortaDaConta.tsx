@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useCallback, useState, type CSSProperties, type MouseEvent } from 'react'
+import { useActionState, useCallback, useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react'
 import {
   cadastrar,
   confirmarCadastro,
@@ -25,6 +25,8 @@ export function PortaDaConta({ aba: inicial, volta, chaveDoTurnstile, nonce }: P
   const [aba, setAba] = useState<Aba>(inicial)
   const [email, setEmail] = useState('')
   const [codigoPara, setCodigoPara] = useState<string | null>(null)
+  // de entrar com o e-mail nao confirmado, o codigo ainda nao saiu
+  const [enviarCodigo, setEnviarCodigo] = useState(false)
   const verificacao = { chave: chaveDoTurnstile, nonce }
   const destino = (a: Aba) => `/${a}?volta=${encodeURIComponent(volta)}`
 
@@ -36,10 +38,11 @@ export function PortaDaConta({ aba: inicial, volta, chaveDoTurnstile, nonce }: P
     setAba(a)
     setCodigoPara(null)
   }
-  const pedirCodigo = useCallback((para: string) => {
+  const pedirCodigo = useCallback((para: string, enviar: boolean) => {
     setAba('cadastro')
     setEmail(para)
     setCodigoPara(para)
+    setEnviarCodigo(enviar)
   }, [])
 
   return (
@@ -57,11 +60,11 @@ export function PortaDaConta({ aba: inicial, volta, chaveDoTurnstile, nonce }: P
       </nav>
 
       {aba === 'entrar' ? (
-        <FormEntrar email={email} setEmail={setEmail} volta={volta} verificacao={verificacao} aoPedirCodigo={pedirCodigo} />
+        <FormEntrar email={email} setEmail={setEmail} volta={volta} verificacao={verificacao} aoPedirCodigo={(para) => pedirCodigo(para, true)} />
       ) : codigoPara ? (
-        <FormCodigo email={codigoPara} volta={volta} verificacao={verificacao} aoTrocarEmail={() => setCodigoPara(null)} />
+        <FormCodigo email={codigoPara} volta={volta} verificacao={verificacao} enviarAoAbrir={enviarCodigo} aoTrocarEmail={() => setCodigoPara(null)} />
       ) : (
-        <FormCadastro email={email} setEmail={setEmail} verificacao={verificacao} aoPedirCodigo={pedirCodigo} />
+        <FormCadastro email={email} setEmail={setEmail} verificacao={verificacao} aoPedirCodigo={(para) => pedirCodigo(para, false)} />
       )}
     </div>
   )
@@ -133,13 +136,35 @@ function FormCadastro({ email, setEmail, verificacao, aoPedirCodigo }: FormProps
   )
 }
 
-function FormCodigo({ email, volta, verificacao, aoTrocarEmail }: { email: string; volta: string; verificacao: Verificacao; aoTrocarEmail: () => void }) {
+type CodigoProps = { email: string; volta: string; verificacao: Verificacao; enviarAoAbrir: boolean; aoTrocarEmail: () => void }
+
+/**
+ * O passo do codigo. Depois de criar a conta o codigo ja saiu. De entrar com
+ * o e-mail nao confirmado, ele sai ao abrir, pelo mesmo caminho do "Reenviar
+ * codigo" (o mesmo limite, e um token novo do Turnstile: o do login ja foi
+ * gasto); a tela so diz que enviou depois que enviou.
+ */
+function FormCodigo({ email, volta, verificacao, enviarAoAbrir, aoTrocarEmail }: CodigoProps) {
   const [resposta, agir, enviando] = useActionState(confirmarCadastro, null)
-  const [reenvio, reenviar, reenviando] = useActionState(reenviarCodigo, null)
+  const [enviados, setEnviados] = useState(enviarAoAbrir ? 0 : 1)
+  const [reenvio, reenviar, reenviando] = useActionState(async (anterior: RespostaDaConta | null, form: FormData) => {
+    const r = await reenviarCodigo(anterior, form)
+    if (r.ok) setEnviados((n) => n + 1)
+    return r
+  }, null)
+  const formDoReenvio = useRef<HTMLFormElement>(null)
+  const pediu = useRef(false)
+  useEffect(() => {
+    if (!enviarAoAbrir || pediu.current) return
+    pediu.current = true
+    formDoReenvio.current?.requestSubmit()
+  }, [enviarAoAbrir])
+  const jaEnviou = enviados > 0
   return (
     <div className="porta__codigo">
       <p className="conta__texto">
-        Enviamos um código de 6 dígitos para <b>{email}</b>.
+        {jaEnviou ? 'Enviamos um código de 6 dígitos para ' : 'Falta confirmar o e-mail '}
+        <b>{email}</b>.
       </p>
       <form action={agir} className="porta__form" noValidate>
         <input type="hidden" name="email" value={email} />
@@ -147,21 +172,21 @@ function FormCodigo({ email, volta, verificacao, aoTrocarEmail }: { email: strin
         <Campo rotulo="Código" name="codigo" inputMode="numeric" autoComplete="one-time-code" maxLength={9} largura="meio" erro={erroDe(resposta, 'codigo')} />
         <Envio resposta={resposta} enviando={enviando} rotulo="Confirmar" rotuloEnviando="Conferindo o código" />
       </form>
-      <form action={reenviar} className="porta__reenviar" noValidate>
+      <form ref={formDoReenvio} action={reenviar} className="porta__reenviar" noValidate>
         <input type="hidden" name="email" value={email} />
-        <Turnstile {...verificacao} reiniciar={reenvio} />
-        <ErroGeral resposta={reenvio} />
-        <p className="conta__nota" aria-live="polite">
-          {reenvio?.ok && reenvio.aviso === 'codigo_reenviado' ? 'Enviamos outro código.' : ''}
-        </p>
         <div className="conta__acoes">
           <button type="submit" className="conta__texto-botao" disabled={reenviando}>
-            {reenviando ? 'Reenviando' : 'Reenviar código'}
+            {jaEnviou ? (reenviando ? 'Reenviando' : 'Reenviar código') : reenviando ? 'Enviando' : 'Enviar código'}
           </button>
           <button type="button" className="conta__texto-botao" onClick={aoTrocarEmail}>
             Usar outro e-mail
           </button>
         </div>
+        <Turnstile {...verificacao} reiniciar={reenvio} />
+        <ErroGeral resposta={reenvio} />
+        <p className="conta__nota" aria-live="polite">
+          {reenvio?.ok && reenvio.aviso === 'codigo_reenviado' && enviados > 1 ? 'Enviamos outro código.' : ''}
+        </p>
       </form>
     </div>
   )

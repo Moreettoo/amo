@@ -1,13 +1,16 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { variavel } from '@/lib/dados/ambiente'
-import { falhaDoBanco } from '@/lib/dados/erros'
+import { falhaDoBanco, registrarFalha } from '@/lib/dados/erros'
 import { criarClientePublico } from '@/lib/dados/publico'
 
 afterEach(() => {
   vi.unstubAllEnvs()
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
 })
+
+const espiarLog = () => vi.spyOn(console, 'error').mockImplementation(() => {})
 
 describe('variavel', () => {
   it('devolve o valor quando existe', () => {
@@ -27,6 +30,44 @@ describe('falhaDoBanco', () => {
   })
   it('sem codigo, diz que nao veio', () => {
     expect(falhaDoBanco('produtos', null).message).toBe('Falha no banco (produtos): sem código')
+  })
+  it('registra a falha no log do servidor, sem a mensagem crua', () => {
+    const log = espiarLog()
+    falhaDoBanco('enderecos', { code: '23505', message: 'texto cru com maria@exemplo.com' } as never)
+    expect(log).toHaveBeenCalledWith('Falha do Supabase', { onde: 'enderecos', code: '23505', status: null, name: null })
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/texto cru|maria|@/)
+  })
+})
+
+describe('registrarFalha', () => {
+  it('o lugar, o codigo, o status e o nome vao ao log; a mensagem crua e o e-mail, nunca', () => {
+    const log = espiarLog()
+    registrarFalha('entrar', {
+      code: 'invalid_credentials',
+      status: 400,
+      name: 'AuthApiError',
+      message: 'Invalid login credentials for maria@exemplo.com',
+      email: 'maria@exemplo.com',
+      token: 'token-secreto',
+    })
+    expect(log).toHaveBeenCalledTimes(1)
+    expect(log.mock.calls[0]).toEqual(['Falha do Supabase', { onde: 'entrar', code: 'invalid_credentials', status: 400, name: 'AuthApiError' }])
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/Invalid login|maria|@|token-secreto/)
+  })
+  it.each([
+    ['um e-mail no lugar do codigo', { code: 'maria@exemplo.com', status: 400, name: 'AuthApiError' }],
+    ['texto com espaco', { code: 'texto cru do erro', status: '400', name: 'x'.repeat(80) }],
+  ])('campo fora do formato curto (%s) nao entra', (_, erro) => {
+    const log = espiarLog()
+    registrarFalha('entrar', erro)
+    const [, campos] = log.mock.calls[0] as [string, Record<string, unknown>]
+    expect(campos.onde).toBe('entrar')
+    expect(JSON.stringify(log.mock.calls)).not.toMatch(/maria|texto cru|xxxxxxxxxx/)
+  })
+  it('erro que nao e objeto: so o lugar', () => {
+    const log = espiarLog()
+    registrarFalha('sair', 'texto cru com maria@exemplo.com')
+    expect(log).toHaveBeenCalledWith('Falha do Supabase', { onde: 'sair', code: null, status: null, name: null })
   })
 })
 
