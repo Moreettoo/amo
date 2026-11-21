@@ -6,7 +6,7 @@ const segAoSab = [1, 2, 3, 4, 5, 6].map((d) => horario(d))
 const hoje = (agora: string, pausada = false, h: Horario[] = segAoSab) => {
   const data = new Date(agora)
   const s = situacaoDaLoja(h, pausada, data)
-  return { s, texto: textoDaLoja(s, data) }
+  return { s, texto: textoDaLoja(s) }
 }
 
 describe('situacaoDaLoja e textoDaLoja', () => {

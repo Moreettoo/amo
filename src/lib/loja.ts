@@ -49,9 +49,7 @@ function horaEscrita(time: string): string {
   return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`
 }
 
-// agora ficou sem uso (o texto vem de emDias); a assinatura segue a interface
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function textoDaLoja(s: SituacaoDaLoja, _agora?: Date): string {
+export function textoDaLoja(s: SituacaoDaLoja): string {
   if (s.aberta) return `Pedidos até as ${horaEscrita(s.fecha)}.`
   if (s.pausada) return 'As vendas estão pausadas agora. Volte daqui a pouco.'
   if (!s.abre) return 'A cozinha está fechada por enquanto.'
