@@ -50,6 +50,7 @@ beforeEach(() => {
   logada = false
   reinicios.length = 0
   for (const k of Object.keys(respostas)) delete respostas[k]
+  for (const f of Object.values(acoes)) f.mockClear()
   vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', '1x00000000000000000000AA')
   rpc.mockResolvedValue({ data: [{ pode: true, motivo: null }], error: null })
 })
@@ -174,6 +175,67 @@ describe('as duas portas', () => {
     await u.click(screen.getByRole('button', { name: 'mostrar' }))
     expect(screen.getByLabelText('Senha')).toHaveAttribute('type', 'text')
     expect(screen.getByRole('button', { name: 'mostrar' })).toHaveAttribute('aria-pressed', 'true')
+  })
+})
+
+describe('entrar com o e-mail ainda nao confirmado', () => {
+  const ENVIADO = { ok: true, passo: 'codigo', email: 'maria@exemplo.com', aviso: 'codigo_reenviado' }
+  const entrarSemConfirmar = async () => {
+    respostas.entrar = { ok: true, passo: 'codigo', email: 'maria@exemplo.com' }
+    const u = userEvent.setup()
+    render(await PaginaEntrar(sp()))
+    await u.type(screen.getByLabelText('E-mail'), 'maria@exemplo.com')
+    await u.type(screen.getByLabelText('Senha'), 'segredo-123')
+    await u.click(screen.getByRole('button', { name: 'Entrar' }))
+    await screen.findByLabelText('Código')
+    return u
+  }
+  const formDoReenvio = (i = 0) => (acoes.reenviarCodigo.mock.calls[i] as unknown[])[1] as FormData
+
+  it('o codigo sai de verdade, pelo caminho do reenviar, e so entao a tela diz que enviou', async () => {
+    let soltar = () => {}
+    acoes.reenviarCodigo.mockImplementationOnce(() => new Promise((r) => (soltar = () => r(ENVIADO))))
+    await entrarSemConfirmar()
+    await vi.waitFor(() => expect(acoes.reenviarCodigo).toHaveBeenCalledTimes(1))
+    expect(formDoReenvio().get('email')).toBe('maria@exemplo.com')
+    expect(formDoReenvio().get('cf-turnstile-response')).toBe('tok')
+    expect(principal()).not.toHaveTextContent('Enviamos')
+    expect(principal()).toHaveTextContent('Falta confirmar o e-mail maria@exemplo.com.')
+    await act(async () => soltar())
+    expect(await screen.findByText(/Enviamos um código de 6 dígitos para/)).toHaveTextContent('maria@exemplo.com')
+    expect(principal()).not.toHaveTextContent('Enviamos outro código.')
+    expect(screen.getByRole('button', { name: 'Reenviar código' })).toBeEnabled()
+  })
+
+  it.each([
+    ['muitas_tentativas', 'Muitas tentativas. Espere um pouco e tente de novo.'],
+    ['captcha', 'Não conseguimos confirmar que você não é um robô. Tente de novo.'],
+    ['tente_de_novo', 'Não deu certo agora. Tente de novo em instantes.'],
+  ])('o envio que falha (%s) diz isso, e a tela nao diz que enviou', async (erro, texto) => {
+    respostas.reenviarCodigo = { ok: false, erro, passo: 'codigo', email: 'maria@exemplo.com' }
+    await entrarSemConfirmar()
+    expect(await screen.findByRole('alert')).toHaveTextContent(texto)
+    expect(principal()).not.toHaveTextContent('Enviamos')
+    expect(screen.getByRole('button', { name: 'Enviar código' })).toBeEnabled()
+  })
+
+  it('o reenvio depois do primeiro envio diz que mandou outro', async () => {
+    respostas.reenviarCodigo = ENVIADO
+    const u = await entrarSemConfirmar()
+    await screen.findByText(/Enviamos um código de 6 dígitos para/)
+    await u.click(screen.getByRole('button', { name: 'Reenviar código' }))
+    expect(await screen.findByText('Enviamos outro código.')).toBeInTheDocument()
+    expect(acoes.reenviarCodigo).toHaveBeenCalledTimes(2)
+  })
+
+  it('depois de criar a conta o codigo ja saiu: a tela nao pede outro sozinha', async () => {
+    respostas.cadastrar = { ok: true, passo: 'codigo', email: 'maria@exemplo.com' }
+    const u = userEvent.setup()
+    render(await PaginaCadastro(sp()))
+    await u.click(screen.getByRole('button', { name: 'Criar conta' }))
+    expect(await screen.findByText(/Enviamos um código de 6 dígitos para/)).toHaveTextContent('maria@exemplo.com')
+    await act(() => new Promise((r) => setTimeout(r, 20)))
+    expect(acoes.reenviarCodigo).not.toHaveBeenCalled()
   })
 })
 
