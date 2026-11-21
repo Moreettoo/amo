@@ -127,7 +127,8 @@ function Entrega() {
         {resultado?.ok ? (
           <p className="entrega__opcao">
             <span>
-              Uber, entrega hoje
+              {/* a Regra do Exemplo Dito: no texto em volta do valor, como no resumo da sacola */}
+              Uber, entrega hoje{resultado.cotacao.exemplo ? ' (valor de exemplo)' : ''}
               <small>Chega em até {resultado.cotacao.minutos} min depois do pedido</small>
             </span>
             <b>{formatarPreco(resultado.cotacao.valorCentavos)}</b>
