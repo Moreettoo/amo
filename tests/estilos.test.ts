@@ -265,6 +265,10 @@ describe('estilos', () => {
     expect(ultimo(regra(ler('conta.css'), '.painel__nota a'), 'text-decoration-line')).toBe('underline')
   })
 
+  it('o campo de senha tem um "mostrar" so: o olho proprio do Edge fica escondido', () => {
+    expect(ultimo(regra(ler('auth.css'), '.campo__senha input::-ms-reveal'), 'display')).toBe('none')
+  })
+
   it('bolo inteiro: a moldura contém a margem do círculo', () => {
     // sem conter a margem (margin collapse), a moldura media so o circulo e
     // o texto do card subia em relacao aos vizinhos

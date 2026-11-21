@@ -32,6 +32,8 @@
   .conta .campo input { width: 100%; }
   .campo__senha { position: relative; display: block; }
   .campo__senha input { padding-right: 84px; }
+  /* o Edge poe o proprio olho de revelar senha ao lado do nosso "mostrar": um controle so */
+  .campo__senha input::-ms-reveal { display: none; }
   .campo__mostrar {
     position: absolute; top: 0; right: 12px; min-height: 44px; padding: 0; border: 0; background: none; cursor: pointer;
     font: 400 13px var(--font-sans); color: var(--color-suave);
