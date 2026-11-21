@@ -266,3 +266,29 @@ código curto, que o servidor traduz para a tela:
 | --- | --- | --- |
 | `amo-expirar-pedidos` | a cada 5 minutos | pedido aguardando pagamento há mais de 60 minutos é cancelado |
 | `amo-guarda` | todo dia, 6h UTC | apaga o que passou do prazo (spec §12) |
+
+## Mercado Pago
+
+### A reconciliação
+
+A rota `POST /api/tarefas/reconciliar` confere as tentativas de pagamento
+paradas, cancela as que a criação nunca respondeu, tenta de novo os estornos
+devidos e cancela no Mercado Pago o que terminou do lado de cá. Numa passada
+só, com prazo de 50 s. Responde apenas `{ "conferidas", "canceladas", "falhas" }`.
+
+```bash
+curl -X POST -H "Authorization: Bearer $TAREFAS_SEGREDO" <site>/api/tarefas/reconciliar
+```
+
+`TAREFAS_SEGREDO` é a senha da tarefa (sem ela, 401; sem a variável no
+servidor, 500). Chamar a cada 10 minutos pelo agendador da hospedagem
+(etapa 4).
+
+### O que é do dono, no painel do Mercado Pago
+
+1. **URL do aviso:** `<site>/api/webhooks/mercadopago`.
+2. **Eventos:** "Order (Mercado Pago)" e "Chargebacks".
+3. **Assinatura secreta** do aviso, em `MERCADOPAGO_WEBHOOK_SECRET`.
+4. **Credenciais de teste:** o Access Token em `MERCADOPAGO_ACCESS_TOKEN` e a
+   chave pública em `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`.
+5. `MERCADOPAGO_AMBIENTE=teste` enquanto as credenciais forem de teste.
