@@ -78,7 +78,7 @@ describe('buscarCep', () => {
   })
 
   it('tira o controle C1 do que o servico devolve', async () => {
-    responder({ logradouro: 'RuaCuiabá', bairro: 'Centro', localidade: 'São Paulo', uf: 'SP' })
+    responder({ logradouro: 'Rua\u0085Cuiabá', bairro: 'Centro', localidade: 'São Paulo', uf: 'SP' })
     expect((await buscarCep('03183002'))?.logradouro).toBe('RuaCuiabá')
   })
 

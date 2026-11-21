@@ -46,11 +46,14 @@ describe('conferirEndereco', () => {
     expect(r.ok && [r.valor.apelido, r.valor.complemento, r.valor.principal]).toEqual([null, '', false])
   })
 
-  it('recusa controle C1 no nome e no logradouro', () => {
-    const p = conferirPerfil({ nome: 'AnaMaria', celular: '11987654321' })
+  it('recusa controle C1 no nome', () => {
+    const p = conferirPerfil({ nome: 'Ana\u0085Maria', celular: '11987654321' })
     expect(p.ok).toBe(false)
     expect(camposComErro(p)).toContain('nome')
-    const e = conferirEndereco({ ...endereco, logradouro: 'RuaA' })
+  })
+
+  it('recusa controle C1 no logradouro', () => {
+    const e = conferirEndereco({ ...endereco, logradouro: 'Rua\u0085A' })
     expect(e.ok).toBe(false)
     expect(camposComErro(e as never)).toContain('logradouro')
   })
