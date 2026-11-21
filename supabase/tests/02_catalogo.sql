@@ -9,9 +9,10 @@ select pg_temp.verificar('visitante le a categoria e a linha',
     $$select string_agg(slug, ',') from (select slug from public.categorias union all select slug from public.linhas) x$$)
   = 'doces,bolos-no-pote');
 
-select pg_temp.verificar('visitante le os 7 selos e as 5 vontades',
+select pg_temp.verificar('visitante le todos os selos e todas as vontades',
   pg_temp.valor('anon', null,
-    'select (select count(*) from public.selos) || ''/'' || (select count(*) from public.vontades)') = '7/5');
+    'select (select count(*) from public.selos) || ''/'' || (select count(*) from public.vontades)')
+  = (select (select count(*) from public.selos) || '/' || (select count(*) from public.vontades)));
 
 select pg_temp.verificar('cliente le os produtos',
   pg_temp.valor('authenticated', gen_random_uuid(), 'select count(*) from public.produtos') = '7');
@@ -76,7 +77,7 @@ select pg_temp.verificar('horario que abre depois de fechar e recusado',
     $$update public.horarios set abre = '19:00' where dia_da_semana = 1$$) like '23514%');
 
 select pg_temp.verificar('os selos tem ordem, sem repetir',
-  (select count(*) = 7 and count(distinct ordem) = 7 from public.selos));
+  (select count(*) = count(distinct ordem) from public.selos));
 
 select * from pg_temp.relatorio();
 rollback;

@@ -31,6 +31,18 @@ describe('falhaDoBanco', () => {
   it('sem codigo, diz que nao veio', () => {
     expect(falhaDoBanco('produtos', null).message).toBe('Falha no banco (produtos): sem código')
   })
+  it('sem codigo, com status, diz o status HTTP (0 e nem houve resposta)', () => {
+    const log = espiarLog()
+    expect(falhaDoBanco('catalogo', { code: '' }, 503).message).toBe('Falha no banco (catalogo): HTTP 503')
+    expect(log).toHaveBeenCalledWith('Falha do Supabase', { onde: 'catalogo', code: null, status: 503, name: null })
+    expect(falhaDoBanco('catalogo', null, 0).message).toBe('Falha no banco (catalogo): HTTP 0')
+  })
+  it('o codigo manda sobre o status', () => {
+    expect(falhaDoBanco('catalogo', { code: 'PGRST301' }, 401).message).toBe('Falha no banco (catalogo): PGRST301')
+  })
+  it('sem codigo e sem status, continua sem codigo', () => {
+    expect(falhaDoBanco('catalogo', null).message).toBe('Falha no banco (catalogo): sem código')
+  })
   it('registra a falha no log do servidor, sem a mensagem crua', () => {
     const log = espiarLog()
     falhaDoBanco('enderecos', { code: '23505', message: 'texto cru com maria@exemplo.com' } as never)

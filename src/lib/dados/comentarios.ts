@@ -30,11 +30,11 @@ export function montarComentario(linha: LinhaDoComentario): Comentario | null {
  * pode nem citar `status` nem `user_id`.
  */
 export async function lerComentariosAprovados(produto: string): Promise<Comentario[]> {
-  const { data, error } = await criarClientePublico()
+  const { data, error, status } = await criarClientePublico()
     .from('comentarios')
     .select('id, produto, nome_exibido, nota, texto, criado_em')
     .eq('produto', produto)
     .order('criado_em', { ascending: false })
-  if (error) throw falhaDoBanco('comentarios', error)
+  if (error) throw falhaDoBanco('comentarios', error, status)
   return (data ?? []).flatMap((linha) => montarComentario(linha) ?? [])
 }

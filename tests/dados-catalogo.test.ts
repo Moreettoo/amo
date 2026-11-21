@@ -3,11 +3,23 @@ import { describe, expect, it, vi } from 'vitest'
 import type { Tables } from '@/lib/dados/banco'
 import type { TabelasDoCatalogo } from '@/lib/dados/catalogo'
 
-type Resposta = { data: unknown; error: { code: string; message?: string } | null }
+type Resposta = { data: unknown; error: { code: string; message?: string } | null; status?: number }
 const respostas: Record<string, Resposta> = {}
+const ordens: Record<string, string[]> = {}
 vi.mock('@/lib/dados/publico', () => ({
   criarClientePublico: () => ({
-    from: (tabela: string) => ({ select: () => ({ order: async () => respostas[tabela] }) }),
+    from: (tabela: string) => {
+      ordens[tabela] = []
+      const busca = {
+        order: (coluna: string) => {
+          ordens[tabela].push(coluna)
+          return busca
+        },
+        then: (ok: (r: Resposta) => unknown, falha?: (e: unknown) => unknown) =>
+          Promise.resolve(respostas[tabela]).then(ok, falha),
+      }
+      return { select: () => busca }
+    },
   }),
 }))
 const { carregarCatalogo, montarCatalogoDoBanco } =
@@ -69,6 +81,12 @@ describe('montarCatalogoDoBanco', () => {
       )
     },
   )
+  it('passo do modo de aproveitar so com espaco e recusado', () => {
+    const modo = { titulo: 'Como aproveitar', passos: ['Abra o pote.', '  '] }
+    expect(() => montarCatalogoDoBanco(tabelas({ linhas: [linha({ modo_de_aproveitar: modo })] }))).toThrow(
+      'linha bolos-no-pote: modo de aproveitar fora do formato',
+    )
+  })
   it('cor de rotulo desconhecida e recusada, dizendo a linha', () => {
     expect(() => montarCatalogoDoBanco(tabelas({ linhas: [linha({ cor_do_rotulo: 'roxo' })] }))).toThrow(
       'linha bolos-no-pote: cor do rótulo desconhecida',
@@ -86,6 +104,17 @@ describe('carregarCatalogo', () => {
     respostas.produtos = { data: null, error: { code: 'AMO401', message: 'texto cru com segredo' } }
     await expect(carregarCatalogo()).rejects.toThrow('Falha no banco (produtos): AMO401')
     await expect(carregarCatalogo()).rejects.not.toThrow(/segredo/)
+  })
+  it('banco fora do ar, sem corpo de erro: a mensagem traz o status HTTP', async () => {
+    servir(tabelas())
+    respostas.produtos = { data: null, error: { code: '' }, status: 503 }
+    await expect(carregarCatalogo()).rejects.toThrow('Falha no banco (produtos): HTTP 503')
+  })
+  it('a ordem e por ordem e, no empate, por slug (selos: por id)', async () => {
+    servir(tabelas())
+    await carregarCatalogo()
+    for (const t of ['produtos', 'linhas', 'categorias', 'vontades']) expect(ordens[t]).toEqual(['ordem', 'slug'])
+    expect(ordens.selos).toEqual(['ordem', 'id'])
   })
   it('cadastro torto no banco e recusado pela validacao', async () => {
     servir(tabelas({ produtos: [produto({ selos: ['nao-existe'] })] }))

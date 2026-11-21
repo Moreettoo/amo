@@ -35,7 +35,7 @@ function modoDeAproveitar(l: Tables<'linhas'>): Linha['modoDeAproveitar'] {
     modo.titulo.trim() !== '' &&
     Array.isArray(modo.passos) &&
     modo.passos.length > 0 &&
-    modo.passos.every((p) => typeof p === 'string')
+    modo.passos.every((p) => typeof p === 'string' && p.trim() !== '')
   if (!valido) return recusar(`linha ${l.slug}: modo de aproveitar fora do formato`)
   return { titulo: modo.titulo as string, passos: modo.passos as string[] }
 }
@@ -89,23 +89,25 @@ export function montarCatalogoDoBanco(t: TabelasDoCatalogo): Catalogo {
 export async function carregarCatalogo(): Promise<Catalogo> {
   const banco = criarClientePublico()
   const [categorias, linhas, produtos, selos, vontades] = await Promise.all([
-    banco.from('categorias').select('slug, nome, ordem').order('ordem'),
+    banco.from('categorias').select('slug, nome, ordem').order('ordem').order('slug'),
     banco
       .from('linhas')
       .select('slug, categoria, nome, tipo, regra, selos, frase, modo_de_aproveitar, cor_do_rotulo, ordem')
-      .order('ordem'),
+      .order('ordem')
+      .order('slug'),
     banco
       .from('produtos')
       .select(
         'slug, nome, linha, formato, frase, descricao, imagem_src, imagem_alt, imagem_largura, imagem_altura, selos, vontades, destaque, ordem, preco_centavos, a_venda',
       )
-      .order('ordem'),
-    banco.from('selos').select('id, nome, ordem').order('ordem'),
-    banco.from('vontades').select('slug, palavra, ordem').order('ordem'),
+      .order('ordem')
+      .order('slug'),
+    banco.from('selos').select('id, nome, ordem').order('ordem').order('id'),
+    banco.from('vontades').select('slug, palavra, ordem').order('ordem').order('slug'),
   ])
   const lidas = { categorias, linhas, produtos, selos, vontades }
-  for (const [tabela, { error }] of Object.entries(lidas)) {
-    if (error) throw falhaDoBanco(tabela, error)
+  for (const [tabela, { error, status }] of Object.entries(lidas)) {
+    if (error) throw falhaDoBanco(tabela, error, status)
   }
   const catalogo = montarCatalogoDoBanco({
     categorias: categorias.data ?? [],

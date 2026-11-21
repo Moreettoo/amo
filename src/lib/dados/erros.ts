@@ -25,10 +25,12 @@ export function registrarFalha(onde: string, erro: unknown): void {
  * O erro que sobe quando o banco falha. Diz onde e o codigo; a mensagem crua
  * do banco nunca entra (ela pode trazer nome de tabela, valor ou detalhe que
  * nao deve chegar a um log nem a pagina). A falha vai ao log do servidor.
+ * Sem codigo, diz o status HTTP da resposta (0 quando nem houve resposta).
  */
-export function falhaDoBanco(onde: string, erro: { code?: string } | null): Error {
-  registrarFalha(onde, erro)
-  return new Error(`Falha no banco (${onde}): ${erro?.code || 'sem código'}`)
+export function falhaDoBanco(onde: string, erro: { code?: string } | null, status?: number): Error {
+  registrarFalha(onde, status === undefined ? erro : { ...erro, status })
+  const motivo = erro?.code || (status === undefined ? 'sem código' : `HTTP ${status}`)
+  return new Error(`Falha no banco (${onde}): ${motivo}`)
 }
 
 /**
@@ -49,7 +51,7 @@ export class ErroDeRegra extends Error {
 const FORMATO_DE_CODIGO = /^[a-z][a-z_]{2,39}$/
 
 /** P0001 com mensagem no formato de codigo vira ErroDeRegra; o resto, falhaDoBanco. */
-export function erroDoBanco(onde: string, erro: { code?: string; message?: string } | null): Error {
+export function erroDoBanco(onde: string, erro: { code?: string; message?: string } | null, status?: number): Error {
   if (erro?.code === 'P0001' && erro.message && FORMATO_DE_CODIGO.test(erro.message)) return new ErroDeRegra(erro.message)
-  return falhaDoBanco(onde, erro)
+  return falhaDoBanco(onde, erro, status)
 }

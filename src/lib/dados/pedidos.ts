@@ -53,20 +53,20 @@ export function rastreioSeguro(url: unknown): string | null {
 /** Quantos pedidos ela tem (o numero do sumario), sem trazer as linhas. */
 export async function contarPedidos(usuarioId: string): Promise<number> {
   const banco = await criarClienteServidor()
-  const { count, error } = await banco.from('pedidos').select('id', { count: 'exact', head: true }).eq('user_id', usuarioId)
-  if (error) throw falhaDoBanco('pedidos', error)
+  const { count, error, status } = await banco.from('pedidos').select('id', { count: 'exact', head: true }).eq('user_id', usuarioId)
+  if (error) throw falhaDoBanco('pedidos', error, status)
   return count ?? 0
 }
 
 export async function lerPedidos(usuarioId: string): Promise<PedidoNaLista[]> {
   const banco = await criarClienteServidor()
-  const { data, error } = await banco
+  const { data, error, status } = await banco
     .from('pedidos')
     .select('numero, status, criado_em, total_centavos, itens_do_pedido(quantos)')
     .eq('user_id', usuarioId)
     .order('criado_em', { ascending: false })
     .limit(50)
-  if (error) throw falhaDoBanco('pedidos', error)
+  if (error) throw falhaDoBanco('pedidos', error, status)
   return data.map((p) => ({
     numero: p.numero,
     estado: p.status as EstadoDoPedido,
@@ -83,14 +83,14 @@ const COLUNAS_DO_PEDIDO =
 export async function lerPedido(usuarioId: string, numero: string): Promise<PedidoCompleto | null> {
   if (!conferirNumeroDoPedido(numero)) return null
   const banco = await criarClienteServidor()
-  const { data: p, error } = await banco
+  const { data: p, error, status } = await banco
     .from('pedidos')
     .select(COLUNAS_DO_PEDIDO)
     .eq('user_id', usuarioId)
     .eq('numero', numero)
     .order('nome', { referencedTable: 'itens_do_pedido' })
     .maybeSingle()
-  if (error) throw falhaDoBanco('pedidos', error)
+  if (error) throw falhaDoBanco('pedidos', error, status)
   if (!p) return null
   const aprovado = p.pagamentos.find((t) => t.aprovado_em !== null)
   return {
@@ -142,9 +142,9 @@ export async function lerPedido(usuarioId: string, numero: string): Promise<Pedi
 export async function cancelarPedidoDaCliente(usuarioId: string, numero: string): Promise<void> {
   if (!conferirNumeroDoPedido(numero)) throw new ErroDeRegra('pedido_invalido')
   const banco = await criarClienteServidor()
-  const { data, error } = await banco.from('pedidos').select('id').eq('user_id', usuarioId).eq('numero', numero).maybeSingle()
-  if (error) throw falhaDoBanco('pedidos', error)
+  const { data, error, status } = await banco.from('pedidos').select('id').eq('user_id', usuarioId).eq('numero', numero).maybeSingle()
+  if (error) throw falhaDoBanco('pedidos', error, status)
   if (!data) throw new ErroDeRegra('pedido_invalido')
   const cancelado = await banco.rpc('cancelar_pedido', { p_pedido: data.id })
-  if (cancelado.error) throw erroDoBanco('cancelar_pedido', cancelado.error)
+  if (cancelado.error) throw erroDoBanco('cancelar_pedido', cancelado.error, cancelado.status)
 }

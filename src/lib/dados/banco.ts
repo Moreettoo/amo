@@ -1,5 +1,7 @@
 // Arquivo gerado: tipos do banco (MCP supabase-amo, generate_typescript_types).
 // Nao editar a mao; regenerar com a mesma chamada depois de toda migration.
+import 'server-only'
+// Mantenha esta importacao ao regenerar o arquivo.
 
 export type Json =
   | string

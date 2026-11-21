@@ -17,44 +17,44 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function lerEnderecos(usuarioId: string): Promise<Endereco[]> {
   const banco = await criarClienteServidor()
-  const { data, error } = await banco
+  const { data, error, status } = await banco
     .from('enderecos')
     .select(COLUNAS)
     .eq('user_id', usuarioId)
     .order('principal', { ascending: false })
     .order('criado_em', { ascending: true })
-  if (error) throw falhaDoBanco('enderecos', error)
+  if (error) throw falhaDoBanco('enderecos', error, status)
   return data
 }
 
 /** Quantos enderecos ela tem (o numero do sumario), sem trazer as linhas. */
 export async function contarEnderecos(usuarioId: string): Promise<number> {
   const banco = await criarClienteServidor()
-  const { count, error } = await banco.from('enderecos').select('id', { count: 'exact', head: true }).eq('user_id', usuarioId)
-  if (error) throw falhaDoBanco('enderecos', error)
+  const { count, error, status } = await banco.from('enderecos').select('id', { count: 'exact', head: true }).eq('user_id', usuarioId)
+  if (error) throw falhaDoBanco('enderecos', error, status)
   return count ?? 0
 }
 
 /** O dono vem da sessao (user_id tem auth.uid() por padrao). */
 export async function criarEndereco(novo: EnderecoNovo): Promise<void> {
   const banco = await criarClienteServidor()
-  const { error } = await banco.from('enderecos').insert(novo)
-  if (error) throw erroDoBanco('enderecos', error)
+  const { error, status } = await banco.from('enderecos').insert(novo)
+  if (error) throw erroDoBanco('enderecos', error, status)
 }
 
 export async function alterarEndereco(usuarioId: string, id: string, novo: EnderecoNovo): Promise<boolean> {
   if (!UUID.test(id)) return false
   const banco = await criarClienteServidor()
-  const { data, error } = await banco.from('enderecos').update(novo).eq('id', id).eq('user_id', usuarioId).select('id')
-  if (error) throw erroDoBanco('enderecos', error)
+  const { data, error, status } = await banco.from('enderecos').update(novo).eq('id', id).eq('user_id', usuarioId).select('id')
+  if (error) throw erroDoBanco('enderecos', error, status)
   return data.length > 0
 }
 
 export async function apagarEndereco(usuarioId: string, id: string): Promise<boolean> {
   if (!UUID.test(id)) return false
   const banco = await criarClienteServidor()
-  const { data, error } = await banco.from('enderecos').delete().eq('id', id).eq('user_id', usuarioId).select('id')
-  if (error) throw erroDoBanco('enderecos', error)
+  const { data, error, status } = await banco.from('enderecos').delete().eq('id', id).eq('user_id', usuarioId).select('id')
+  if (error) throw erroDoBanco('enderecos', error, status)
   return data.length > 0
 }
 
@@ -62,7 +62,7 @@ export async function apagarEndereco(usuarioId: string, id: string): Promise<boo
 export async function tornarEnderecoPrincipal(usuarioId: string, id: string): Promise<boolean> {
   if (!UUID.test(id)) return false
   const banco = await criarClienteServidor()
-  const { data, error } = await banco.from('enderecos').update({ principal: true }).eq('id', id).eq('user_id', usuarioId).select('id')
-  if (error) throw erroDoBanco('enderecos', error)
+  const { data, error, status } = await banco.from('enderecos').update({ principal: true }).eq('id', id).eq('user_id', usuarioId).select('id')
+  if (error) throw erroDoBanco('enderecos', error, status)
   return data.length > 0
 }
