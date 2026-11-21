@@ -283,9 +283,10 @@ describe('excluirConta', () => {
     expect(senhaConfere).not.toHaveBeenCalled()
     expect(deleteUser).not.toHaveBeenCalled()
   })
-  it('senha errada nao apaga', async () => {
-    senhaConfere.mockResolvedValue(false)
-    expect(await chamar(acoes.excluirConta, EXCLUIR)).toMatchObject({ ok: false, erro: 'credenciais' })
+  // senhaConfere devolve true ou o codigo da tela (src/lib/auth/senha.ts), e o codigo segue como veio
+  it.each(['credenciais', 'captcha', 'muitas_tentativas'])('senha nao conferida (%s) nao apaga', async (codigo) => {
+    senhaConfere.mockResolvedValue(codigo)
+    expect(await chamar(acoes.excluirConta, EXCLUIR)).toMatchObject({ ok: false, erro: codigo })
     expect(deleteUser).not.toHaveBeenCalled()
   })
   // apagar o cookie faz o Next renderizar de novo a pagina atual, que sem sessao

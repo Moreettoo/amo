@@ -249,7 +249,7 @@ export async function excluirConta(_: RespostaDaConta | null, form: FormData): P
     if (!data?.[0]) return falha('tente_de_novo')
     if (!data[0].pode) return falha('pedido_em_aberto')
     const conferida = await senhaConfere(usuario.email, senha, tokenDoCaptcha(form))
-    if (conferida !== true) return falha((conferida as CodigoDaConta | false) || 'credenciais')
+    if (conferida !== true) return falha(conferida)
     const apagada = await criarClienteAdmin().auth.admin.deleteUser(usuario.id)
     if (apagada.error) return falha(traduzirErroDoAuth(apagada.error, 'excluirConta'))
     await apagarCookiesDaSessao()
