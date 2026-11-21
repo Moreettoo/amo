@@ -65,7 +65,9 @@ node scripts/testar-porta.mjs
 ```
 
 E os testes do site contra o banco de desenvolvimento (precisam do
-`.env.local`; ficam fora do `npm test`):
+`.env.local`; ficam fora do `npm test`; com o CAPTCHA ligado no painel,
+precisam também do token falso da Cloudflare, ver o item 4 de "O painel do
+Auth"):
 
 ```bash
 npm run test:banco
@@ -169,6 +171,16 @@ produção.
    só a chave pública (`NEXT_PUBLIC_TURNSTILE_SITE_KEY`); em desenvolvimento,
    a chave de teste `1x00000000000000000000AA` com o segredo de teste
    `1x0000000000000000000000000000000AA`, que sempre passam.
+   **Ao ligar no projeto de desenvolvimento**, os testes de banco
+   (`npm run test:banco`) passam a precisar de um token: o Supabase recusa
+   sem ele entrar, cadastrar, reenviar o código, pedir o código de
+   recuperação e excluir a conta, e a ação responde `captcha`. Hoje
+   `tests/banco/auth.test.ts` chama entrar, pedir o código e excluir sem
+   token. Acrescentar ao `formulario()` desse arquivo o campo
+   `'cf-turnstile-response': 'XXXX.DUMMY.TOKEN.XXXX'`, o token falso que a
+   Cloudflare documenta para testes: o segredo de teste o aceita, o de
+   produção o recusa. Por isso esses testes nunca rodam contra a produção.
+   Confirmar o código e trocar a senha com o código não pedem token.
 5. **Senha:** mínimo 8; proteção contra senha vazada (plano Pro).
 6. **URLs:** Site URL e a lista de redirecionamento só com
    `<site>/auth/callback`.
