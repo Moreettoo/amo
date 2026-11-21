@@ -99,7 +99,7 @@ const RECUSAS: Record<string, string> = {
   invalid_installments: 'Escolha outro número de parcelas.',
 }
 
-/** O texto da recusa do cartão para a tela; código desconhecido ou ausente cai no texto geral. */
+/** O texto da recusa do cartao para a tela; codigo desconhecido ou ausente cai no texto geral. */
 export function mensagemDaRecusa(recusa: string | null): string {
   return (recusa !== null && Object.hasOwn(RECUSAS, recusa) ? RECUSAS[recusa] : null) ?? MENSAGENS_DO_FECHAMENTO.pagamento_recusado
 }

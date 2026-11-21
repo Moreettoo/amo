@@ -11,6 +11,7 @@ import { conferirNumeroDoPedido } from '@/lib/conta/regras'
 import { criarPedido, iniciarPagamento, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
 import { aplicarPagamento, tentativasACancelarNoMp } from '@/lib/dados/pagamentos'
 import { criarPedidoCartao, criarPedidoPix, type PedidoMp } from '@/lib/mercadopago/cliente'
+import { traduzir } from '@/lib/mercadopago/traducao'
 import { aplicarRespostaDoMp, cancelarNoMp } from '@/lib/mercadopago/sincronizar'
 import { consumirLimite } from '@/lib/dados/limites'
 import type {
@@ -208,8 +209,8 @@ const CODIGOS_DE_INICIAR: Record<string, CodigoDoFechamento> = {
   sem_sessao: 'sem_sessao',
 }
 
-/** Sem resposta, 5xx, 409, 423 e 429: o Mercado Pago pode ter criado; a tentativa fica pendente. */
-const ficaPendente = (status: number) => status === 0 || status >= 500 || status === 409 || status === 423 || status === 429
+/** So um 4xx de recusa (nao 409, 423 nem 429) encerra a tentativa; sem resposta, 2xx ilegivel, 5xx e esses tres a deixam pendente. */
+const criacaoRecusada = (status: number) => status >= 400 && status < 500 && status !== 409 && status !== 423 && status !== 429
 
 function situacaoDaResposta(
   numero: string,
@@ -218,12 +219,13 @@ function situacaoDaResposta(
   pedido: PedidoMp,
 ): RespostaDoPagamento {
   const estado = aplicado.tentativa
+  const pendente = estado === 'pendente'
   const pagamento: PagamentoNaTela = {
     forma,
     estado,
-    recusa: estado === 'recusado' && pedido.pagamento?.detalhe ? pedido.pagamento.detalhe : null,
-    pix: forma === 'pix' ? (pedido.pagamento?.pix ?? null) : null,
-    desafioUrl: forma === 'cartao' ? (pedido.pagamento?.desafioUrl ?? null) : null,
+    recusa: estado === 'recusado' ? (traduzir(pedido)?.recusa ?? null) : null,
+    pix: pendente && forma === 'pix' ? (pedido.pagamento?.pix ?? null) : null,
+    desafioUrl: pendente && forma === 'cartao' ? (pedido.pagamento?.desafioUrl ?? null) : null,
   }
   return { ok: true, situacao: { numero, estado: aplicado.pedido as EstadoDoPedido, pagamento } }
 }
@@ -254,15 +256,27 @@ async function pagar(forma: 'pix' | 'cartao', entrada: unknown): Promise<Respost
       throw erro
     }
 
-    for (const velha of await tentativasACancelarNoMp(pedido.id)) {
-      void cancelarNoMp(velha.tentativa, velha.mpPedidoId).catch((erro) => registrarFalha('cancelar_tentativa_anterior', erro))
+    // A anterior e cancelada la antes de criar a nova; falha aqui e registrada e nunca barra o pagamento.
+    try {
+      const velhas = await tentativasACancelarNoMp(pedido.id)
+      await Promise.allSettled(
+        velhas.map(async (velha) => {
+          try {
+            await cancelarNoMp(velha.tentativa, velha.mpPedidoId)
+          } catch (erro) {
+            registrarFalha('cancelar_tentativa_anterior', erro)
+          }
+        }),
+      )
+    } catch (erro) {
+      registrarFalha('tentativas_a_cancelar', erro)
     }
 
     const base = { tentativa, totalCentavos: pedido.totalCentavos, email: usuario.email }
     const criado = dados ? await criarPedidoCartao({ ...base, cartao: dados.cartao, documento: dados.documento }) : await criarPedidoPix(base)
 
     if (!criado.ok) {
-      if (!ficaPendente(criado.status)) {
+      if (criacaoRecusada(criado.status)) {
         await aplicarPagamento({
           tentativa,
           mpPedidoId: null,
@@ -280,18 +294,20 @@ async function pagar(forma: 'pix' | 'cartao', entrada: unknown): Promise<Respost
 
     // A traducao falhou ou a referencia nao confere: a tentativa existe, entao a tela recebe o que o banco tem.
     const ultima = await lerUltimaTentativa(pedido.id)
-    if (!ultima) return { ok: false, erro: 'pagamento_indisponivel' }
+    const atual = await lerPedidoParaPagar(numero)
+    if (!ultima || !atual) return { ok: false, erro: 'pagamento_indisponivel' }
+    const pendente = ultima.status === 'pendente'
     return {
       ok: true,
       situacao: {
         numero,
-        estado: 'aguardando_pagamento',
+        estado: atual.estado as EstadoDoPedido,
         pagamento: {
           forma: ultima.forma,
           estado: ultima.status,
           recusa: ultima.recusa,
           pix:
-            ultima.pixCopiaECola && ultima.pixQrBase64
+            pendente && ultima.pixCopiaECola && ultima.pixQrBase64
               ? { copiaECola: ultima.pixCopiaECola, qrBase64: ultima.pixQrBase64, expiraEm: ultima.pixExpiraEm }
               : null,
           desafioUrl: null,

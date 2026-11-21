@@ -124,6 +124,8 @@ describe('campos', () => {
     for (const h of HOSTIS) {
       for (const k of ['numero', 'token', 'bandeira', 'tipo', 'final']) await recusa({ ...cartao, [k]: h })
       await recusa({ ...cartao, documento: { tipo: 'CPF', numero: h } })
+      await recusa({ ...cartao, documento: { tipo: h, numero: '12345678909' } })
+      await recusa({ ...cartao, parcelas: h })
       expect(await pagarComPix({ numero: h })).toEqual({ ok: false, erro: 'campos_invalidos' })
     }
   })
@@ -185,6 +187,24 @@ describe('criar no Mercado Pago', () => {
     expect((await pagarComPix({ numero: NUMERO })).ok).toBe(true)
     expect(m.tentativasACancelarNoMp).toHaveBeenCalledWith('ped-1')
     expect(m.cancelarNoMp).toHaveBeenCalledWith('velha', 'ORD0')
+    expect(JSON.stringify((console.error as ReturnType<typeof vi.fn>).mock.calls)).toContain('cancelar_tentativa_anterior')
+  })
+  it('o cancelamento termina antes de criar no Mercado Pago', async () => {
+    let terminou = 0
+    m.tentativasACancelarNoMp.mockResolvedValue([{ tentativa: 'velha', mpPedidoId: 'ORD0' }])
+    m.cancelarNoMp.mockImplementation(async () => {
+      await new Promise((f) => setTimeout(f, 20))
+      terminou = m.criarPedidoPix.mock.invocationCallOrder.length
+      return null
+    })
+    await pagarComPix({ numero: NUMERO })
+    expect(terminou).toBe(0)
+    expect(m.criarPedidoPix).toHaveBeenCalledTimes(1)
+  })
+  it('falha em tentativasACancelarNoMp: registra e segue', async () => {
+    m.tentativasACancelarNoMp.mockRejectedValue(new Error('banco'))
+    expect((await pagarComPix({ numero: NUMERO })).ok).toBe(true)
+    expect(JSON.stringify((console.error as ReturnType<typeof vi.fn>).mock.calls)).toContain('tentativas_a_cancelar')
   })
   it('Pix: valor do banco, e-mail da sessao, QR devolvido', async () => {
     const r = await pagarComPix({ numero: NUMERO })
@@ -222,6 +242,20 @@ describe('criar no Mercado Pago', () => {
     const r = await pagarComCartao(cartao)
     expect(r.ok && r.situacao.pagamento).toMatchObject({ estado: 'recusado', recusa: 'rejected_by_issuer' })
   })
+  it('pix e desafio so aparecem com a tentativa pendente', async () => {
+    m.aplicarRespostaDoMp.mockResolvedValue({ tentativa: 'cancelado', pedido: 'aguardando_pagamento' })
+    const r = await pagarComPix({ numero: NUMERO })
+    expect(r.ok && r.situacao.pagamento?.pix).toBeNull()
+    m.criarPedidoCartao.mockResolvedValue({ ok: true, pedido: pedidoMp({ desafioUrl: 'https://www.mercadopago.com.br/3ds' }) })
+    const c = await pagarComCartao(cartao)
+    expect(c.ok && c.situacao.pagamento?.desafioUrl).toBeNull()
+  })
+  it('a recusa e a traduzida; detalhe fora do formato vira null', async () => {
+    m.aplicarRespostaDoMp.mockResolvedValue({ tentativa: 'recusado', pedido: 'aguardando_pagamento' })
+    m.criarPedidoCartao.mockResolvedValue({ ok: true, pedido: pedidoMp({ status: 'failed', detalhe: 'Muito Estranho!' }) })
+    const r = await pagarComCartao(cartao)
+    expect(r.ok && r.situacao.pagamento?.recusa).toBeNull()
+  })
   it('cartao com desafio: desafioUrl', async () => {
     const url = 'https://www.mercadopago.com.br/3ds'
     m.criarPedidoCartao.mockResolvedValue({ ok: true, pedido: pedidoMp({ desafioUrl: url }) })
@@ -236,10 +270,15 @@ describe('criar no Mercado Pago', () => {
       ok: true,
       situacao: { numero: NUMERO, estado: 'aguardando_pagamento', pagamento: { forma: 'pix', estado: 'pendente', recusa: null, pix: { copiaECola: '000201', qrBase64: 'QUJD', expiraEm: null }, desafioUrl: null } },
     })
+    m.lerPedidoParaPagar
+      .mockResolvedValueOnce({ id: 'ped-1', totalCentavos: 9280, estado: 'aguardando_pagamento' })
+      .mockResolvedValueOnce({ id: 'ped-1', totalCentavos: 9280, estado: 'pago' })
+    const lido = await pagarComPix({ numero: NUMERO })
+    expect(lido.ok && lido.situacao.estado).toBe('pago')
     m.lerUltimaTentativa.mockResolvedValue(null)
     expect(await pagarComPix({ numero: NUMERO })).toEqual({ ok: false, erro: 'pagamento_indisponivel' })
   })
-  it.each([0, 500, 503, 409, 423, 429])('Mercado Pago %i: pendente, pagamento_indisponivel', async (status) => {
+  it.each([0, 201, 204, 500, 503, 409, 423, 429])('Mercado Pago %i: pendente, pagamento_indisponivel', async (status) => {
     m.criarPedidoPix.mockResolvedValue({ ok: false, status, codigo: null })
     expect(await pagarComPix({ numero: NUMERO })).toEqual({ ok: false, erro: 'pagamento_indisponivel' })
     expect(m.aplicarPagamento).not.toHaveBeenCalled()
@@ -255,6 +294,7 @@ describe('criar no Mercado Pago', () => {
     await pagarComCartao({ ...cartao, documento: { tipo: 'CPF', numero: CPF } })
     m.iniciarPagamento.mockRejectedValue(new Error(TOKEN))
     await pagarComCartao({ ...cartao, documento: { tipo: 'CPF', numero: CPF } })
+    expect(console.error).toHaveBeenCalled()
     const log = JSON.stringify((console.error as ReturnType<typeof vi.fn>).mock.calls)
     expect(log).not.toContain('12345678909')
     expect(log).not.toContain('123.456')
