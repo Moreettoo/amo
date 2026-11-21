@@ -1,29 +1,22 @@
 'use client'
 
-import { useEffect, useId, useRef, useState, type FormEvent, type InputHTMLAttributes, type ReactNode } from 'react'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
 import { useSacola } from '@/components/ui/useSacola'
 import { mascararCep } from '@/lib/entrega'
 import type { Cotacao } from '@/lib/fechamento/tipos'
-import {
-  enviarPedidoDeExemplo,
-  mascararCelular,
-  NOMES_DO_PAGAMENTO,
-  validarDados,
-  type Dados,
-  type ErrosDosDados,
-  type Pagamento,
-} from '@/lib/pedido'
+import { enviarPedidoDeExemplo, mascararCelular, NOMES_DO_PAGAMENTO, type Pagamento } from '@/lib/pedido'
 import { formatarPreco } from '@/lib/produto'
 import { contarPotes, esvaziarSacola, somarLinhas, textoPotes, type ItemDaLoja, type LinhaDaSacola } from '@/lib/sacola'
 import { CAMINHO_CATALOGO } from '@/lib/visao'
+import { EtapaDados } from './EtapaDados'
 import { EtapaEntrega } from './EtapaEntrega'
 import { Fio, ListaDePotes, Titulo } from './pecas'
 import { apagarProgresso, gravarProgresso, lerProgresso, type EnderecoDigitado, type Etapa } from './progresso'
 
 /** O que a pagina le no servidor para o fechamento. */
 export type DadosDaSacola = {
-  usuario: { nome: string; celular: string; email: string } | null
+  usuario: ContaDaSacola | null
   /** a marca da conta (16 hex do SHA-256 do id, feita no servidor), null sem sessao */
   conta: string | null
   enderecoPrincipal: { cep: string; numero: string; complemento: string } | null
@@ -31,6 +24,9 @@ export type DadosDaSacola = {
   porta: { chaveDoTurnstile: string; nonce: string }
   chavePublicaMp: string | null
 }
+
+/** A cliente logada: o pedido sai com o nome, o celular e o e-mail da conta. */
+export type ContaDaSacola = { nome: string; celular: string; email: string }
 
 const NOMES: Record<Etapa, string> = { 1: 'Os potes', 2: 'Entrega', 3: 'Seus dados', 4: 'Pagamento' }
 const DICAS: Record<Etapa, string> = {
@@ -40,7 +36,7 @@ const DICAS: Record<Etapa, string> = {
   4: 'Pix ou cartão.',
 }
 
-type Feito = { numero: string; linhas: LinhaDaSacola[]; cotacao: Cotacao; dados: Dados; pagamento: Pagamento }
+type Feito = { numero: string; linhas: LinhaDaSacola[]; cotacao: Cotacao; cliente: ContaDaSacola; pagamento: Pagamento }
 
 /** A Regra do Exemplo Dito: enquanto a cotacao for de exemplo, o valor diz isso. */
 const deExemplo = (c: Cotacao) => (c.exemplo ? ' (valor de exemplo)' : '')
@@ -64,7 +60,8 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   // o progresso da aba so existe no navegador; no servidor (e enquanto a
   // sacola e lida) a pagina mostra a area reservada, sem as etapas
   const [guardado] = useState(() => lerProgresso(Date.now(), dados.conta))
-  // os dados da etapa 3 nao sao guardados: quem parou na 4 volta para a 3
+  // a escolha de guardar o endereco nao fica na aba: quem parou na 4 volta
+  // para a 3, onde ela esta
   const [etapa, setEtapa] = useState<Etapa>(guardado ? (guardado.etapa === 4 ? 3 : guardado.etapa) : 1)
   const [endereco, setEndereco] = useState<EnderecoDigitado>(() => {
     if (guardado) return guardado.endereco
@@ -72,7 +69,8 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
     return p ? { cep: mascararCep(p.cep), numero: p.numero, complemento: p.complemento } : SEM_ENDERECO
   })
   const [cotacao, setCotacao] = useState<Cotacao | null>(guardado?.cotacao ?? null)
-  const [dadosDoPedido, setDadosDoPedido] = useState<Dados | null>(null)
+  // "Guardar este endereco em Minha conta" (etapa 3), que vai com o pedido
+  const [guardarEndereco, setGuardarEndereco] = useState(false)
   const [pagamento, setPagamento] = useState<Pagamento>('pix')
   const [ocupado, setOcupado] = useState(false)
   const [feito, setFeito] = useState<Feito | null>(null)
@@ -115,10 +113,10 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   const potes = contarPotes(linhas)
 
   async function fazerPedido() {
-    if (!linhas || !cotacao || !dadosDoPedido) return
+    if (!linhas || !cotacao || !dados.usuario) return
     setOcupado(true)
-    const { numero } = await enviarPedidoDeExemplo()
-    setFeito({ numero, linhas, cotacao, dados: dadosDoPedido, pagamento })
+    const { numero } = await enviarPedidoDeExemplo({ guardarEndereco })
+    setFeito({ numero, linhas, cotacao, cliente: dados.usuario, pagamento })
     apagarProgresso()
     esvaziarSacola()
     window.scrollTo({ top: 0 })
@@ -127,14 +125,15 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   const rotuloDoBotao: Record<Etapa, string> = {
     1: 'Continuar para a entrega',
     2: ocupado ? 'Calculando a entrega' : 'Calcular e continuar',
-    3: 'Continuar para o pagamento',
+    // deslogada, a etapa 3 e a porta, que tem os proprios botoes
+    3: dados.usuario ? 'Continuar para o pagamento' : 'Entre para continuar',
     4: ocupado ? 'Enviando o pedido' : `Fazer o pedido · ${formatarPreco(total)}`,
   }
 
   const resumos: Record<Etapa, ReactNode> = {
     1: textoPotes(potes),
     2: cotacao ? linhaDaEntrega(cotacao) : null,
-    3: dadosDoPedido ? `${dadosDoPedido.nome} · ${dadosDoPedido.celular}` : null,
+    3: dados.usuario ? `${dados.usuario.nome} · ${mascararCelular(dados.usuario.celular)}` : null,
     4: null,
   }
 
@@ -195,13 +194,13 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
                 />
               ) : null}
               {atual && e === 3 ? (
-                <FormDados
+                <EtapaDados
                   id={formulario(3)}
-                  inicial={dadosDoPedido}
-                  aoConfirmar={(d) => {
-                    setDadosDoPedido(d)
-                    ir(4)
-                  }}
+                  usuario={dados.usuario}
+                  porta={dados.porta}
+                  guardar={guardarEndereco}
+                  aoMudarGuardar={setGuardarEndereco}
+                  aoContinuar={() => ir(4)}
                 />
               ) : null}
               {atual && e === 4 ? (
@@ -265,7 +264,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
           type="submit"
           form={formulario(etapa)}
           className="btn-retro btn-retro--escuro resumo__botao"
-          disabled={ocupado}
+          disabled={ocupado || (etapa === 3 && !dados.usuario)}
           aria-busy={ocupado}
         >
           {rotuloDoBotao[etapa]}
@@ -280,54 +279,6 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   )
 }
 
-function FormDados({ id, inicial, aoConfirmar }: { id: string; inicial: Dados | null; aoConfirmar: (d: Dados) => void }) {
-  const [d, setD] = useState<Dados>(inicial ?? { nome: '', celular: '', email: '' })
-  const [erros, setErros] = useState<ErrosDosDados>({})
-  const primeiro = useRef<HTMLFormElement>(null)
-
-  useEffect(() => {
-    const campo = Object.keys(erros)[0]
-    if (campo) primeiro.current?.querySelector<HTMLInputElement>(`[name="${campo}"]`)?.focus()
-  }, [erros])
-
-  function enviar(e: FormEvent) {
-    e.preventDefault()
-    const limpos = { nome: d.nome.trim(), celular: d.celular, email: d.email.trim() }
-    const achados = validarDados(limpos)
-    setErros(achados)
-    if (Object.keys(achados).length === 0) aoConfirmar(limpos)
-  }
-
-  const campo = (nome: keyof Dados, rotulo: string, extra: Partial<InputHTMLAttributes<HTMLInputElement>>, mascara = (v: string) => v) => (
-    <div className={`campo ${nome === 'email' ? 'campo--largo' : 'campo--meio'}`}>
-      <label htmlFor={`${id}-campo-${nome}`}>{rotulo}</label>
-      <input
-        id={`${id}-campo-${nome}`}
-        name={nome}
-        value={d[nome]}
-        onChange={(e) => setD({ ...d, [nome]: mascara(e.target.value) })}
-        aria-invalid={erros[nome] ? true : undefined}
-        aria-describedby={erros[nome] ? `${id}-${nome}` : undefined}
-        required
-        {...extra}
-      />
-      {erros[nome] ? (
-        <small id={`${id}-${nome}`} className="campo__erro">
-          {erros[nome]}
-        </small>
-      ) : null}
-    </div>
-  )
-
-  return (
-    <form id={id} ref={primeiro} className="campos" onSubmit={enviar} noValidate>
-      {campo('nome', 'Nome', { autoComplete: 'name', maxLength: 80 })}
-      {campo('celular', 'Celular (WhatsApp)', { autoComplete: 'tel-national', inputMode: 'tel' }, mascararCelular)}
-      {campo('email', 'E-mail', { autoComplete: 'email', inputMode: 'email', type: 'email', maxLength: 120 })}
-    </form>
-  )
-}
-
 function PedidoFeito({ feito }: { feito: Feito }) {
   const subtotal = somarLinhas(feito.linhas)
   const { complemento } = feito.cotacao.endereco
@@ -338,7 +289,7 @@ function PedidoFeito({ feito }: { feito: Feito }) {
       </Titulo>
       <p className="feito__texto">
         Este é um pedido de exemplo: nada foi cobrado e nenhum pote sai da cozinha ainda. Quando o pagamento
-        estiver ligado, {feito.dados.nome.split(' ')[0]}, a confirmação chega no {feito.dados.celular}.
+        estiver ligado, {feito.cliente.nome.split(' ')[0]}, a confirmação chega no {mascararCelular(feito.cliente.celular)}.
       </p>
       {feito.pagamento === 'pix' ? (
         <p className="feito__pix">O código Pix aparece aqui quando o pagamento estiver ligado.</p>

@@ -9,7 +9,7 @@ import { CHAVE_DO_PROGRESSO } from '@/components/sacola/progresso'
 import { carregarCatalogo } from '@/lib/dados/catalogo'
 import { MENSAGENS_DO_FECHAMENTO, type Cotacao } from '@/lib/fechamento/tipos'
 import { resumoDosHorarios, textoDaLoja, type SituacaoDaLoja } from '@/lib/loja'
-import { mascararCelular, validarDados } from '@/lib/pedido'
+import { mascararCelular } from '@/lib/pedido'
 import { formatarPreco } from '@/lib/produto'
 import {
   CHAVE_SACOLA,
@@ -29,9 +29,12 @@ const m = vi.hoisted(() => ({
   horarios: [2, 3, 4, 5, 6].map((dia) => ({ dia, abre: '09:00', fecha: '18:00' })),
   situacao: { aberta: true, fecha: '18:00' } as SituacaoDaLoja,
   cotar: vi.fn(),
+  enviarPedido: vi.fn(),
 }))
 // as acoes do servidor sao falsas aqui: no Vitest uma acao e uma funcao comum
 vi.mock('@/app/sacola/acoes', () => ({ cotarEntrega: m.cotar }))
+// o fechamento de exemplo (a Task 3 o troca por fecharPedido): aqui so se ve o que ele recebe
+vi.mock('@/lib/pedido', async (original) => ({ ...(await original<typeof import('@/lib/pedido')>()), enviarPedidoDeExemplo: m.enviarPedido }))
 vi.mock('@/lib/auth', async (original) => ({ ...(await original<typeof import('@/lib/auth')>()), obterUsuario: async () => m.usuario }))
 vi.mock('@/lib/dados/enderecos', () => ({
   lerEnderecos: async () => {
@@ -77,6 +80,8 @@ beforeEach(() => {
   m.falha.mockReset()
   m.situacao = { aberta: true, fecha: '18:00' }
   m.cotar.mockReset()
+  m.enviarPedido.mockReset()
+  m.enviarPedido.mockResolvedValue({ numero: '123456' })
   vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', '1x00000000000000000000AA')
 })
 
@@ -125,15 +130,6 @@ describe('os dados do pedido', () => {
     expect(mascararCelular('11987654321')).toBe('(11) 98765-4321')
     expect(mascararCelular('119')).toBe('(11) 9')
   })
-
-  it('pede nome, celular com 9 e e-mail', () => {
-    expect(validarDados({ nome: 'A', celular: '(11) 3333-4444', email: 'x' })).toEqual({
-      nome: expect.any(String),
-      celular: expect.any(String),
-      email: expect.any(String),
-    })
-    expect(validarDados({ nome: 'Ana', celular: '(11) 98765-4321', email: 'ana@exemplo.com' })).toEqual({})
-  })
 })
 
 describe('adicionar na página do produto', () => {
@@ -179,6 +175,7 @@ describe('a página /sacola', () => {
 
   it('o pedido inteiro: entrega, dados, pagamento e a confirmação', async () => {
     guardar({ prestigio: 2 })
+    m.usuario = { id: 'usuario-1', email: 'ana@exemplo.com', nome: 'Ana Souza', celular: '11987654321' }
     const user = userEvent.setup()
     render(await PaginaSacola())
     const botao = () => screen.getByRole('button', { name: /^(Continuar|Calcular|Fazer o pedido)/ })
@@ -193,15 +190,10 @@ describe('a página /sacola', () => {
     await user.clear(screen.getByLabelText('CEP'))
     await user.type(screen.getByLabelText('CEP'), '04567000')
     await user.click(botao())
-    expect(await screen.findByLabelText('Nome')).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Trocar em Minha conta' })).toBeInTheDocument()
     expect(m.cotar).toHaveBeenLastCalledWith({ cep: '04567-000', numero: '10', complemento: '' })
     expect(screen.getByText(linhaDaEntrega())).toBeInTheDocument()
 
-    await user.click(botao())
-    expect(await screen.findByText(/Diga o seu nome/)).toBeInTheDocument()
-    await user.type(screen.getByLabelText('Nome'), 'Ana Souza')
-    await user.type(screen.getByLabelText('Celular (WhatsApp)'), '11987654321')
-    await user.type(screen.getByLabelText('E-mail'), 'ana@exemplo.com')
     await user.click(botao())
 
     await user.click(await screen.findByRole('radio', { name: /Cartão de crédito/ }))
@@ -211,6 +203,7 @@ describe('a página /sacola', () => {
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.getByText(/pedido de exemplo: nada foi cobrado/)).toBeInTheDocument()
     expect(screen.getByText(/Total, no cartão/)).toBeInTheDocument()
+    expect(m.enviarPedido).toHaveBeenCalledWith(expect.objectContaining({ guardarEndereco: false }))
     expect(localStorage.getItem(CHAVE_SACOLA)).toBeNull()
     expect(sessionStorage.getItem(CHAVE_DO_PROGRESSO)).toBeNull()
   }, 15000)
@@ -252,7 +245,7 @@ describe('a sacola fala com o servidor', () => {
     await user.type(screen.getByLabelText('Número'), '10')
     await user.type(screen.getByLabelText('Complemento (opcional)'), 'apto 12')
     await user.click(screen.getByRole('button', { name: 'Calcular e continuar' }))
-    expect(await screen.findByLabelText('Nome')).toBeInTheDocument()
+    expect(await screen.findByRole('navigation', { name: 'Entrar ou criar conta' })).toBeInTheDocument()
     expect(m.cotar).toHaveBeenCalledWith({ cep: '04567-000', numero: '10', complemento: 'apto 12' })
     expect(screen.getByText(linhaDaEntrega())).toBeInTheDocument()
     expect(within(resumo()).getByText('Entrega (valor de exemplo)')).toBeInTheDocument()
@@ -316,7 +309,7 @@ describe('a sacola fala com o servidor', () => {
     const endereco = { cep: '04567-000', numero: '10', complemento: 'apto 12' }
     sessionStorage.setItem(CHAVE_DO_PROGRESSO, JSON.stringify({ etapa: 3, endereco, cotacao: { ...cotacaoDe(), exemplo: false }, conta: null }))
     const { unmount } = render(await PaginaSacola())
-    expect(await screen.findByLabelText('Nome')).toBeInTheDocument()
+    expect(await screen.findByRole('navigation', { name: 'Entrar ou criar conta' })).toBeInTheDocument()
     expect(screen.getByText(linhaDaEntrega(''))).toBeInTheDocument()
     expect(within(resumo()).getByText('Entrega')).toBeInTheDocument()
     expect(m.cotar).not.toHaveBeenCalled()
@@ -376,7 +369,7 @@ describe('a entrega e o progresso, nos casos difíceis', () => {
 
     sessionStorage.setItem(CHAVE_DO_PROGRESSO, progresso(null))
     render(await PaginaSacola())
-    expect(await screen.findByLabelText('Nome')).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Trocar em Minha conta' })).toBeInTheDocument()
     const marca = createHash('sha256').update('usuario-1').digest('hex').slice(0, 16)
     expect(JSON.parse(sessionStorage.getItem(CHAVE_DO_PROGRESSO) ?? '{}').conta).toBe(marca)
   })
@@ -388,5 +381,114 @@ describe('a entrega e o progresso, nos casos difíceis', () => {
     await irParaAEntrega()
     expect(screen.getByLabelText('CEP')).toHaveValue('')
     expect(m.falha).toHaveBeenCalledWith('sacola_enderecos', expect.any(Error))
+  })
+})
+
+describe('a etapa Seus dados e a conta', () => {
+  const mariana = { id: 'usuario-1', email: 'mariana@exemplo.com.br', nome: 'Mariana Costa', celular: '11987654321' }
+  const marca = createHash('sha256').update('usuario-1').digest('hex').slice(0, 16)
+  const resumo = () => screen.getByRole('complementary', { name: 'Resumo' })
+  const caixa = 'Guardar este endereço em Minha conta'
+  /** o progresso guardado na etapa 3, com a entrega cotada */
+  const naEtapa3 = (conta: string | null) =>
+    sessionStorage.setItem(
+      CHAVE_DO_PROGRESSO,
+      JSON.stringify({ etapa: 3, endereco: { cep: '04567-000', numero: '10', complemento: '' }, cotacao: cotacaoDe(), conta }),
+    )
+  const etapaAtual = async () => {
+    await screen.findByRole('list', { name: 'Etapas do pedido' })
+    return document.querySelector<HTMLElement>('.etapa[aria-current="step"]')!
+  }
+
+  it('logada: nome, celular e e-mail da conta, a caixa desmarcada e o link para trocar; feita, a linha diz nome e celular', async () => {
+    guardar({ prestigio: 1 })
+    m.usuario = mariana
+    naEtapa3(marca)
+    const user = userEvent.setup()
+    render(await PaginaSacola())
+    const etapa = await etapaAtual()
+    expect(within(etapa).getByRole('heading', { name: '3. Seus dados' })).toBeInTheDocument()
+    expect(within(etapa).getByText('Mariana Costa')).toBeInTheDocument()
+    expect(within(etapa).getByText('(11) 98765-4321')).toBeInTheDocument()
+    expect(within(etapa).getByText('mariana@exemplo.com.br')).toBeInTheDocument()
+    expect(within(etapa).getByRole('link', { name: 'Trocar em Minha conta' })).toHaveAttribute('href', '/conta/perfil')
+    expect(within(etapa).getByRole('checkbox', { name: caixa })).not.toBeChecked()
+    expect(screen.queryByRole('navigation', { name: 'Entrar ou criar conta' })).toBeNull()
+
+    await user.click(within(resumo()).getByRole('button', { name: 'Continuar para o pagamento' }))
+    expect(await screen.findByRole('radio', { name: /Pix/ })).toBeInTheDocument()
+    expect(screen.getByText('Mariana Costa · (11) 98765-4321', { selector: '.etapa__resumo' })).toBeInTheDocument()
+  })
+
+  it('deslogada: a porta dentro da etapa, com volta=/sacola, e o botão do resumo desligado com "Entre para continuar"', async () => {
+    guardar({ prestigio: 1 })
+    naEtapa3(null)
+    const user = userEvent.setup()
+    const { container } = render(await PaginaSacola())
+    const etapa = await etapaAtual()
+    const abas = within(etapa).getByRole('navigation', { name: 'Entrar ou criar conta' })
+    expect(within(abas).getByRole('link', { name: 'Entrar' })).toHaveAttribute('href', '/entrar?volta=%2Fsacola')
+    expect(within(abas).getByRole('link', { name: 'Criar conta' })).toHaveAttribute('href', '/cadastro?volta=%2Fsacola')
+    expect(within(etapa).getByLabelText('E-mail')).toBeInTheDocument()
+    expect(within(etapa).getByRole('button', { name: 'Entrar' })).toBeInTheDocument()
+    expect(container.querySelector('input[name="volta"]')).toHaveValue('/sacola')
+    // a casca de /entrar (o titulo da pagina) nao entra: o h1 continua o da sacola
+    expect(screen.queryByText('ter você aqui')).toBeNull()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    expect(within(etapa).queryByRole('checkbox', { name: caixa })).toBeNull()
+
+    const botao = within(resumo()).getByRole('button', { name: 'Entre para continuar' })
+    expect(botao).toBeDisabled()
+    expect(within(resumo()).queryByRole('button', { name: 'Continuar para o pagamento' })).toBeNull()
+
+    // a troca de aba acontece no lugar, sem sair da etapa
+    await user.click(within(abas).getByRole('link', { name: 'Criar conta' }))
+    expect(within(etapa).getByLabelText('Nome')).toBeInTheDocument()
+    expect(etapa).toHaveAttribute('aria-current', 'step')
+  })
+
+  it('entrou pela porta: a página volta com a cliente e a etapa 3 mostra os dados dela, com a entrega guardada', async () => {
+    guardar({ prestigio: 1 })
+    naEtapa3(null)
+    const { rerender } = render(await PaginaSacola())
+    await screen.findByRole('navigation', { name: 'Entrar ou criar conta' })
+    // a acao de entrar leva a /sacola, e a pagina volta do servidor com a cliente
+    m.usuario = mariana
+    rerender(await PaginaSacola())
+    expect(await screen.findByRole('link', { name: 'Trocar em Minha conta' })).toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: 'Entrar ou criar conta' })).toBeNull()
+    expect(screen.getByText(linhaDaEntrega())).toBeInTheDocument()
+    expect(within(resumo()).getByRole('button', { name: 'Continuar para o pagamento' })).toBeEnabled()
+    await waitFor(() => expect(JSON.parse(sessionStorage.getItem(CHAVE_DO_PROGRESSO) ?? '{}').conta).toBe(marca))
+  })
+
+  it('a caixa marcada fica na volta à etapa e vai como guardarEndereco: true quando o pedido for fechado', async () => {
+    guardar({ prestigio: 1 })
+    m.usuario = mariana
+    naEtapa3(marca)
+    const user = userEvent.setup()
+    render(await PaginaSacola())
+    await user.click(await screen.findByRole('checkbox', { name: caixa }))
+    await user.click(within(resumo()).getByRole('button', { name: 'Continuar para o pagamento' }))
+    await user.click(await screen.findByRole('button', { name: 'Alterar seus dados' }))
+    expect(await screen.findByRole('checkbox', { name: caixa })).toBeChecked()
+    await user.click(within(resumo()).getByRole('button', { name: 'Continuar para o pagamento' }))
+    await user.click(await screen.findByRole('button', { name: /^Fazer o pedido/ }))
+    await waitFor(() => expect(m.enviarPedido).toHaveBeenCalledWith(expect.objectContaining({ guardarEndereco: true })))
+  })
+
+  it('passa no axe com a porta aberta dentro da etapa, e logada com os dados', async () => {
+    guardar({ prestigio: 1 })
+    naEtapa3(null)
+    const { container, unmount } = render(await PaginaSacola())
+    await screen.findByRole('navigation', { name: 'Entrar ou criar conta' })
+    expect(await axe(container)).toHaveNoViolations()
+    unmount()
+
+    m.usuario = mariana
+    naEtapa3(marca)
+    const logada = render(await PaginaSacola())
+    await screen.findByRole('checkbox', { name: caixa })
+    expect(await axe(logada.container)).toHaveNoViolations()
   })
 })

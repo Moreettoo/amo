@@ -28,8 +28,9 @@
   /* os formularios */
   .porta__form { display: grid; gap: 16px; margin-top: 26px; }
   .porta__par { display: grid; grid-template-columns: 1.3fr 1fr; gap: 14px; }
-  .conta .campo { display: grid; align-content: start; gap: 6px; font-size: 13px; color: var(--color-suave); }
-  .conta .campo input { width: 100%; }
+  /* a porta leva os campos com ela, tambem na etapa 3 da sacola */
+  :is(.conta, .porta) .campo { display: grid; align-content: start; gap: 6px; font-size: 13px; color: var(--color-suave); }
+  :is(.conta, .porta) .campo input { width: 100%; }
   .campo__senha { position: relative; display: block; }
   .campo__senha input { padding-right: 84px; }
   /* o Edge poe o proprio olho de revelar senha ao lado do nosso "mostrar": um controle so */
