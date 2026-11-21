@@ -2,7 +2,8 @@
 
 **Data:** 2026-11-18
 **Status:** aprovada pelo dono; etapa 1 (o banco) construída e testada em
-2026-11-18. Como rodar e manter: `supabase/README.md`.
+2026-11-18; etapa 2 (o site lê do banco e Minha conta) construída e testada em
+2026-11-20. Como rodar e manter: `supabase/README.md`.
 **Projeto Supabase:** `yuhrtuizxuvqvvjtcemz` (conta pessoal do dono; MCP `supabase-amo`).
 É o banco de **desenvolvimento** (decisão do dono, 2026-11-18). A produção
 nasce num projeto novo, na etapa 4 (§15).
