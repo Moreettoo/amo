@@ -77,6 +77,11 @@ describe('buscarCep', () => {
     expect(r?.logradouro.length).toBeLessThanOrEqual(120)
   })
 
+  it('tira o controle C1 do que o servico devolve', async () => {
+    responder({ logradouro: 'RuaCuiabá', bairro: 'Centro', localidade: 'São Paulo', uf: 'SP' })
+    expect((await buscarCep('03183002'))?.logradouro).toBe('RuaCuiabá')
+  })
+
   it('CEP de cidade inteira (sem rua) devolve rua e bairro vazios', async () => {
     responder({ logradouro: '', bairro: '', localidade: 'Itu', uf: 'SP' })
     expect(await buscarCep('13300000')).toEqual({ logradouro: '', bairro: '', cidade: 'Itu', uf: 'SP' })

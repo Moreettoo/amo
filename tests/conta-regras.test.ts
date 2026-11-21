@@ -46,6 +46,15 @@ describe('conferirEndereco', () => {
     expect(r.ok && [r.valor.apelido, r.valor.complemento, r.valor.principal]).toEqual([null, '', false])
   })
 
+  it('recusa controle C1 no nome e no logradouro', () => {
+    const p = conferirPerfil({ nome: 'AnaMaria', celular: '11987654321' })
+    expect(p.ok).toBe(false)
+    expect(camposComErro(p)).toContain('nome')
+    const e = conferirEndereco({ ...endereco, logradouro: 'RuaA' })
+    expect(e.ok).toBe(false)
+    expect(camposComErro(e as never)).toContain('logradouro')
+  })
+
   it('apara e junta espacos em todo texto', () => {
     const r = conferirEndereco({ ...endereco, logradouro: '  Rua   Cuiabá ', bairro: ' Alto  da Mooca ' })
     expect(r.ok && [r.valor.logradouro, r.valor.bairro]).toEqual(['Rua Cuiabá', 'Alto da Mooca'])
@@ -80,7 +89,7 @@ describe('conferirEndereco', () => {
 
   it.each(HOSTIS.map((h) => [h.slice(0, 40), h]))('logradouro hostil %j nunca passa com controle, < ou >', (_, hostil) => {
     const r = conferirEndereco({ ...endereco, logradouro: hostil })
-    if (r.ok) expect(r.valor.logradouro).not.toMatch(/[\u0000-\u001f\u007f<>]/)
+    if (r.ok) expect(r.valor.logradouro).not.toMatch(/[\u0000-\u001f\u007f-\u009f<>]/)
     if (r.ok) expect(r.valor.logradouro.length).toBeLessThanOrEqual(120)
   })
 
@@ -105,7 +114,7 @@ describe('conferirNumeroDoPedido', () => {
 })
 
 const camposComErro = (r: ReturnType<typeof conferirPerfil>) => (r.ok ? [] : Object.keys(r.erros))
-const CONTROLE_OU_TAG = /[\u0000-\u001f\u007f<>]/
+const CONTROLE_OU_TAG = /[\u0000-\u001f\u007f-\u009f<>]/
 
 describe('conferirEmail', () => {
   it('apara e poe em minusculas', () => {

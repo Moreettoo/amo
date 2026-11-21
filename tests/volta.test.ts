@@ -7,7 +7,7 @@ describe('voltaSegura', () => {
   })
   it.each([
     '//mal.com', '/\\mal.com', '/%2F%2Fmal.com', '%2F%2Fmal.com', 'javascript:alert(1)', 'https://mal.com',
-    'conta', '', ' /conta', '/conta\u0000x', '/conta\nx', null, 42, '/' + 'a'.repeat(600),
+    'conta', '', ' /conta', '/conta\u0000x', '/conta\nx', '/conta\u0085', '/conta\u009fx', null, 42, '/' + 'a'.repeat(600),
   ])('recusa %j e volta para /conta', (c) => {
     expect(voltaSegura(c)).toBe('/conta')
   })

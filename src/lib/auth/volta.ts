@@ -5,7 +5,7 @@
  * navegador. Puro: serve a pagina, a acao e o proxy.
  */
 const PADRAO = '/conta'
-const CONTROLE = /[\u0000-\u001f\u007f]/
+const CONTROLE = /[\u0000-\u001f\u007f-\u009f]/
 
 function interno(caminho: string): boolean {
   return caminho.startsWith('/') && caminho[1] !== '/' && caminho[1] !== '\\' && !CONTROLE.test(caminho)

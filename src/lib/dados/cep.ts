@@ -12,7 +12,7 @@ export type EnderecoDoCep = { logradouro: string; bairro: string; cidade: string
 const limpar = (valor: unknown, maximo: number) =>
   typeof valor === 'string'
     ? valor
-        .replace(/[\u0000-\u001f\u007f<>]/g, '')
+        .replace(/[\u0000-\u001f\u007f-\u009f<>]/g, '')
         .trim()
         .replace(/\s+/g, ' ')
         .slice(0, maximo)

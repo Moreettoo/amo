@@ -8,7 +8,7 @@ import { erroDoCelular, erroDoNome } from '@/lib/pedido'
 
 export type Conferido<T, C extends string> = { ok: true; valor: T } | { ok: false; erros: Partial<Record<C, string>> }
 
-const CONTROLE_OU_TAG = /[\u0000-\u001f\u007f<>]/
+const CONTROLE_OU_TAG = /[\u0000-\u001f\u007f-\u009f<>]/
 const BYTE_NULO = /\u0000/
 
 /** Apara e troca espacos seguidos por um so. */
