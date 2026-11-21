@@ -14,9 +14,5 @@ export function InlineScript({ html }: { html: string }) {
   return <InlineScriptCliente html={html} />
 }
 
-/**
- * A classe `js` e o portao de todo estado inicial escondido
- * (src/app/estilos/movimento.css). Sem JavaScript ela nao existe e a pagina
- * nasce no estado final, que e o que impede o hero em branco da v1.1.
- */
-export const MARCAR_JS = "document.documentElement.classList.add('js')"
+// o script que o layout poe aqui mora num modulo so de constante, que a politica de seguranca tambem le
+export { MARCAR_JS } from '@/lib/script-do-topo'
