@@ -15,23 +15,23 @@ describe('situacaoDaLoja e textoDaLoja', () => {
   })
   it('sabado 18h: fechada, abre segunda', () => {
     expect(hoje('2026-11-21T21:00:00Z')).toEqual({
-      s: { aberta: false, pausada: false, abre: { dia: 1, hora: '09:00:00' } },
+      s: { aberta: false, pausada: false, abre: { dia: 1, hora: '09:00:00', emDias: 2 } },
       texto: 'A cozinha abre segunda às 9h.',
     })
   })
   it('domingo 10h: abre amanha', () => {
     const { s, texto } = hoje('2026-11-22T13:00:00Z')
-    expect(s).toEqual({ aberta: false, pausada: false, abre: { dia: 1, hora: '09:00:00' } })
+    expect(s).toEqual({ aberta: false, pausada: false, abre: { dia: 1, hora: '09:00:00', emDias: 1 } })
     expect(texto).toBe('A cozinha abre amanhã às 9h.')
   })
   it('segunda 8h59: abre hoje', () => {
     const { s, texto } = hoje('2026-11-23T11:59:59Z')
-    expect(s).toEqual({ aberta: false, pausada: false, abre: { dia: 1, hora: '09:00:00' } })
+    expect(s).toEqual({ aberta: false, pausada: false, abre: { dia: 1, hora: '09:00:00', emDias: 0 } })
     expect(texto).toBe('A cozinha abre hoje às 9h.')
   })
   it('sexta 18h: abre sabado amanha', () => {
     const { s, texto } = hoje('2026-11-20T21:00:00Z')
-    expect(s).toEqual({ aberta: false, pausada: false, abre: { dia: 6, hora: '09:00:00' } })
+    expect(s).toEqual({ aberta: false, pausada: false, abre: { dia: 6, hora: '09:00:00', emDias: 1 } })
     expect(texto).toBe('A cozinha abre amanhã às 9h.')
   })
   it('quarta 9h: aberta', () => {
@@ -47,6 +47,12 @@ describe('situacaoDaLoja e textoDaLoja', () => {
     expect(hoje('2026-11-18T12:00:00Z', false, [])).toEqual({
       s: { aberta: false, pausada: false, abre: null },
       texto: 'A cozinha está fechada por enquanto.',
+    })
+  })
+  it('so abre um dia por semana: depois de fechar diz o dia, nao hoje', () => {
+    expect(hoje('2026-11-23T22:00:00Z', false, [horario(1)])).toEqual({
+      s: { aberta: false, pausada: false, abre: { dia: 1, hora: '09:00:00', emDias: 7 } },
+      texto: 'A cozinha abre segunda às 9h.',
     })
   })
   it('fecha as 18h30', () => {

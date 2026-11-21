@@ -9,7 +9,7 @@ export type Horario = { dia: number; abre: string; fecha: string }
 export type SituacaoDaLoja =
   | { aberta: true; fecha: string }
   | { aberta: false; pausada: true }
-  | { aberta: false; pausada: false; abre: { dia: number; hora: string } | null }
+  | { aberta: false; pausada: false; abre: { dia: number; hora: string; emDias: number } | null }
 
 const DIAS = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado']
 const SEMANA: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
@@ -34,11 +34,11 @@ export function situacaoDaLoja(horarios: readonly Horario[], pausada: boolean, a
   const { dia, hora } = emSaoPaulo(agora)
   const hoje = horarios.find((h) => h.dia === dia)
   if (hoje && hoje.abre <= hora && hora < hoje.fecha) return { aberta: true, fecha: hoje.fecha }
-  if (hoje && hora < hoje.abre) return { aberta: false, pausada: false, abre: { dia, hora: hoje.abre } }
+  if (hoje && hora < hoje.abre) return { aberta: false, pausada: false, abre: { dia, hora: hoje.abre, emDias: 0 } }
   for (let i = 1; i <= 7; i++) {
     const d = (dia + i) % 7
     const h = horarios.find((x) => x.dia === d)
-    if (h) return { aberta: false, pausada: false, abre: { dia: d, hora: h.abre } }
+    if (h) return { aberta: false, pausada: false, abre: { dia: d, hora: h.abre, emDias: i } }
   }
   return { aberta: false, pausada: false, abre: null }
 }
@@ -49,12 +49,14 @@ function horaEscrita(time: string): string {
   return m === '00' ? `${Number(h)}h` : `${Number(h)}h${m}`
 }
 
-export function textoDaLoja(s: SituacaoDaLoja, agora: Date): string {
+// agora ficou sem uso (o texto vem de emDias); a assinatura segue a interface
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export function textoDaLoja(s: SituacaoDaLoja, _agora?: Date): string {
   if (s.aberta) return `Pedidos até as ${horaEscrita(s.fecha)}.`
   if (s.pausada) return 'As vendas estão pausadas agora. Volte daqui a pouco.'
   if (!s.abre) return 'A cozinha está fechada por enquanto.'
-  const hoje = emSaoPaulo(agora).dia
-  const quando = s.abre.dia === hoje ? 'hoje' : s.abre.dia === (hoje + 1) % 7 ? 'amanhã' : DIAS[s.abre.dia]
+  const { emDias } = s.abre
+  const quando = emDias === 0 ? 'hoje' : emDias === 1 ? 'amanhã' : DIAS[s.abre.dia]
   return `A cozinha abre ${quando} às ${horaEscrita(s.abre.hora)}.`
 }
 
