@@ -28,21 +28,23 @@ type Props = {
 }
 
 /**
- * O pedido feito: o titulo "Pedido N" em duas vozes ("aguardando o Pix" e,
- * pago, "recebido", que volta a receber o foco), o Pix com a espera enquanto
- * o pagamento nao chega e, pago, "Pagamento aprovado." com o caminho para
- * acompanhar. Embaixo, o que foi pedido, a entrega e o total.
+ * O pedido feito: o titulo "Pedido N" em duas vozes ("aguardando o Pix" ou
+ * a espera da confirmacao do cartao e, pago, "recebido", que volta a
+ * receber o foco), o Pix com a espera enquanto o pagamento nao chega (o
+ * cartao pendente, so a espera) e, pago, "Pagamento aprovado." com o caminho
+ * para acompanhar. Embaixo, o que foi pedido, a entrega e o total.
  */
 export function PedidoFeito({ situacao, linhas, entrega, total, aoGerarOutro, aoMudar, gerando = false, erro = null }: Props) {
   const pago = aprovado(situacao)
   // a tentativa que acabou nao tem QR para pagar, mesmo que a resposta traga um
   const acabou = codigoAcabou(situacao)
   const pix = acabou ? null : (situacao.pagamento?.pix ?? null)
+  const doCartao = situacao.pagamento?.forma === 'cartao'
   const { complemento } = entrega.endereco
   return (
     <section className="feito" aria-labelledby="pedido-feito">
       {/* a chave troca com o estado: o titulo novo recebe o foco */}
-      <Titulo key={pago ? 'recebido' : 'aguardando'} frase={pago ? 'recebido' : 'aguardando o Pix'} id="pedido-feito" foco>
+      <Titulo key={pago ? 'recebido' : 'aguardando'} frase={pago ? 'recebido' : doCartao ? 'aguardando a confirmação do cartão' : 'aguardando o Pix'} id="pedido-feito" foco>
         Pedido {situacao.numero}
       </Titulo>
       <p className="feito__estado" role="status">
@@ -54,7 +56,8 @@ export function PedidoFeito({ situacao, linhas, entrega, total, aoGerarOutro, ao
         </a>
       ) : (
         <>
-          {pix || acabou ? (
+          {/* o cartao pendente nao tem codigo: so a espera, que diz em texto */}
+          {doCartao ? null : pix || acabou ? (
             <PainelDoPix
               pix={pix}
               aoGerarOutro={aoGerarOutro}

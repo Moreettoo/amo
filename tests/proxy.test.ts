@@ -45,6 +45,15 @@ describe('proxy', () => {
     expect(r.headers.get('cache-control')).toBe('private, no-store')
   })
 
+  it('so a /sacola leva os destinos do Mercado Pago; /conta e /entrar ficam sem eles', async () => {
+    const politicaDe = async (rota: string) => (await proxy(new NextRequest(`http://localhost${rota}`))).headers.get('content-security-policy') ?? ''
+    const sacola = await politicaDe('/sacola')
+    for (const destino of ['https://sdk.mercadopago.com', 'https://api.mercadopago.com', 'https://api-static.mercadopago.com', 'https://api.mercadolibre.com', 'https://http2.mlstatic.com', 'https://secure-fields.mercadopago.com', 'https://www.mercadopago.com.br']) {
+      expect(sacola).toContain(destino)
+    }
+    for (const rota of ['/conta', '/entrar']) expect(await politicaDe(rota)).not.toMatch(/mercadopago|mercadolibre|mlstatic/)
+  })
+
   it('o matcher cobre cada rota com nonce', () => {
     const matcher = config.matcher.join(' ')
     for (const rota of ROTAS_COM_NONCE) expect(matcher).toContain(rota)

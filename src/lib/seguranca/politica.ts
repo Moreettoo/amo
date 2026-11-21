@@ -10,15 +10,30 @@ import { MARCAR_JS } from '../script-do-topo'
  */
 export const HASH_DO_SCRIPT_DO_TOPO = `'sha256-${createHash('sha256').update(MARCAR_JS).digest('base64')}'`
 
-export function montarPolitica(nonce: string, desenvolvimento: boolean): string {
+/**
+ * Os destinos do Card Payment Brick (contrato do Mercado Pago, 6), observados
+ * no js/v2: nao ha lista oficial. Com 'strict-dynamic' o que o script com
+ * nonce carrega ja e aceito; a lista serve aos navegadores sem ele. O frame
+ * do www.mercadopago.com.br e o do desafio do banco (3DS).
+ */
+const DO_MERCADO_PAGO = {
+  script: ' https://sdk.mercadopago.com https://http2.mlstatic.com',
+  connect: ' https://api.mercadopago.com https://api-static.mercadopago.com https://api.mercadolibre.com https://http2.mlstatic.com',
+  frame: ' https://secure-fields.mercadopago.com https://www.mercadopago.com.br',
+  img: ' https://http2.mlstatic.com',
+}
+
+/** comMercadoPago: so a sacola, onde o Brick do cartao carrega (proxy.ts). */
+export function montarPolitica(nonce: string, desenvolvimento: boolean, comMercadoPago = false): string {
+  const mp = (destinos: keyof typeof DO_MERCADO_PAGO) => (comMercadoPago ? DO_MERCADO_PAGO[destinos] : '')
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${HASH_DO_SCRIPT_DO_TOPO}${desenvolvimento ? " 'unsafe-eval'" : ''}`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' ${HASH_DO_SCRIPT_DO_TOPO}${desenvolvimento ? " 'unsafe-eval'" : ''}${mp('script')}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' blob: data:",
+    `img-src 'self' blob: data:${mp('img')}`,
     "font-src 'self'",
-    "connect-src 'self'",
-    'frame-src https://challenges.cloudflare.com',
+    `connect-src 'self'${mp('connect')}`,
+    `frame-src https://challenges.cloudflare.com${mp('frame')}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

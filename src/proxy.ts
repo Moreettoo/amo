@@ -12,7 +12,8 @@ import { montarPolitica } from '@/lib/seguranca/politica'
  */
 export async function proxy(request: NextRequest): Promise<NextResponse> {
   const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
-  const politica = montarPolitica(nonce, process.env.NODE_ENV === 'development')
+  // os destinos do Brick do cartao so na sacola, onde ele carrega
+  const politica = montarPolitica(nonce, process.env.NODE_ENV === 'development', request.nextUrl.pathname === '/sacola')
 
   const repassar = () => {
     const cabecalhos = new Headers(request.headers)

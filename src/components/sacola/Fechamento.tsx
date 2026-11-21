@@ -2,12 +2,13 @@
 
 import { useRouter } from 'next/navigation'
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { fecharPedido, pagarComPix } from '@/app/sacola/acoes'
+import { fecharPedido, pagarComCartao, pagarComPix } from '@/app/sacola/acoes'
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
 import { useSacola } from '@/components/ui/useSacola'
 import { mascararCep } from '@/lib/entrega'
 import {
   MENSAGENS_DO_FECHAMENTO,
+  mensagemDaRecusa,
   type CodigoDoFechamento,
   type Cotacao,
   type RespostaDoPagamento,
@@ -18,10 +19,11 @@ import { mascararCelular, type Pagamento } from '@/lib/pedido'
 import { formatarPreco } from '@/lib/produto'
 import { contarPotes, esvaziarSacola, somarLinhas, textoPotes, type ItemDaLoja, type LinhaDaSacola } from '@/lib/sacola'
 import { CAMINHO_CATALOGO } from '@/lib/visao'
+import { entradaDoCartao, type ControleDoCartao, type DadosDoBrick } from './CartaoMercadoPago'
 import { EtapaDados } from './EtapaDados'
 import { EtapaEntrega } from './EtapaEntrega'
 import { EtapaPagamento } from './EtapaPagamento'
-import { aprovado } from './espera'
+import { aprovado, codigoAcabou } from './espera'
 import { PedidoFeito } from './PedidoFeito'
 import { deExemplo, Fio, ListaDePotes, ruaENumero, Titulo } from './pecas'
 import { apagarProgresso, gravarProgresso, lerProgresso, type EnderecoDigitado, type Etapa } from './progresso'
@@ -45,17 +47,24 @@ const DICAS: Record<Etapa, string> = {
   1: 'Confira os sabores e quantos de cada.',
   2: 'CEP e número; o valor do Uber aparece aqui.',
   3: 'Nome, celular e e-mail para acompanhar o pedido.',
-  // so o que a etapa oferece: o cartao entra com o Card Payment Brick
+  // so o que a etapa oferece: o cartao so com a chave publica (DICA_COM_CARTAO)
   4: 'Pix.',
 }
+const DICA_COM_CARTAO = 'Pix ou cartão.'
 
-/** O pedido fechado, pago ou esperando o Pix: a situacao que o servidor devolveu e o que foi pedido. */
+/** O pedido fechado, pago ou esperando o pagamento: a situacao que o servidor devolveu e o que foi pedido. */
 type Feito = { situacao: SituacaoDoPedido; linhas: LinhaDaSacola[]; entrega: Cotacao; total: number }
 
-/** A frase de um erro, na etapa em que a cliente resolve. */
-type Aviso = { etapa: Etapa; codigo: CodigoDoFechamento }
-/** Em que parte do pagamento o botao esta: fechando o pedido (ate uns 30 s) ou gerando o Pix. */
-type Fase = 'fechando' | 'gerando'
+/** A frase de um erro, na etapa em que a cliente resolve; a recusa do cartao leva o motivo. */
+type Aviso = { etapa: Etapa; codigo: CodigoDoFechamento; recusa?: string | null }
+/** Em que parte do pagamento o botao esta: fechando o pedido (ate uns 30 s), gerando o Pix ou cobrando o cartao. */
+type Fase = 'fechando' | 'gerando' | 'cobrando'
+
+/** A frase do aviso: a recusa do cartao diz o motivo (mensagemDaRecusa); o resto, a frase do codigo. */
+const textoDoAviso = (a: Aviso | null) =>
+  !a ? null : a.codigo === 'pagamento_recusado' ? mensagemDaRecusa(a.recusa ?? null) : MENSAGENS_DO_FECHAMENTO[a.codigo]
+/** A tentativa do cartao que acabou sem pagar (recusada, vencida, cancelada): a cliente tenta de novo na etapa 4. */
+const cartaoAcabou = (s: SituacaoDoPedido) => codigoAcabou(s) && s.pagamento?.forma === 'cartao'
 
 /** Onde cada erro do pagamento se resolve; o resto fica na etapa 4, com a frase. */
 const ETAPA_DO_ERRO: Partial<Record<CodigoDoFechamento, Etapa>> = {
@@ -82,8 +91,10 @@ const SEM_ENDERECO: EnderecoDigitado = { cep: '', numero: '', complemento: '' }
  * etapa atual: um botao so, ligado ao formulario pelo atributo form.
  * A etapa, o endereco e a cotacao ficam guardados na aba (progresso.ts).
  * Pagar com Pix fecha o pedido (fecharPedido) e gera o Pix (pagarComPix);
- * cada erro leva a etapa em que a cliente resolve. A sacola so esvazia com
- * o pagamento aprovado.
+ * pagar com cartao le o Brick (getFormData), fecha o pedido e cobra
+ * (pagarComCartao). Cada erro leva a etapa em que a cliente resolve; a
+ * recusa do cartao fica na 4, dita. A sacola so esvazia com o pagamento
+ * aprovado.
  */
 export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados: DadosDaSacola }) {
   const id = useId()
@@ -121,6 +132,11 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   }
   const [gerando, setGerando] = useState(false)
   const [erroDoCodigo, setErroDoCodigo] = useState<CodigoDoFechamento | null>(null)
+  // o Brick do cartao na tela, pronto para ler o cartao (o botao so paga com ele)
+  const [cartaoPronto, setCartaoPronto] = useState(false)
+  // o desafio do banco (3DS): o pedido fechado, esperando a cliente confirmar no iframe
+  const [desafio, setDesafio] = useState<Feito | null>(null)
+  const controleDoCartao = useRef<ControleDoCartao | null>(null)
   // o pagamento em curso (o clique duplo nao fecha dois pedidos) e o numero da
   // chamada: a resposta de uma chamada que ficou para tras e ignorada
   const pagando = useRef(false)
@@ -159,6 +175,9 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
       setFase(null)
     }
     setAviso(null)
+    // o desafio fica para tras, e o Brick volta do zero quando a etapa 4 voltar
+    setDesafio(null)
+    setCartaoPronto(false)
     setEtapa(e)
     // o foco vai para o titulo da etapa nova, para o leitor de tela seguir
     requestAnimationFrame(() => document.getElementById(`${id}-t${e}`)?.focus())
@@ -170,21 +189,39 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
     if (codigo === 'cotacao_vencida') setCotacao(null)
     if (codigo === 'loja_fechada') setLojaFechou(true)
     if (PEDEM_A_PAGINA.has(codigo)) router.refresh()
-    // vindo do pedido feito, o titulo dele sai da tela: o foco vai a etapa tambem
-    if (destino !== etapa || feito) ir(destino)
+    // vindo do pedido feito (ou do desafio), o que tinha o foco sai da tela: o foco vai a etapa tambem
+    if (destino !== etapa || feito || desafio) ir(destino)
     // a frase entra depois que a etapa aparece, para a regiao viva dizer
     requestAnimationFrame(() => setAviso({ etapa: destino, codigo }))
   }
 
-  /** O que o servidor disse do pedido: pago esvazia a sacola; cancelado volta as etapas. */
+  /** O cartao recusado (ou o desafio do banco que nao terminou): a etapa 4 diz por que, com o Brick para outra tentativa. */
+  function recusar(s: SituacaoDoPedido) {
+    const recusa = s.pagamento?.estado === 'recusado' ? s.pagamento.recusa : '3ds_challenge_expired'
+    setFeito(null)
+    if (etapa !== 4 || feito || desafio) ir(4)
+    requestAnimationFrame(() => setAviso({ etapa: 4, codigo: 'pagamento_recusado', recusa }))
+  }
+
+  /** O que o servidor disse do pedido: pago esvazia a sacola; cancelado volta as etapas; o cartao recusado, a etapa 4. */
   function chegou(s: SituacaoDoPedido) {
     if (s.estado === 'cancelado') {
       setFeito(null)
       return tratarErro('pedido_invalido')
     }
+    if (cartaoAcabou(s)) return recusar(s)
     if (aprovado(s)) {
       esvaziarSacola()
       apagarProgresso()
+    }
+    if (desafio && desafio.situacao.numero === s.numero) {
+      // aprovado, ou o banco ja respondeu e falta so confirmar: o pedido feito, com a espera
+      if (aprovado(s) || !s.pagamento?.desafioUrl) {
+        setDesafio(null)
+        setFeito({ ...desafio, situacao: s })
+        window.scrollTo({ top: 0 })
+      } else setDesafio({ ...desafio, situacao: s })
+      return
     }
     setFeito((f) => (f && f.situacao.numero === s.numero ? { ...f, situacao: s } : f))
   }
@@ -250,13 +287,15 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   const fechada = !dados.loja.aberta || lojaFechou
 
   /**
-   * Pagar com Pix: fecha o pedido com os potes, a cotacao e o total que a tela
-   * mostra (o banco recusa com total_mudou se os precos mudaram) e gera o Pix
-   * do numero que voltou. fecharPedido espera o Mercado Pago cancelar as
-   * tentativas antigas e pode levar uns 30 s: o botao fica ocupado ate o fim.
+   * Pagar: fecha o pedido com os potes, a cotacao e o total que a tela mostra
+   * (o banco recusa com total_mudou se os precos mudaram) e paga o numero que
+   * voltou: gera o Pix ou cobra o cartao. O cartao e lido no Brick antes de
+   * fechar: sem dados validos, o Brick mostra os erros dele e nada sai.
+   * fecharPedido espera o Mercado Pago cancelar as tentativas antigas e pode
+   * levar uns 30 s: o botao fica ocupado ate o fim.
    */
   async function pagar() {
-    if (pagando.current || !linhas || !cotacao || !dados.usuario || fechada) return
+    if (pagando.current || !linhas || !cotacao || !dados.usuario || fechada || desafio) return
     pagando.current = true
     const minha = ++chamada.current
     const pedidas = linhas
@@ -267,9 +306,20 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
       setFase(null)
       if (erro) tratarErro(erro)
     }
+    setAviso(null)
+
+    let doBrick: DadosDoBrick | null = null
+    if (pagamento === 'cartao') {
+      try {
+        doBrick = (await controleDoCartao.current?.getFormData()) ?? null
+      } catch {
+        doBrick = null
+      }
+      if (minha !== chamada.current) return
+      if (!doBrick?.formData?.token) return fim(null)
+    }
     setOcupado(true)
     setFase('fechando')
-    setAviso(null)
 
     let pedido: RespostaDoPedido
     try {
@@ -285,20 +335,31 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
     if (minha !== chamada.current) return
     if (!pedido.ok) return fim(pedido.erro)
 
-    setFase('gerando')
-    let pix: RespostaDoPagamento
+    const { numero } = pedido.pedido
+    setFase(doBrick ? 'cobrando' : 'gerando')
+    let pago: RespostaDoPagamento
     try {
-      pix = await pagarComPix({ numero: pedido.pedido.numero })
+      pago = doBrick ? await pagarComCartao(entradaDoCartao(numero, doBrick)) : await pagarComPix({ numero })
     } catch {
-      pix = { ok: false, erro: 'tente_de_novo' }
+      pago = { ok: false, erro: 'tente_de_novo' }
     }
     if (minha !== chamada.current) return
-    if (!pix.ok) return fim(pix.erro)
+    if (!pago.ok) return fim(pago.erro)
     fim(null)
-    if (pix.situacao.estado === 'cancelado') return tratarErro('pedido_invalido')
+    const s = pago.situacao
+    if (s.estado === 'cancelado') return tratarErro('pedido_invalido')
+    if (cartaoAcabou(s)) return recusar(s)
+    const fechado: Feito = { situacao: s, linhas: pedidas, entrega, total: pedido.pedido.totalCentavos }
+    if (!aprovado(s) && s.pagamento?.desafioUrl) {
+      setDesafio(fechado)
+      setCartaoPronto(false)
+      // o foco vai a janela do banco: o leitor de tela ouve o titulo dela
+      requestAnimationFrame(() => document.getElementById(`${formulario(4)}-desafio`)?.focus())
+      return
+    }
     setErroDoCodigo(null)
-    setFeito({ situacao: pix.situacao, linhas: pedidas, entrega, total: pedido.pedido.totalCentavos })
-    if (aprovado(pix.situacao)) {
+    setFeito(fechado)
+    if (aprovado(s)) {
       esvaziarSacola()
       apagarProgresso()
     }
@@ -315,9 +376,13 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
         ? 'Fechando o pedido, só um instante'
         : fase === 'gerando'
           ? 'Gerando o código Pix'
-          : fechada
-            ? 'Cozinha fechada agora'
-            : `Pagar com Pix · ${formatarPreco(total)}`,
+          : fase === 'cobrando'
+            ? 'Pagando com o cartão'
+            : desafio
+              ? 'Confirmando com o banco'
+              : fechada
+                ? 'Cozinha fechada agora'
+                : `Pagar com ${pagamento === 'cartao' ? 'cartão' : 'Pix'} · ${formatarPreco(total)}`,
   }
   /** A frase de erro da etapa, quando o erro a trouxe ate ela. */
   const avisoDa = (e: Etapa) => (aviso?.etapa === e ? aviso.codigo : null)
@@ -361,7 +426,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
                 ) : null}
               </div>
               {pronta && resumos[e] ? <p className="etapa__resumo">{resumos[e]}</p> : null}
-              {!atual && !pronta ? <p className="etapa__dica">{DICAS[e]}</p> : null}
+              {!atual && !pronta ? <p className="etapa__dica">{e === 4 && dados.chavePublicaMp ? DICA_COM_CARTAO : DICAS[e]}</p> : null}
 
               {atual && e === 1 ? (
                 <form id={formulario(1)} onSubmit={(ev) => (ev.preventDefault(), ir(2))}>
@@ -406,9 +471,30 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
                 <EtapaPagamento
                   id={formulario(4)}
                   forma={pagamento}
-                  aoMudarForma={setPagamento}
-                  aviso={avisoDa(4)}
+                  aoMudarForma={(f) => {
+                    setPagamento(f)
+                    // o Brick desmonta com o Pix e volta do zero com o cartao
+                    setCartaoPronto(false)
+                    setAviso(null)
+                  }}
+                  aviso={textoDoAviso(aviso?.etapa === 4 ? aviso : null)}
                   aoPagar={() => void pagar()}
+                  cartao={
+                    dados.chavePublicaMp
+                      ? {
+                          chave: dados.chavePublicaMp,
+                          nonce: dados.porta.nonce,
+                          valorCentavos: total,
+                          aoPronto: () => setCartaoPronto(true),
+                          aoFalhar: () => {
+                            setCartaoPronto(false)
+                            setAviso({ etapa: 4, codigo: 'pagamento_indisponivel' })
+                          },
+                          controle: controleDoCartao,
+                        }
+                      : null
+                  }
+                  desafio={desafio ? { situacao: desafio.situacao, aoMudar: chegou } : null}
                 />
               ) : null}
             </li>
@@ -444,7 +530,11 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
           type="submit"
           form={formulario(etapa)}
           className="btn-retro btn-retro--escuro resumo__botao"
-          disabled={ocupado || (etapa === 3 && !dados.usuario) || (etapa === 4 && fechada)}
+          disabled={
+            ocupado ||
+            (etapa === 3 && !dados.usuario) ||
+            (etapa === 4 && (fechada || desafio !== null || (pagamento === 'cartao' && !cartaoPronto)))
+          }
           aria-busy={ocupado}
         >
           {rotuloDoBotao[etapa]}

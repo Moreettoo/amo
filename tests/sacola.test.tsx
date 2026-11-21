@@ -8,7 +8,7 @@ import PaginaDoProduto from '@/app/catalogo/[produto]/page'
 import { horaDeSaoPaulo } from '@/components/sacola/espera'
 import { CHAVE_DO_PROGRESSO } from '@/components/sacola/progresso'
 import { carregarCatalogo } from '@/lib/dados/catalogo'
-import { MENSAGENS_DO_FECHAMENTO, type Cotacao, type SituacaoDoPedido } from '@/lib/fechamento/tipos'
+import { MENSAGENS_DO_FECHAMENTO, mensagemDaRecusa, type Cotacao, type SituacaoDoPedido } from '@/lib/fechamento/tipos'
 import { resumoDosHorarios, textoDaLoja, type SituacaoDaLoja } from '@/lib/loja'
 import { mascararCelular } from '@/lib/pedido'
 import { formatarPreco } from '@/lib/produto'
@@ -32,6 +32,7 @@ const m = vi.hoisted(() => ({
   cotar: vi.fn(),
   fechar: vi.fn(),
   pagarPix: vi.fn(),
+  pagarCartao: vi.fn(),
   situacaoPedido: vi.fn(),
   refresh: vi.fn(),
 }))
@@ -40,6 +41,7 @@ vi.mock('@/app/sacola/acoes', () => ({
   cotarEntrega: m.cotar,
   fecharPedido: m.fechar,
   pagarComPix: m.pagarPix,
+  pagarComCartao: m.pagarCartao,
   situacaoDoPedido: m.situacaoPedido,
 }))
 // o router.refresh() traz da pagina o que mudou no servidor (precos, loja, sessao)
@@ -134,6 +136,7 @@ beforeEach(() => {
   m.cotar.mockReset()
   m.fechar.mockReset()
   m.fechar.mockResolvedValue({ ok: true, pedido: { numero: '123456', totalCentavos: 5070 } })
+  m.pagarCartao.mockReset()
   m.pagarPix.mockReset()
   m.pagarPix.mockResolvedValue({ ok: true, situacao: pixPendente() })
   m.situacaoPedido.mockReset()
@@ -936,5 +939,202 @@ describe('o Pix e a espera do pagamento', () => {
     await andar(5000)
     expect(screen.getByText('Pagamento aprovado.')).toBeInTheDocument()
     expect(await axeNoRelogioFalso(container)).toHaveNoViolations()
+  })
+})
+
+describe('o cartão pelo Card Payment Brick', () => {
+  const ana = { id: 'usuario-1', email: 'ana@exemplo.com', nome: 'Ana Souza', celular: '11987654321' }
+  const marca = createHash('sha256').update('usuario-1').digest('hex').slice(0, 16)
+  const CHAVE = 'APP_USR-6e6b1a43-7ce1-4a9a-a2b6-9c7a0e3a1f20'
+  const SDK = 'script[src="https://sdk.mercadopago.com/js/v2"]'
+  const resumo = () => screen.getByRole('complementary', { name: 'Resumo' })
+  const botaoDoResumo = () => within(resumo()).getByRole('button')
+  /** o que o Brick devolve no getFormData, com o CPF que ele pediu */
+  const DADOS = {
+    formData: {
+      token: 'f'.repeat(32),
+      issuer_id: '24',
+      payment_method_id: 'master',
+      installments: 3,
+      payer: { email: 'ana@exemplo.com', identification: { type: 'CPF', number: '12345678909' } },
+    },
+    additionalData: { bin: '548083', lastFourDigits: '3311', paymentTypeId: 'credit_card' },
+  }
+  const cartao = (estado: string, extra: { recusa?: string; desafioUrl?: string } = {}): SituacaoDoPedido => ({
+    numero: '123456',
+    estado: estado === 'aprovado' ? 'pago' : 'aguardando_pagamento',
+    pagamento: { forma: 'cartao', estado, recusa: null, pix: null, desafioUrl: null, ...extra },
+  })
+  // o Brick falso: o que a pagina chama no window.MercadoPago
+  const brick = { getFormData: vi.fn(), unmount: vi.fn() }
+  const criado = vi.fn()
+  const construido = vi.fn()
+  class MercadoPagoFalso {
+    constructor(chave: string, opcoes: unknown) {
+      construido(chave, opcoes)
+    }
+    bricks() {
+      return {
+        create: async (tipo: string, lugar: string, opcoes: { callbacks: { onReady: () => void } }) => {
+          criado(tipo, lugar, opcoes)
+          opcoes.callbacks.onReady()
+          return brick
+        },
+      }
+    }
+  }
+  const progresso = () =>
+    sessionStorage.setItem(CHAVE_DO_PROGRESSO, JSON.stringify({ etapa: 3, endereco: { cep: '04567-000', numero: '10', complemento: '' }, cotacao: cotacaoDe(), conta: marca }))
+
+  /** logada, na etapa 3 com a entrega cotada (R$ 37,80 + R$ 12,90) */
+  const naEtapa3 = async () => {
+    guardar({ prestigio: 2 })
+    m.usuario = ana
+    progresso()
+    const user = userEvent.setup()
+    const tela = render(await PaginaSacola())
+    await screen.findByRole('button', { name: 'Continuar para o pagamento' })
+    return { user, ...tela }
+  }
+  /** na etapa 4 com o cartao escolhido e o Brick pronto */
+  const comCartao = async () => {
+    const tela = await naEtapa3()
+    await tela.user.click(screen.getByRole('button', { name: 'Continuar para o pagamento' }))
+    await tela.user.click(await screen.findByRole('radio', { name: 'Cartão de crédito' }))
+    await waitFor(() => expect(within(resumo()).getByRole('button', { name: `Pagar com cartão · ${formatarPreco(5070)}` })).toBeEnabled())
+    return tela
+  }
+
+  beforeEach(() => {
+    vi.stubEnv('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY', CHAVE)
+    vi.stubGlobal('MercadoPago', MercadoPagoFalso)
+    brick.getFormData.mockReset()
+    brick.getFormData.mockResolvedValue(DADOS)
+    brick.unmount.mockReset()
+    criado.mockReset()
+    construido.mockReset()
+    m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('aprovado') })
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    vi.unstubAllGlobals()
+  })
+
+  // primeiro: o script do Brick ainda nao entrou na pagina deste arquivo
+  it('sem a chave pública, só o Pix: nem a opção do cartão nem o script do Mercado Pago', async () => {
+    vi.stubEnv('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY', '')
+    const { user } = await naEtapa3()
+    expect(screen.getByText('Pix.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Continuar para o pagamento' }))
+    expect(await screen.findByRole('radio', { name: 'Pix' })).toBeChecked()
+    expect(screen.queryByRole('radio', { name: 'Cartão de crédito' })).not.toBeInTheDocument()
+    expect(document.querySelector(SDK)).toBeNull()
+    expect(construido).not.toHaveBeenCalled()
+  })
+
+  it('com a chave, escolher o cartão monta o Brick com o valor em reais e sem o botão dele', async () => {
+    const { user, container } = await naEtapa3()
+    expect(screen.getByText('Pix ou cartão.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Continuar para o pagamento' }))
+    expect(await screen.findByRole('radio', { name: 'Pix' })).toBeChecked()
+    expect(construido).not.toHaveBeenCalled()
+    await user.click(screen.getByRole('radio', { name: 'Cartão de crédito' }))
+    await waitFor(() => expect(criado).toHaveBeenCalledTimes(1))
+    expect(construido).toHaveBeenCalledWith(CHAVE, { locale: 'pt-BR' })
+    const [tipo, lugar, opcoes] = criado.mock.calls[0]
+    expect(tipo).toBe('cardPayment')
+    expect(document.getElementById(lugar)).toBeInTheDocument()
+    expect(opcoes.initialization).toEqual({ amount: 50.7 })
+    expect(opcoes.customization.visual.hidePaymentButton).toBe(true)
+    expect(opcoes.customization.visual.style.customVariables).toMatchObject({ textPrimaryColor: '#2B1B16', inputBackgroundColor: '#FFFBF5' })
+    expect(opcoes.customization.paymentMethods).toEqual({ maxInstallments: 12 })
+    const script = document.querySelector(SDK) as HTMLScriptElement | null
+    expect(script).not.toBeNull()
+    expect(script!.nonce || script!.getAttribute('nonce')).toBe('nonce-de-teste')
+    expect(await screen.findByRole('button', { name: `Pagar com cartão · ${formatarPreco(5070)}` })).toBeEnabled()
+    expect(await axe(container)).toHaveNoViolations()
+  })
+
+  it('o botão do resumo lê o Brick, fecha o pedido e paga com os campos certos; aprovado esvazia a sacola', async () => {
+    const { user } = await comCartao()
+    await user.click(botaoDoResumo())
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pedido 123456 recebido' })).toBeInTheDocument()
+    expect(brick.getFormData).toHaveBeenCalledTimes(1)
+    expect(m.fechar).toHaveBeenCalledTimes(1)
+    expect(brick.getFormData.mock.invocationCallOrder[0]).toBeLessThan(m.fechar.mock.invocationCallOrder[0])
+    expect(m.fechar.mock.invocationCallOrder[0]).toBeLessThan(m.pagarCartao.mock.invocationCallOrder[0])
+    expect(m.pagarCartao).toHaveBeenCalledWith({
+      numero: '123456',
+      token: 'f'.repeat(32),
+      bandeira: 'master',
+      tipo: 'credit_card',
+      parcelas: 3,
+      final: '3311',
+      documento: { tipo: 'CPF', numero: '12345678909' },
+    })
+    expect(m.pagarPix).not.toHaveBeenCalled()
+    expect(guardada()).toEqual({})
+    expect(sessionStorage.getItem(CHAVE_DO_PROGRESSO)).toBeNull()
+  })
+
+  it('sem dados válidos no Brick nada sai; sem CPF o documento não vai', async () => {
+    const { user } = await comCartao()
+    brick.getFormData.mockResolvedValueOnce(undefined)
+    await user.click(botaoDoResumo())
+    await waitFor(() => expect(brick.getFormData).toHaveBeenCalledTimes(1))
+    expect(m.fechar).not.toHaveBeenCalled()
+    await waitFor(() => expect(botaoDoResumo()).toBeEnabled())
+    brick.getFormData.mockResolvedValueOnce({ ...DADOS, formData: { ...DADOS.formData, payer: { email: 'ana@exemplo.com' } } })
+    await user.click(botaoDoResumo())
+    await waitFor(() => expect(m.pagarCartao).toHaveBeenCalledTimes(1))
+    expect(m.pagarCartao.mock.calls[0][0]).not.toHaveProperty('documento')
+  })
+
+  it('recusado fica na etapa 4 com a frase da recusa, e o Brick continua pronto', async () => {
+    const { user } = await comCartao()
+    m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('recusado', { recusa: 'insufficient_amount' }) })
+    await user.click(botaoDoResumo())
+    expect(await screen.findByText(mensagemDaRecusa('insufficient_amount'))).toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Cartão de crédito' })).toBeChecked()
+    expect(brick.unmount).not.toHaveBeenCalled()
+    expect(botaoDoResumo()).toHaveTextContent(`Pagar com cartão · ${formatarPreco(5070)}`)
+    expect(botaoDoResumo()).toBeEnabled()
+    expect(guardada()).toEqual({ prestigio: 2 })
+  })
+
+  it('com o desafio do banco, o iframe aparece na etapa 4 e a espera decide', async () => {
+    const url = 'https://www.mercadopago.com.br/3ds/desafio?id=abc'
+    m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
+    await comCartao()
+    relogioFalso()
+    fireEvent.click(botaoDoResumo())
+    await andar(0)
+    const janela = screen.getByTitle('Confirmação do banco')
+    expect(janela.tagName).toBe('IFRAME')
+    expect(janela).toHaveAttribute('src', url)
+    expect(brick.unmount).toHaveBeenCalled()
+    expect(botaoDoResumo()).toBeDisabled()
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('aprovado') })
+    await andar(5000)
+    expect(screen.getByRole('heading', { level: 1, name: 'Pedido 123456 recebido' })).toBeInTheDocument()
+    expect(guardada()).toEqual({})
+  })
+
+  it('pendente sem desafio: o pedido feito aguarda a confirmação do cartão, com a espera', async () => {
+    m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('pendente') })
+    const { user } = await comCartao()
+    await user.click(botaoDoResumo())
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pedido 123456 aguardando a confirmação do cartão' })).toBeInTheDocument()
+    expect(screen.getByText('Assim que o pagamento for confirmado, esta página avisa sozinha.')).toBeInTheDocument()
+    expect(screen.queryByText('Gerando o código Pix.')).not.toBeInTheDocument()
+    expect(guardada()).toEqual({ prestigio: 2 })
+  })
+
+  it('trocar para o Pix desmonta o Brick', async () => {
+    const { user } = await comCartao()
+    await user.click(screen.getByRole('radio', { name: 'Pix' }))
+    expect(brick.unmount).toHaveBeenCalledTimes(1)
+    expect(botaoDoResumo()).toHaveTextContent(`Pagar com Pix · ${formatarPreco(5070)}`)
   })
 })
