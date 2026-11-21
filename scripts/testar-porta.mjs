@@ -76,11 +76,17 @@ const verificacoes = [
 
 // a cliente de ensaio, criada pela chave secreta; o token fica so na memoria
 const cliente = { id: null, token: null }
+// o cliente admin existe antes da cliente de ensaio, para o finally apagar
+// a cliente mesmo quando generateLink ou verifyOtp lancam
+const admin = env.SUPABASE_SECRET_KEY
+  ? createClient(url, env.SUPABASE_SECRET_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { 'x-amo-porta': porta } },
+    })
+  : null
 async function abrirCliente() {
-  const admin = createClient(url, env.SUPABASE_SECRET_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
-    global: { headers: { 'x-amo-porta': porta } },
-  })
+  // uma so cliente de ensaio por rodada, para o finally apagar a unica
+  if (cliente.id) throw new Error('a cliente de ensaio nao abriu')
   const email = `ensaio-${crypto.randomUUID().slice(0, 8)}@amo-ensaio.dev`
   const criada = await admin.auth.admin.createUser({
     email,
@@ -95,18 +101,16 @@ async function abrirCliente() {
   const sessao = await comum.auth.verifyOtp({ token_hash: link.data.properties.hashed_token, type: 'magiclink' })
   if (sessao.error) throw new Error(`verifyOtp: ${sessao.error.code}`)
   cliente.token = sessao.data.session.access_token
-  return admin
 }
 
-let admin = null
-if (env.SUPABASE_SECRET_KEY) {
+if (admin) {
   verificacoes.push(
     ['a cliente com o token, sem o segredo, nao le o proprio perfil', async () => {
-      admin ??= await abrirCliente()
+      if (!cliente.token) await abrirCliente()
       return barradaPelaPorta(await chamar('perfis?select=nome', { token: cliente.token }))
     }],
     ['a cliente com o token e o segredo le uma linha so, a dela', async () => {
-      admin ??= await abrirCliente()
+      if (!cliente.token) await abrirCliente()
       const r = await chamar('perfis?select=id,nome', { token: cliente.token, segredo: porta })
       return r.status === 200 && Array.isArray(r.json) && r.json.length === 1 && r.json[0].id === cliente.id
     }],
@@ -116,24 +120,26 @@ if (env.SUPABASE_SECRET_KEY) {
 }
 
 let falhas = 0
-for (const [nome, verificar] of verificacoes) {
-  let ok = false
-  try {
-    ok = await verificar()
-  } catch (erro) {
-    console.log(`FALHA ${nome}: ${erro.message}`)
-    falhas++
-    continue
+try {
+  for (const [nome, verificar] of verificacoes) {
+    let ok = false
+    try {
+      ok = await verificar()
+    } catch (erro) {
+      console.log(`FALHA ${nome}: ${erro.message}`)
+      falhas++
+      continue
+    }
+    console.log(`${ok ? 'ok   ' : 'FALHA'} ${nome}`)
+    if (!ok) falhas++
   }
-  console.log(`${ok ? 'ok   ' : 'FALHA'} ${nome}`)
-  if (!ok) falhas++
-}
-
-if (admin && cliente.id) {
-  const { error } = await admin.auth.admin.deleteUser(cliente.id)
-  if (error) {
-    console.log(`FALHA apagar a cliente de ensaio: ${error.code}`)
-    falhas++
+} finally {
+  if (admin && cliente.id) {
+    const { error } = await admin.auth.admin.deleteUser(cliente.id)
+    if (error) {
+      console.log(`FALHA apagar a cliente de ensaio: ${error.code}`)
+      falhas++
+    }
   }
 }
 
