@@ -27,37 +27,49 @@ afterEach(() => vi.restoreAllMocks())
 
 describe('o progresso do fechamento, guardado na aba', () => {
   it('nada guardado, JSON quebrado ou etapa 7: null', () => {
-    expect(lerProgresso(AGORA)).toBeNull()
+    expect(lerProgresso(AGORA, null)).toBeNull()
     guardar('{"etapa":')
-    expect(lerProgresso(AGORA)).toBeNull()
+    expect(lerProgresso(AGORA, null)).toBeNull()
     guardar({ etapa: 7, endereco, cotacao: null })
-    expect(lerProgresso(AGORA)).toBeNull()
+    expect(lerProgresso(AGORA, null)).toBeNull()
   })
 
   it('qualquer coisa fora da forma: null', () => {
     guardar([1, 2])
-    expect(lerProgresso(AGORA)).toBeNull()
+    expect(lerProgresso(AGORA, null)).toBeNull()
     guardar({ etapa: 2, endereco: { cep: 4567000, numero: '10', complemento: '' }, cotacao: null })
-    expect(lerProgresso(AGORA)).toBeNull()
+    expect(lerProgresso(AGORA, null)).toBeNull()
     guardar({ etapa: 2, endereco: { ...endereco, complemento: 'x'.repeat(61) }, cotacao: null })
-    expect(lerProgresso(AGORA)).toBeNull()
+    expect(lerProgresso(AGORA, null)).toBeNull()
     guardar({ etapa: 3, endereco, cotacao: { ...cotacao(600_000), valorCentavos: '1290' } })
-    expect(lerProgresso(AGORA)).toBeNull()
+    expect(lerProgresso(AGORA, null)).toBeNull()
     guardar({ etapa: 3, endereco, cotacao: { ...cotacao(600_000), expiraEm: 'amanha' } })
-    expect(lerProgresso(AGORA)).toBeNull()
+    expect(lerProgresso(AGORA, null)).toBeNull()
   })
 
   it('a cotação que vence em 30 s fica de fora (null) e a etapa volta para a entrega, com o endereço', () => {
-    guardar({ etapa: 3, endereco, cotacao: cotacao(30_000) })
-    expect(lerProgresso(AGORA)).toEqual({ etapa: 2, endereco, cotacao: null })
+    guardar({ etapa: 3, endereco, cotacao: cotacao(30_000), conta: null })
+    expect(lerProgresso(AGORA, null)).toEqual({ etapa: 2, endereco, cotacao: null, conta: null })
   })
 
   it('devolve o progresso válido; apagado, null', () => {
-    const p: Progresso = { etapa: 3, endereco, cotacao: cotacao(600_000) }
+    const p: Progresso = { etapa: 3, endereco, cotacao: cotacao(600_000), conta: null }
     gravarProgresso(p)
-    expect(lerProgresso(AGORA)).toEqual(p)
+    expect(lerProgresso(AGORA, null)).toEqual(p)
     apagarProgresso()
-    expect(lerProgresso(AGORA)).toBeNull()
+    expect(lerProgresso(AGORA, null)).toBeNull()
+  })
+
+  it('o progresso de outra conta (ou de uma conta, agora sem sessão) fica de fora; o guardado sem conta segue para quem entrou', () => {
+    const p: Progresso = { etapa: 2, endereco, cotacao: null, conta: 'aaaaaaaaaaaaaaaa' }
+    gravarProgresso(p)
+    expect(lerProgresso(AGORA, 'bbbbbbbbbbbbbbbb')).toBeNull()
+    expect(lerProgresso(AGORA, null)).toBeNull()
+    expect(lerProgresso(AGORA, 'aaaaaaaaaaaaaaaa')).toEqual(p)
+    gravarProgresso({ ...p, conta: null })
+    expect(lerProgresso(AGORA, 'bbbbbbbbbbbbbbbb')).toEqual({ ...p, conta: null })
+    guardar({ ...p, conta: 'nao-e-marca' })
+    expect(lerProgresso(AGORA, null)).toBeNull()
   })
 
   it('o sessionStorage que lança não faz lançar', () => {
@@ -67,8 +79,8 @@ describe('o progresso do fechamento, guardado na aba', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(lanca)
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(lanca)
     vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(lanca)
-    expect(() => gravarProgresso({ etapa: 1, endereco, cotacao: null })).not.toThrow()
-    expect(lerProgresso(AGORA)).toBeNull()
+    expect(() => gravarProgresso({ etapa: 1, endereco, cotacao: null, conta: null })).not.toThrow()
+    expect(lerProgresso(AGORA, null)).toBeNull()
     expect(() => apagarProgresso()).not.toThrow()
   })
 })

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react'
+import { useRef, useState, type FormEvent, type InputHTMLAttributes } from 'react'
 import { cotarEntrega } from '@/app/sacola/acoes'
 import { mascararCep } from '@/lib/entrega'
 import { MENSAGENS_DO_FECHAMENTO, type CodigoDoFechamento, type Cotacao, type RespostaDaCotacao } from '@/lib/fechamento/tipos'
@@ -33,12 +33,6 @@ export function EtapaEntrega({ id, endereco, aoMudarEndereco, cotacao, ocupado, 
   const [erro, setErro] = useState<Erro | null>(null)
   const formulario = useRef<HTMLFormElement>(null)
 
-  useEffect(() => {
-    // o foco vai para o primeiro campo marcado, para o leitor de tela dizer o que falta
-    const campo = erro ? Object.keys(erro.campos)[0] : undefined
-    if (campo) formulario.current?.querySelector<HTMLInputElement>(`[name="${campo}"]`)?.focus()
-  }, [erro])
-
   async function enviar(e: FormEvent) {
     e.preventDefault()
     if (ocupado) return
@@ -52,7 +46,15 @@ export function EtapaEntrega({ id, endereco, aoMudarEndereco, cotacao, ocupado, 
       r = { ok: false, erro: 'tente_de_novo' }
     }
     setOcupado(false)
-    if (!r.ok) return setErro({ codigo: r.erro, campos: r.campos ?? {} })
+    if (!r.ok) {
+      const campos = r.campos ?? {}
+      setErro({ codigo: r.erro, campos })
+      // so depois de enviar o foco vai ao primeiro campo marcado, para o leitor
+      // de tela dizer o que falta; enquanto ela digita, o foco nunca anda
+      const primeiro = Object.keys(campos)[0]
+      if (primeiro) requestAnimationFrame(() => formulario.current?.querySelector<HTMLInputElement>('[name="' + primeiro + '"]')?.focus())
+      return
+    }
     setErro(null)
     aoCotar(r.cotacao)
   }

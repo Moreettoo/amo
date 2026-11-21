@@ -121,7 +121,7 @@ describe('a página do Prestígio', () => {
     expect(m.cotar).toHaveBeenLastCalledWith({ cep: '04567-000', numero: '120' })
   })
 
-  it('a cotação de exemplo diz "(valor de exemplo)" junto do valor; a de verdade, não', async () => {
+  it('a cotação de exemplo diz "(valor de exemplo)" junto do valor; o mesmo CEP e número não pedem de novo; a de verdade não diz', async () => {
     const endereco = { cep: '04567000', logradouro: 'Rua', numero: '120', complemento: '', bairro: 'Bairro', cidade: 'São Paulo', uf: 'SP' }
     const cotacao = { id: 'c1', valorCentavos: 1290, minutos: 45, expiraEm: new Date(Date.now() + 15 * 60_000).toISOString(), exemplo: true, endereco }
     m.cotar.mockResolvedValueOnce({ ok: true, cotacao }).mockResolvedValueOnce({ ok: true, cotacao: { ...cotacao, exemplo: false } })
@@ -131,7 +131,13 @@ describe('a página do Prestígio', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Calcular' }))
     expect(await screen.findByText('Uber, entrega hoje (valor de exemplo)')).toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: 'Calcular' }))
+    expect(screen.getByText('Uber, entrega hoje (valor de exemplo)')).toBeInTheDocument()
+    expect(m.cotar).toHaveBeenCalledTimes(1)
+    await userEvent.type(screen.getByPlaceholderText('Número'), 'A')
+    await userEvent.click(screen.getByRole('button', { name: 'Calcular' }))
     expect(await screen.findByText('Uber, entrega hoje')).toBeInTheDocument()
+    expect(m.cotar).toHaveBeenCalledTimes(2)
+    expect(m.cotar).toHaveBeenLastCalledWith({ cep: '04567-000', numero: '120A' })
     expect(screen.queryByText(/valor de exemplo/)).toBeNull()
   })
 

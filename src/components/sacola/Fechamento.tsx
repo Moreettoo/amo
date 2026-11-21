@@ -24,6 +24,8 @@ import { apagarProgresso, gravarProgresso, lerProgresso, type EnderecoDigitado, 
 /** O que a pagina le no servidor para o fechamento. */
 export type DadosDaSacola = {
   usuario: { nome: string; celular: string; email: string } | null
+  /** a marca da conta (16 hex do SHA-256 do id, feita no servidor), null sem sessao */
+  conta: string | null
   enderecoPrincipal: { cep: string; numero: string; complemento: string } | null
   loja: { aberta: boolean; texto: string; horarios: string }
   porta: { chaveDoTurnstile: string; nonce: string }
@@ -61,7 +63,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   const linhas = useSacola(loja)
   // o progresso da aba so existe no navegador; no servidor (e enquanto a
   // sacola e lida) a pagina mostra a area reservada, sem as etapas
-  const [guardado] = useState(() => lerProgresso(Date.now()))
+  const [guardado] = useState(() => lerProgresso(Date.now(), dados.conta))
   // os dados da etapa 3 nao sao guardados: quem parou na 4 volta para a 3
   const [etapa, setEtapa] = useState<Etapa>(guardado ? (guardado.etapa === 4 ? 3 : guardado.etapa) : 1)
   const [endereco, setEndereco] = useState<EnderecoDigitado>(() => {
@@ -76,8 +78,8 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   const [feito, setFeito] = useState<Feito | null>(null)
 
   useEffect(() => {
-    if (!feito) gravarProgresso({ etapa, endereco, cotacao })
-  }, [feito, etapa, endereco, cotacao])
+    if (!feito) gravarProgresso({ etapa, endereco, cotacao, conta: dados.conta })
+  }, [feito, etapa, endereco, cotacao, dados.conta])
 
   const formulario = (e: Etapa) => `${id}-etapa-${e}`
   const ir = (e: Etapa) => {

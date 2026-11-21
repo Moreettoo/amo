@@ -69,10 +69,15 @@ function Entrega() {
   const [numero, setNumero] = useState('')
   const [calculando, setCalculando] = useState(false)
   const [resultado, setResultado] = useState<RespostaDaCotacao | null>(null)
+  // o CEP e o numero da ultima cotacao que deu certo
+  const [cotadoPara, setCotadoPara] = useState('')
 
   async function calcular(e: FormEvent) {
     e.preventDefault()
     if (calculando) return
+    const pedido = cep + '|' + numero.trim()
+    // o mesmo CEP e numero, com a cotacao longe de vencer: nada a perguntar de novo
+    if (resultado?.ok && cotadoPara === pedido && Date.parse(resultado.cotacao.expiraEm) - Date.now() > 60_000) return
     setCalculando(true)
     let r: RespostaDaCotacao
     try {
@@ -81,6 +86,7 @@ function Entrega() {
       r = { ok: false, erro: 'tente_de_novo' }
     }
     setResultado(r)
+    setCotadoPara(r.ok ? pedido : '')
     setCalculando(false)
   }
 

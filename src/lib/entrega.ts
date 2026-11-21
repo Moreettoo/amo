@@ -5,8 +5,6 @@
  * Aqui ficam so a mascara e a conferencia do CEP e do numero.
  */
 
-export type Cotacao = { valor: number; minutos: number }
-
 /** So os 8 digitos. */
 export const limparCep = (texto: string) => texto.replace(/\D/g, '').slice(0, 8)
 

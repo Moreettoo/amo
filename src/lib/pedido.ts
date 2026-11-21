@@ -1,6 +1,3 @@
-import type { Cotacao } from '@/lib/entrega'
-import { limparCep } from '@/lib/entrega'
-
 /**
  * O fechamento do pedido: as regras dos dados da cliente e o envio. O envio
  * ainda e de exemplo (enviarPedidoDeExemplo): nenhum valor e cobrado e nada
@@ -9,8 +6,6 @@ import { limparCep } from '@/lib/entrega'
  * total que vale).
  */
 
-export type Endereco = { cep: string; numero: string; complemento: string }
-export type Entrega = Endereco & { cotacao: Cotacao }
 export type Dados = { nome: string; celular: string; email: string }
 export type Pagamento = 'pix' | 'cartao'
 
@@ -55,11 +50,6 @@ export function validarDados(d: Dados): ErrosDosDados {
 }
 
 /** "04567-000, 120, ap. 52" */
-export const descreverEndereco = (e: Endereco) =>
-  [`CEP ${limparCep(e.cep).replace(/^(\d{5})(\d{3})$/, '$1-$2')}`, e.numero.trim(), e.complemento.trim()]
-    .filter(Boolean)
-    .join(', ')
-
 /** EXEMPLO. Responde depois de um instante, como o servidor responderia. */
 export async function enviarPedidoDeExemplo(): Promise<{ numero: string }> {
   await new Promise((r) => setTimeout(r, 700))

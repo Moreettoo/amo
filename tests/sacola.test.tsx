@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { createHash } from 'node:crypto'
 import { act, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
@@ -23,6 +24,8 @@ import {
 const m = vi.hoisted(() => ({
   usuario: null as { id: string; email: string; nome: string; celular: string } | null,
   enderecos: [] as Record<string, unknown>[],
+  enderecosFalham: false,
+  falha: vi.fn(),
   horarios: [2, 3, 4, 5, 6].map((dia) => ({ dia, abre: '09:00', fecha: '18:00' })),
   situacao: { aberta: true, fecha: '18:00' } as SituacaoDaLoja,
   cotar: vi.fn(),
@@ -30,7 +33,13 @@ const m = vi.hoisted(() => ({
 // as acoes do servidor sao falsas aqui: no Vitest uma acao e uma funcao comum
 vi.mock('@/app/sacola/acoes', () => ({ cotarEntrega: m.cotar }))
 vi.mock('@/lib/auth', async (original) => ({ ...(await original<typeof import('@/lib/auth')>()), obterUsuario: async () => m.usuario }))
-vi.mock('@/lib/dados/enderecos', () => ({ lerEnderecos: async () => m.enderecos }))
+vi.mock('@/lib/dados/enderecos', () => ({
+  lerEnderecos: async () => {
+    if (m.enderecosFalham) throw new Error('banco fora')
+    return m.enderecos
+  },
+}))
+vi.mock('@/lib/dados/erros', async (original) => ({ ...(await original<typeof import('@/lib/dados/erros')>()), registrarFalha: m.falha }))
 vi.mock('@/lib/dados/loja', () => ({ lerLoja: async () => ({ horarios: m.horarios, pausada: false }) }))
 vi.mock('@/lib/loja', async (original) => ({ ...(await original<typeof import('@/lib/loja')>()), situacaoDaLoja: () => m.situacao }))
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-nonce': 'nonce-de-teste' }) }))
@@ -64,6 +73,8 @@ beforeEach(() => {
   sessionStorage.clear()
   m.usuario = null
   m.enderecos = []
+  m.enderecosFalham = false
+  m.falha.mockReset()
   m.situacao = { aberta: true, fecha: '18:00' }
   m.cotar.mockReset()
   vi.stubEnv('NEXT_PUBLIC_TURNSTILE_SITE_KEY', '1x00000000000000000000AA')
@@ -261,6 +272,7 @@ describe('a sacola fala com o servidor', () => {
     const numero = screen.getByLabelText('Número')
     await waitFor(() => expect(numero).toHaveAttribute('aria-invalid', 'true'))
     expect(numero).toHaveAccessibleDescription(expect.stringContaining('Use só letras e números no número, até 10.'))
+    expect(within(numero.closest('.campo') as HTMLElement).getByText('Use só letras e números no número, até 10.')).toBeInTheDocument()
     expect(screen.getByLabelText('CEP')).not.toHaveAttribute('aria-invalid')
 
     await user.click(screen.getByRole('button', { name: 'Calcular e continuar' }))
@@ -302,7 +314,7 @@ describe('a sacola fala com o servidor', () => {
   it('recarregar com o progresso guardado: volta à etapa 3 com a entrega; com a cotação vencida, à 2 com o endereço', async () => {
     guardar({ prestigio: 1 })
     const endereco = { cep: '04567-000', numero: '10', complemento: 'apto 12' }
-    sessionStorage.setItem(CHAVE_DO_PROGRESSO, JSON.stringify({ etapa: 3, endereco, cotacao: { ...cotacaoDe(), exemplo: false } }))
+    sessionStorage.setItem(CHAVE_DO_PROGRESSO, JSON.stringify({ etapa: 3, endereco, cotacao: { ...cotacaoDe(), exemplo: false }, conta: null }))
     const { unmount } = render(await PaginaSacola())
     expect(await screen.findByLabelText('Nome')).toBeInTheDocument()
     expect(screen.getByText(linhaDaEntrega(''))).toBeInTheDocument()
@@ -310,11 +322,71 @@ describe('a sacola fala com o servidor', () => {
     expect(m.cotar).not.toHaveBeenCalled()
     unmount()
 
-    sessionStorage.setItem(CHAVE_DO_PROGRESSO, JSON.stringify({ etapa: 3, endereco, cotacao: cotacaoDe(-1000) }))
+    sessionStorage.setItem(CHAVE_DO_PROGRESSO, JSON.stringify({ etapa: 3, endereco, cotacao: cotacaoDe(-1000), conta: null }))
     render(await PaginaSacola())
     expect(await screen.findByLabelText('CEP')).toHaveValue('04567-000')
     expect(screen.getByLabelText('Número')).toHaveValue('10')
     expect(screen.getByLabelText('Complemento (opcional)')).toHaveValue('apto 12')
     expect(within(resumo()).getByText('informe o CEP')).toBeInTheDocument()
+  })
+})
+
+describe('a entrega e o progresso, nos casos difíceis', () => {
+  const irParaAEntrega = async () => {
+    const user = userEvent.setup()
+    render(await PaginaSacola())
+    await user.click(await screen.findByRole('button', { name: 'Continuar para a entrega' }))
+    return user
+  }
+  const mariana = { id: 'usuario-1', email: 'mariana@exemplo.com.br', nome: 'Mariana Costa', celular: '11987654321' }
+
+  it('com o CEP e o número marcados, digitar o CEP fica no CEP; digitar no número tira o erro dele', async () => {
+    guardar({ prestigio: 1 })
+    m.cotar.mockResolvedValueOnce({
+      ok: false,
+      erro: 'campos_invalidos',
+      campos: { cep: 'Confira o CEP: ele tem 8 números.', numero: 'Falta o número da casa ou do prédio.' },
+    })
+    const user = await irParaAEntrega()
+    await user.click(screen.getByRole('button', { name: 'Calcular e continuar' }))
+    const cep = screen.getByLabelText('CEP')
+    await waitFor(() => expect(cep).toHaveFocus())
+    await user.type(cep, '04567000')
+    expect(cep).toHaveValue('04567-000')
+    expect(cep).toHaveFocus()
+    expect(cep).not.toHaveAttribute('aria-invalid')
+    const numero = screen.getByLabelText('Número')
+    expect(numero).toHaveValue('')
+    expect(within(numero.closest('.campo') as HTMLElement).getByText('Falta o número da casa ou do prédio.')).toBeInTheDocument()
+    await user.type(numero, '10')
+    expect(numero).toHaveValue('10')
+    expect(numero).not.toHaveAttribute('aria-invalid')
+    expect(within(numero.closest('.campo') as HTMLElement).queryByText('Falta o número da casa ou do prédio.')).toBeNull()
+  })
+
+  it('o progresso guardado por outra conta não volta; o guardado sem conta segue para quem entrou e passa a ser dela', async () => {
+    guardar({ prestigio: 1 })
+    m.usuario = mariana
+    const progresso = (conta: string | null) =>
+      JSON.stringify({ etapa: 3, endereco: { cep: '04567-000', numero: '10', complemento: '' }, cotacao: cotacaoDe(), conta })
+    sessionStorage.setItem(CHAVE_DO_PROGRESSO, progresso('0123456789abcdef'))
+    const { unmount } = render(await PaginaSacola())
+    expect(await screen.findByRole('button', { name: 'Continuar para a entrega' })).toBeInTheDocument()
+    unmount()
+
+    sessionStorage.setItem(CHAVE_DO_PROGRESSO, progresso(null))
+    render(await PaginaSacola())
+    expect(await screen.findByLabelText('Nome')).toBeInTheDocument()
+    const marca = createHash('sha256').update('usuario-1').digest('hex').slice(0, 16)
+    expect(JSON.parse(sessionStorage.getItem(CHAVE_DO_PROGRESSO) ?? '{}').conta).toBe(marca)
+  })
+
+  it('sem os endereços (falha do banco) a sacola abre sem o principal, e a falha vai ao log', async () => {
+    guardar({ prestigio: 1 })
+    m.usuario = mariana
+    m.enderecosFalham = true
+    await irParaAEntrega()
+    expect(screen.getByLabelText('CEP')).toHaveValue('')
+    expect(m.falha).toHaveBeenCalledWith('sacola_enderecos', expect.any(Error))
   })
 })

@@ -9,7 +9,8 @@ import type { Cotacao } from '@/lib/fechamento/tipos'
 
 export type Etapa = 1 | 2 | 3 | 4
 export type EnderecoDigitado = { cep: string; numero: string; complemento: string }
-export type Progresso = { etapa: Etapa; endereco: EnderecoDigitado; cotacao: Cotacao | null }
+/** conta: a marca da conta que guardou (16 hex do SHA-256 do id, feita no servidor), null sem sessao */
+export type Progresso = { etapa: Etapa; endereco: EnderecoDigitado; cotacao: Cotacao | null; conta: string | null }
 
 export const CHAVE_DO_PROGRESSO = 'amo:fechamento'
 
@@ -39,9 +40,11 @@ function cotacao(v: unknown): Cotacao | null {
 /**
  * O progresso guardado, ou null se nao houver ou estiver fora da forma. A
  * cotacao que vence em menos de 60 s fica de fora (null), e a etapa que
- * dependia dela volta para a entrega, com o endereco.
+ * dependia dela volta para a entrega, com o endereco. O guardado por outra
+ * conta (ou por uma conta, e agora sem sessao) nao volta, num aparelho
+ * dividido; o guardado sem conta segue para quem entrou no meio do caminho.
  */
-export function lerProgresso(agora: number): Progresso | null {
+export function lerProgresso(agora: number, conta: string | null): Progresso | null {
   try {
     const bruto = window.sessionStorage.getItem(CHAVE_DO_PROGRESSO)
     if (!bruto) return null
@@ -49,6 +52,9 @@ export function lerProgresso(agora: number): Progresso | null {
     if (!objeto(v) || ![1, 2, 3, 4].includes(v.etapa as number)) return null
     const endereco = enderecoDigitado(v.endereco)
     if (!endereco) return null
+    const dono = v.conta
+    if (dono !== null && !(typeof dono === 'string' && /^[0-9a-f]{16}$/.test(dono))) return null
+    if (dono !== null && dono !== conta) return null
     let c: Cotacao | null = null
     if (v.cotacao !== null) {
       c = cotacao(v.cotacao)
@@ -56,7 +62,7 @@ export function lerProgresso(agora: number): Progresso | null {
       if (Date.parse(c.expiraEm) - agora < FOLGA_MS) c = null
     }
     const etapa = v.etapa as Etapa
-    return { etapa: etapa > 2 && !c ? 2 : etapa, endereco, cotacao: c }
+    return { etapa: etapa > 2 && !c ? 2 : etapa, endereco, cotacao: c, conta: dono }
   } catch {
     return null
   }
