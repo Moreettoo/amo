@@ -223,6 +223,37 @@ describe('ler, cancelar e estornar', () => {
     expect(i2.headers).toEqual({ Authorization: `Bearer ${TOKEN}`, 'X-Idempotency-Key': `${TENTATIVA}-estornar`, 'Content-Type': 'application/json' })
   })
 
+  it.each([
+    ['cancelar', cancelarPedidoMp],
+    ['estornar', estornarPedidoMp],
+  ] as const)('%s: 500 idempotency_validation_failed reenvia uma vez com chave nova', async (nome, fazer) => {
+    fetchFalso
+      .mockResolvedValueOnce(resposta(500, { errors: [{ code: 'idempotency_validation_failed' }] }))
+      .mockResolvedValueOnce(resposta(200, pedidoPix()))
+    const r = await fazer('ORD1', TENTATIVA)
+    expect(r.ok).toBe(true)
+    expect(fetchFalso).toHaveBeenCalledTimes(2)
+    expect(fetchFalso.mock.calls[0][1].headers['X-Idempotency-Key']).toBe(`${TENTATIVA}-${nome}`)
+    expect(fetchFalso.mock.calls[1][1].headers['X-Idempotency-Key']).toBe(`${TENTATIVA}-${nome}-2`)
+    expect(fetchFalso.mock.calls[1][0]).toBe(fetchFalso.mock.calls[0][0])
+  })
+
+  it('o reenvio e um so: o segundo 500 volta como falha', async () => {
+    fetchFalso.mockImplementation(async () => resposta(500, { errors: [{ code: 'idempotency_validation_failed' }] }))
+    expect(await estornarPedidoMp('ORD1', TENTATIVA)).toEqual({ ok: false, status: 500, codigo: 'idempotency_validation_failed' })
+    expect(fetchFalso).toHaveBeenCalledTimes(2)
+  })
+
+  it('outro 500 e a criacao nao reenviam', async () => {
+    fetchFalso.mockImplementation(async () => resposta(500, { errors: [{ code: 'internal_error' }] }))
+    await cancelarPedidoMp('ORD1', TENTATIVA)
+    expect(fetchFalso).toHaveBeenCalledTimes(1)
+    fetchFalso.mockReset()
+    fetchFalso.mockImplementation(async () => resposta(500, { errors: [{ code: 'idempotency_validation_failed' }] }))
+    await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co' })
+    expect(fetchFalso).toHaveBeenCalledTimes(1)
+  })
+
   it('id fora do formato nao chama o fetch', async () => {
     for (const id of ['', 'ORD 1', 'ORD/../x', 'a'.repeat(65), 'ORD\ud800']) {
       expect(await lerPedidoMp(id)).toEqual({ ok: false, status: 0, codigo: null })

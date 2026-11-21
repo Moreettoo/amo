@@ -227,12 +227,24 @@ export function lerPedidoMp(id: string): Promise<ResultadoMp> {
   return chamar('ler', 'GET', `/${id}`, null, undefined)
 }
 
+/**
+ * Cancelar e estornar: um 500 idempotency_validation_failed (contrato, secao
+ * 3) e reenviado uma vez, com chave nova. Repetir e seguro: um segundo
+ * cancelamento responde 409 order_already_canceled e um segundo estorno total,
+ * 409 order_already_refunded. A criacao nunca e reenviada.
+ */
+async function postComReenvio(operacao: string, caminho: string, chave: string): Promise<ResultadoMp> {
+  const r = await chamar(operacao, 'POST', caminho, chave, undefined)
+  if (r.ok || r.status !== 500 || r.codigo !== 'idempotency_validation_failed') return r
+  return chamar(operacao, 'POST', caminho, `${chave}-2`, undefined)
+}
+
 export function cancelarPedidoMp(id: string, tentativa: string): Promise<ResultadoMp> {
   if (!ID.test(id)) return FALHA_LOCAL
-  return chamar('cancelar', 'POST', `/${id}/cancel`, `${tentativa}-cancelar`, undefined)
+  return postComReenvio('cancelar', `/${id}/cancel`, `${tentativa}-cancelar`)
 }
 
 export function estornarPedidoMp(id: string, tentativa: string): Promise<ResultadoMp> {
   if (!ID.test(id)) return FALHA_LOCAL
-  return chamar('estornar', 'POST', `/${id}/refund`, `${tentativa}-estornar`, undefined)
+  return postComReenvio('estornar', `/${id}/refund`, `${tentativa}-estornar`)
 }

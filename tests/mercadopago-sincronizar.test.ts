@@ -16,7 +16,7 @@ vi.mock('@/lib/mercadopago/cliente', () => ({
   estornarPedidoMp: m.estornarPedidoMp,
 }))
 
-import { aplicarRespostaDoMp, cancelarNoMp, estornarNoMp, sincronizarTentativa } from '@/lib/mercadopago/sincronizar'
+import { aplicarRespostaDoMp, cancelarNoMp, estornarNoMp, guardarIdsDoMp, sincronizarTentativa } from '@/lib/mercadopago/sincronizar'
 
 function pedido(status: string, detalhe: string, extra: Partial<NonNullable<PedidoMp['pagamento']>> = {}): PedidoMp {
   return {
@@ -53,10 +53,17 @@ describe('aplicarRespostaDoMp', () => {
     )
   })
 
-  it('sem valor do Mercado Pago, aplica 0', async () => {
-    m.aplicarPagamento.mockResolvedValue(banco('aprovado'))
-    await aplicarRespostaDoMp('T1', { ...pedido('processed', 'accredited'), valorCentavos: null })
-    expect(m.aplicarPagamento).toHaveBeenCalledWith(expect.objectContaining({ valorCentavos: 0 }))
+  it('aprovado com valor ilegivel: nao aplica (nao estorna em silencio), registra valor_ilegivel e devolve null', async () => {
+    const r = await aplicarRespostaDoMp('T1', { ...pedido('processed', 'accredited'), valorCentavos: null })
+    expect(r).toBeNull()
+    expect(m.aplicarPagamento).not.toHaveBeenCalled()
+    expect(m.registrarFalha).toHaveBeenCalledWith('mercadopago.sincronizar', { code: 'valor_ilegivel' })
+  })
+
+  it('fora do aprovado o valor nao conta: sem ele, aplica 0', async () => {
+    m.aplicarPagamento.mockResolvedValue(banco('cancelado', 'aguardando_pagamento'))
+    await aplicarRespostaDoMp('T1', { ...pedido('canceled', 'canceled'), valorCentavos: null })
+    expect(m.aplicarPagamento).toHaveBeenCalledWith(expect.objectContaining({ status: 'cancelado', valorCentavos: 0 }))
   })
 
   it('traducao null: nao aplica, registra a falha e devolve null', async () => {
@@ -107,6 +114,41 @@ const corpoDoEstorno: PedidoMp = {
   valorCentavos: null,
   pagamento: null,
 }
+
+describe('guardarIdsDoMp', () => {
+  it('guarda os ids com status pendente e o detalhe do Mercado Pago, sem os dados da tela', async () => {
+    m.aplicarPagamento.mockResolvedValue(banco('pendente', 'aguardando_pagamento'))
+    await guardarIdsDoMp('T1', pedido('action_required', 'waiting_transfer'))
+    expect(m.aplicarPagamento).toHaveBeenCalledTimes(1)
+    expect(m.aplicarPagamento).toHaveBeenCalledWith({
+      tentativa: 'T1',
+      mpPedidoId: 'ORD1',
+      mpPagamentoId: 'PAY1',
+      status: 'pendente',
+      detalhe: 'waiting_transfer',
+      valorCentavos: 9280,
+    })
+  })
+
+  it('detalhe vazio vira o status; sem pagamento, o do pedido; sem valor, 0', async () => {
+    await guardarIdsDoMp('T1', pedido('status_inventado', ''))
+    expect(m.aplicarPagamento).toHaveBeenLastCalledWith(expect.objectContaining({ detalhe: 'status_inventado' }))
+    await guardarIdsDoMp('T1', { ...pedido('x', 'x'), pagamento: null, status: 'created', detalhe: '', valorCentavos: null })
+    expect(m.aplicarPagamento).toHaveBeenLastCalledWith(
+      expect.objectContaining({ mpPedidoId: 'ORD1', mpPagamentoId: null, detalhe: 'created', valorCentavos: 0 }),
+    )
+  })
+
+  it('referencia de outra tentativa nao guarda', async () => {
+    await guardarIdsDoMp('T1', { ...pedido('action_required', 'waiting_transfer'), referencia: 'T2' })
+    expect(m.aplicarPagamento).not.toHaveBeenCalled()
+  })
+
+  it('erro do banco sobe a quem chamou', async () => {
+    m.aplicarPagamento.mockRejectedValue(new Error('banco'))
+    await expect(guardarIdsDoMp('T1', pedido('action_required', 'waiting_transfer'))).rejects.toThrow('banco')
+  })
+})
 
 describe('referencia', () => {
   it('referencia diferente da tentativa nao aplica e registra', async () => {
@@ -209,8 +251,23 @@ describe('cancelarNoMp', () => {
     expect(r).toEqual(banco('aprovado'))
   })
 
-  it('outra falha devolve null sem aplicar', async () => {
+  it.each([
+    ['sem resposta', 0, null],
+    ['500', 500, null],
+    ['400', 400, 'bad_request'],
+    ['409 de outro codigo', 409, 'idempotency_key_already_used'],
+  ])('outra falha (%s) le o pedido e aplica, para nao ficar pendente na lista para sempre', async (_, status, codigo) => {
+    m.cancelarPedidoMp.mockResolvedValue(falha(status, codigo))
+    m.lerPedidoMp.mockResolvedValue(ok(pedido('expired', 'expired')))
+    m.aplicarPagamento.mockResolvedValue(banco('expirado', 'cancelado'))
+    expect(await cancelarNoMp('T1', 'ORD1')).toEqual(banco('expirado', 'cancelado'))
+    expect(m.lerPedidoMp).toHaveBeenCalledWith('ORD1')
+    expect(m.aplicarPagamento).toHaveBeenCalledWith(expect.objectContaining({ tentativa: 'T1', status: 'expirado' }))
+  })
+
+  it('outra falha e o GET tambem falhando: null sem aplicar', async () => {
     m.cancelarPedidoMp.mockResolvedValue(falha(0, null))
+    m.lerPedidoMp.mockResolvedValue(falha(0, null))
     expect(await cancelarNoMp('T1', 'ORD1')).toBeNull()
     expect(m.aplicarPagamento).not.toHaveBeenCalled()
   })

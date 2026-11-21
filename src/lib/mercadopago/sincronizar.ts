@@ -2,13 +2,14 @@ import 'server-only'
 import { aplicarPagamento } from '@/lib/dados/pagamentos'
 import { registrarFalha } from '@/lib/dados/erros'
 import { cancelarPedidoMp, estornarPedidoMp, lerPedidoMp, type PedidoMp } from './cliente'
-import { traduzir } from './traducao'
+import { detalheDoMp, traduzir } from './traducao'
 
 export type Aplicado = { tentativa: string; pedido: string }
 
 /**
  * Aplica o que o Mercado Pago disse e, se o banco deixou a tentativa a
- * estornar, estorna la. Traducao fora da tabela: registra e devolve null sem
+ * estornar, estorna la. Traducao fora da tabela, referencia de outra
+ * tentativa ou aprovado sem valor legivel: registra e devolve null sem
  * aplicar. Erro do banco (aplicarPagamento) sobe a quem chamou.
  */
 export async function aplicarRespostaDoMp(
@@ -23,6 +24,11 @@ export async function aplicarRespostaDoMp(
   }
   if (pedido.referencia !== null && pedido.referencia !== tentativa) {
     registrarFalha('mercadopago.sincronizar', { code: 'referencia_diferente' })
+    return null
+  }
+  // Aprovado com valor ilegivel: o banco compararia 0 com o total e estornaria um pagamento certo, em silencio.
+  if (t.status === 'aprovado' && pedido.valorCentavos === null) {
+    registrarFalha('mercadopago.sincronizar', { code: 'valor_ilegivel' })
     return null
   }
   const pg = pedido.pagamento
@@ -43,6 +49,24 @@ export async function aplicarRespostaDoMp(
   })
   if (aplicado.tentativa === 'a_estornar') return estornarNoMp(tentativa, pedido.id)
   return aplicado
+}
+
+/**
+ * Guarda so os ids do pedido do Mercado Pago, com status pendente (que nao
+ * muda o estado de nada): mesmo que o resto falhe, a reconciliacao e o
+ * cancelamento acham o pedido la. Referencia de outra tentativa nao guarda.
+ * Erro do banco sobe a quem chamou.
+ */
+export async function guardarIdsDoMp(tentativa: string, pedido: PedidoMp): Promise<void> {
+  if (pedido.referencia !== null && pedido.referencia !== tentativa) return
+  await aplicarPagamento({
+    tentativa,
+    mpPedidoId: pedido.id,
+    mpPagamentoId: pedido.pagamento?.id ?? null,
+    status: 'pendente',
+    detalhe: detalheDoMp(pedido),
+    valorCentavos: pedido.valorCentavos ?? 0,
+  })
 }
 
 /** Estorna no Mercado Pago (o cliente ja registra as falhas das chamadas); falha deixa a_estornar (a reconciliacao tenta de novo) e devolve null. */
@@ -85,7 +109,11 @@ export async function sincronizarTentativa(tentativa: string, mpPedidoId: string
   return aplicarRespostaDoMp(tentativa, r.pedido)
 }
 
-/** Cancela la o que terminou aqui; 409 cannot_cancel_order le o pedido (pode ter sido paga). */
+/**
+ * Cancela la o que terminou aqui. 409 cannot_cancel_order (ela andou, pode ter
+ * sido paga) ou outra falha le o pedido e aplica o que ele diz: sem isso, o
+ * status_mp ficaria pendente e a tentativa, na lista a cancelar para sempre.
+ */
 export async function cancelarNoMp(tentativa: string, mpPedidoId: string): Promise<Aplicado | null> {
   const r = await cancelarPedidoMp(mpPedidoId, tentativa)
   if (r.ok) return aplicarRespostaDoMp(tentativa, r.pedido)
@@ -99,6 +127,5 @@ export async function cancelarNoMp(tentativa: string, mpPedidoId: string): Promi
       valorCentavos: 0,
     })
   }
-  if (r.status === 409 && r.codigo === 'cannot_cancel_order') return sincronizarTentativa(tentativa, mpPedidoId)
-  return null
+  return sincronizarTentativa(tentativa, mpPedidoId)
 }

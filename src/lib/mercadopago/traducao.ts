@@ -10,6 +10,12 @@ const RECUSA = /^[a-z0-9_]{1,60}$/
 const ESPERA_ACAO = new Set(['waiting_transfer', 'waiting_payment', 'pending_challenge', 'waiting_capture', 'waiting_retry'])
 const ESPERA_PROCESSO = new Set(['in_process', 'pending_review_manual', 'in_review'])
 
+/** O detalhe que vai ao banco: o do pagamento (sem ele, o do pedido); vazio vira o proprio status do Mercado Pago. */
+export function detalheDoMp(p: PedidoMp): string {
+  const bruto = p.pagamento ? p.pagamento.detalhe : p.detalhe
+  return bruto || (p.pagamento ? p.pagamento.status : p.status)
+}
+
 /**
  * Traduz o estado do Mercado Pago (contrato, secao 2) para os do banco. Le o
  * pagamento e, sem ele, o pedido. Fora da tabela, devolve null: o servidor nao
@@ -19,7 +25,7 @@ export function traduzir(p: PedidoMp): Traducao | null {
   const status = p.pagamento ? p.pagamento.status : p.status
   // detalhe nunca vazio: sem ele, o proprio status do Mercado Pago
   const bruto = p.pagamento ? p.pagamento.detalhe : p.detalhe
-  const detalhe = bruto || status
+  const detalhe = detalheDoMp(p)
   const ok = (s: EstadoDaTentativa, recusa: string | null = null): Traducao => ({ status: s, detalhe, recusa })
 
   switch (status) {
