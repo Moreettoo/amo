@@ -7,9 +7,21 @@ import { buscarCep } from '@/lib/dados/cep'
 import { cotarDeExemplo, registrarCotacao, VALIDADE_DA_COTACAO_MS } from '@/lib/dados/cotacao'
 import { mercadoPagoEmTeste } from '@/lib/dados/ambiente'
 import { ErroDeRegra, registrarFalha } from '@/lib/dados/erros'
-import { criarPedido } from '@/lib/dados/fechamento'
+import { conferirNumeroDoPedido } from '@/lib/conta/regras'
+import { criarPedido, iniciarPagamento, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
+import { aplicarPagamento, tentativasACancelarNoMp } from '@/lib/dados/pagamentos'
+import { criarPedidoCartao, criarPedidoPix, type PedidoMp } from '@/lib/mercadopago/cliente'
+import { aplicarRespostaDoMp, cancelarNoMp } from '@/lib/mercadopago/sincronizar'
 import { consumirLimite } from '@/lib/dados/limites'
-import type { CodigoDoFechamento, ItemDoPedido, RespostaDaCotacao, RespostaDoPedido } from '@/lib/fechamento/tipos'
+import type {
+  CodigoDoFechamento,
+  EstadoDoPedido,
+  ItemDoPedido,
+  PagamentoNaTela,
+  RespostaDaCotacao,
+  RespostaDoPagamento,
+  RespostaDoPedido,
+} from '@/lib/fechamento/tipos'
 
 /**
  * A cotacao da entrega no servidor. Ordem (backend 11): cada campo conferido,
@@ -150,10 +162,152 @@ export async function fecharPedido(entrada: unknown): Promise<RespostaDoPedido> 
     const pedido = await criarPedido({ itens, cotacao, totalVisto, guardarEndereco })
     return { ok: true, pedido }
   } catch (erro) {
-    if (erro instanceof ErroDeRegra && erro.codigo in CODIGOS_DO_BANCO) {
+    if (erro instanceof ErroDeRegra && Object.hasOwn(CODIGOS_DO_BANCO, erro.codigo)) {
       return { ok: false, erro: CODIGOS_DO_BANCO[erro.codigo] }
     }
     if (!(erro instanceof ErroDeRegra)) registrarFalha('fechar_pedido', erro)
     return { ok: false, erro: 'tente_de_novo' }
   }
+}
+
+const TOKEN_DO_CARTAO = /^[A-Za-z0-9-]{20,100}$/
+const BANDEIRA = /^[a-z_]{2,20}$/
+const FINAL = /^\d{4}$/
+
+type Cartao = { token: string; bandeira: string; tipo: 'credit_card' | 'debit_card'; parcelas: number }
+type Documento = { tipo: 'CPF'; numero: string }
+type DadosDoCartao = { cartao: Cartao; final: string; documento: Documento | null }
+
+const objeto = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
+const soAs = (o: object, obrigatorias: string[], opcionais: string[] = []) =>
+  Object.keys(o).every((k) => obrigatorias.includes(k) || opcionais.includes(k)) && obrigatorias.every((k) => k in o)
+
+/** Os campos do cartao (com o numero do pedido ja conferido a parte), ou null se algum estiver fora da regra. O CPF so passa como 11 digitos. */
+function conferirCartao(e: Record<string, unknown>): DadosDoCartao | null {
+  if (!soAs(e, ['numero', 'token', 'bandeira', 'tipo', 'parcelas', 'final'], ['documento'])) return null
+  const { token, bandeira, tipo, parcelas, final, documento } = e
+  if (typeof token !== 'string' || !TOKEN_DO_CARTAO.test(token)) return null
+  if (typeof bandeira !== 'string' || !BANDEIRA.test(bandeira)) return null
+  if (tipo !== 'credit_card' && tipo !== 'debit_card') return null
+  if (typeof parcelas !== 'number' || !Number.isInteger(parcelas) || parcelas < 1 || parcelas > 12) return null
+  if (typeof final !== 'string' || !FINAL.test(final)) return null
+  let doc: Documento | null = null
+  if (documento !== undefined) {
+    if (!objeto(documento) || !soAs(documento, ['tipo', 'numero']) || documento.tipo !== 'CPF') return null
+    if (typeof documento.numero !== 'string') return null
+    const numero = documento.numero.replace(/\D/g, '')
+    if (numero.length !== 11) return null
+    doc = { tipo: 'CPF', numero }
+  }
+  return { cartao: { token, bandeira, tipo, parcelas }, final, documento: doc }
+}
+
+const CODIGOS_DE_INICIAR: Record<string, CodigoDoFechamento> = {
+  pedido_invalido: 'pedido_invalido',
+  muitas_tentativas: 'tentativas_esgotadas',
+  sem_sessao: 'sem_sessao',
+}
+
+/** Sem resposta, 5xx, 409, 423 e 429: o Mercado Pago pode ter criado; a tentativa fica pendente. */
+const ficaPendente = (status: number) => status === 0 || status >= 500 || status === 409 || status === 423 || status === 429
+
+function situacaoDaResposta(
+  numero: string,
+  forma: 'pix' | 'cartao',
+  aplicado: { tentativa: string; pedido: string },
+  pedido: PedidoMp,
+): RespostaDoPagamento {
+  const estado = aplicado.tentativa
+  const pagamento: PagamentoNaTela = {
+    forma,
+    estado,
+    recusa: estado === 'recusado' && pedido.pagamento?.detalhe ? pedido.pagamento.detalhe : null,
+    pix: forma === 'pix' ? (pedido.pagamento?.pix ?? null) : null,
+    desafioUrl: forma === 'cartao' ? (pedido.pagamento?.desafioUrl ?? null) : null,
+  }
+  return { ok: true, situacao: { numero, estado: aplicado.pedido as EstadoDoPedido, pagamento } }
+}
+
+/** O caminho comum das duas formas. Ordem: sessao, campos, limite, pedido, tentativa, cancelar a anterior, Mercado Pago, aplicar. */
+async function pagar(forma: 'pix' | 'cartao', entrada: unknown): Promise<RespostaDoPagamento> {
+  try {
+    const usuario = await obterUsuario()
+    if (!usuario) return { ok: false, erro: 'sem_sessao' }
+
+    if (!objeto(entrada)) return { ok: false, erro: 'campos_invalidos' }
+    const numero = conferirNumeroDoPedido(entrada.numero)
+    const dados = forma === 'cartao' ? conferirCartao(entrada) : null
+    if (!numero || (forma === 'pix' ? !soAs(entrada, ['numero']) : !dados)) return { ok: false, erro: 'campos_invalidos' }
+
+    if (!(await consumirLimite(`pagar:${usuario.id}`, 20, 3600))) return { ok: false, erro: 'muitas_tentativas' }
+
+    const pedido = await lerPedidoParaPagar(numero)
+    if (!pedido || pedido.estado !== 'aguardando_pagamento') return { ok: false, erro: 'pedido_invalido' }
+
+    let tentativa: string
+    try {
+      tentativa = await iniciarPagamento(pedido.id, forma)
+    } catch (erro) {
+      if (erro instanceof ErroDeRegra) {
+        return { ok: false, erro: Object.hasOwn(CODIGOS_DE_INICIAR, erro.codigo) ? CODIGOS_DE_INICIAR[erro.codigo] : 'tente_de_novo' }
+      }
+      throw erro
+    }
+
+    for (const velha of await tentativasACancelarNoMp(pedido.id)) {
+      void cancelarNoMp(velha.tentativa, velha.mpPedidoId).catch((erro) => registrarFalha('cancelar_tentativa_anterior', erro))
+    }
+
+    const base = { tentativa, totalCentavos: pedido.totalCentavos, email: usuario.email }
+    const criado = dados ? await criarPedidoCartao({ ...base, cartao: dados.cartao, documento: dados.documento }) : await criarPedidoPix(base)
+
+    if (!criado.ok) {
+      if (!ficaPendente(criado.status)) {
+        await aplicarPagamento({
+          tentativa,
+          mpPedidoId: null,
+          mpPagamentoId: null,
+          status: 'cancelado',
+          detalhe: 'criacao_recusada',
+          valorCentavos: pedido.totalCentavos,
+        })
+      }
+      return { ok: false, erro: 'pagamento_indisponivel' }
+    }
+
+    const aplicado = await aplicarRespostaDoMp(tentativa, criado.pedido, dados?.final)
+    if (aplicado) return situacaoDaResposta(numero, forma, aplicado, criado.pedido)
+
+    // A traducao falhou ou a referencia nao confere: a tentativa existe, entao a tela recebe o que o banco tem.
+    const ultima = await lerUltimaTentativa(pedido.id)
+    if (!ultima) return { ok: false, erro: 'pagamento_indisponivel' }
+    return {
+      ok: true,
+      situacao: {
+        numero,
+        estado: 'aguardando_pagamento',
+        pagamento: {
+          forma: ultima.forma,
+          estado: ultima.status,
+          recusa: ultima.recusa,
+          pix:
+            ultima.pixCopiaECola && ultima.pixQrBase64
+              ? { copiaECola: ultima.pixCopiaECola, qrBase64: ultima.pixQrBase64, expiraEm: ultima.pixExpiraEm }
+              : null,
+          desafioUrl: null,
+        },
+      },
+    }
+  } catch (erro) {
+    if (!(erro instanceof ErroDeRegra)) registrarFalha(forma === 'pix' ? 'pagar_com_pix' : 'pagar_com_cartao', erro)
+    return { ok: false, erro: 'tente_de_novo' }
+  }
+}
+
+export async function pagarComPix(entrada: unknown): Promise<RespostaDoPagamento> {
+  return pagar('pix', entrada)
+}
+
+export async function pagarComCartao(entrada: unknown): Promise<RespostaDoPagamento> {
+  return pagar('cartao', entrada)
 }

@@ -9,7 +9,9 @@ import { ErroDeRegra, erroDoBanco, falhaDoBanco } from '@/lib/dados/erros'
  * e-mail, nome ou celular gravados no pedido, nem o Pix.
  */
 
-export type EstadoDoPedido = 'aguardando_pagamento' | 'pago' | 'em_preparo' | 'a_caminho' | 'entregue' | 'cancelado'
+import type { EstadoDoPedido } from '@/lib/fechamento/tipos'
+
+export type { EstadoDoPedido }
 
 export type PedidoNaLista = { numero: string; estado: EstadoDoPedido; criadoEm: string; totalCentavos: number; potes: number }
 

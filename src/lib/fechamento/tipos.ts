@@ -70,3 +70,36 @@ export type ItemDoPedido = { produto: string; quantos: number }
 export type RespostaDoPedido =
   | { ok: true; pedido: { numero: string; totalCentavos: number } }
   | { ok: false; erro: CodigoDoFechamento }
+
+export type EstadoDoPedido = 'aguardando_pagamento' | 'pago' | 'em_preparo' | 'a_caminho' | 'entregue' | 'cancelado'
+
+export type PagamentoNaTela = {
+  forma: 'pix' | 'cartao'
+  estado: string
+  recusa: string | null
+  pix: { copiaECola: string; qrBase64: string; expiraEm: string | null } | null
+  desafioUrl: string | null
+}
+
+export type SituacaoDoPedido = { numero: string; estado: EstadoDoPedido; pagamento: PagamentoNaTela | null }
+
+export type RespostaDoPagamento = { ok: true; situacao: SituacaoDoPedido } | { ok: false; erro: CodigoDoFechamento }
+
+const RECUSAS: Record<string, string> = {
+  insufficient_amount: 'O cartão não tem limite para este valor.',
+  card_insufficient_amount: 'O cartão não tem limite para este valor.',
+  bad_filled_card_data: 'Confira os dados do cartão.',
+  rejected_by_issuer: 'O banco do cartão recusou. Fale com ele ou use outro cartão.',
+  required_call_for_authorize: 'O banco do cartão recusou. Fale com ele ou use outro cartão.',
+  high_risk: 'O pagamento foi recusado por segurança. Tente outro cartão.',
+  cc_rejected_3ds_challenge: 'A confirmação do banco não foi concluída. Tente de novo.',
+  '3ds_challenge_expired': 'A confirmação do banco não foi concluída. Tente de novo.',
+  max_attempts_exceeded: 'Foram muitas tentativas com este cartão. Use outro.',
+  card_disabled: 'Este cartão está desativado. Use outro.',
+  invalid_installments: 'Escolha outro número de parcelas.',
+}
+
+/** O texto da recusa do cartão para a tela; código desconhecido ou ausente cai no texto geral. */
+export function mensagemDaRecusa(recusa: string | null): string {
+  return (recusa !== null && Object.hasOwn(RECUSAS, recusa) ? RECUSAS[recusa] : null) ?? MENSAGENS_DO_FECHAMENTO.pagamento_recusado
+}
