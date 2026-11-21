@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-18T23:30:00.000Z",
+  "generatedAt": "2026-11-20T18:00:00.000Z",
   "title": "Design System: AMO Sabores Saudáveis",
   "extensions": {
     "colorMeta": {
@@ -29,7 +29,7 @@
     },
     "shadows": [
       { "name": "cartao-sobre-a-mesa", "value": "0 30px 60px -30px rgb(0 0 0 / .7)", "purpose": "Só o cartão do rótulo, sobre expresso." },
-      { "name": "nav-ao-rolar", "value": "0 12px 30px -22px rgb(43 27 22 / .5)", "purpose": "A nav depois de 40 px de rolagem; é a única coisa que muda na barra. No catálogo do celular, com a fileira do sumário presa, a mesma sombra passa para baixo da fileira e a nav fica sem a dela." },
+      { "name": "nav-ao-rolar", "value": "0 12px 30px -22px rgb(43 27 22 / .5)", "purpose": "A nav depois de 40 px de rolagem; é a única coisa que muda na barra. No catálogo do celular, com a fileira do sumário presa, a mesma sombra passa para baixo da fileira e a nav fica sem a dela. Em Minha conta, no celular, a fileira do sumário é barra desde o começo e leva essa sombra o tempo todo." },
       { "name": "barra-do-resumo", "value": "0 -12px 30px -22px rgb(43 27 22 / .5)", "purpose": "A sombra da nav virada para cima, só na barra do resumo presa embaixo da sacola no celular." },
       { "name": "fundo-da-gaveta", "value": "rgb(43 27 22 / .6) + backdrop-filter: blur(2px)", "purpose": "O véu atrás das duas gavetas abertas." }
     ],
@@ -53,6 +53,7 @@
       { "name": "celular", "value": "820px" },
       { "name": "hero", "value": "900px" },
       { "name": "rotulo-ao-lado", "value": "1024px" },
+      { "name": "conta-empilha", "value": "1100px" },
       { "name": "coluna", "value": "1240px" }
     ]
   },
@@ -184,6 +185,22 @@
       "description": "Uma linha inteira por opção, de contorno de controle. A escolhida vai a expresso e ganha um segundo fio por dentro, lido como contorno de 2 px. O aviso de exemplo vem logo abaixo, em texto.",
       "html": "<fieldset class=\"ds-pagamento\"><legend class=\"ds-sr\">Como pagar</legend><label class=\"ds-pagamento__opcao\"><input type=\"radio\" name=\"ds-pagamento\" checked><span>Pix</span></label><label class=\"ds-pagamento__opcao\"><input type=\"radio\" name=\"ds-pagamento\"><span>Cartão de crédito</span></label><p class=\"ds-pagamento__aviso\">Pagamento de exemplo: por enquanto nenhum valor é cobrado.</p></fieldset>",
       "css": ".ds-pagamento { display: grid; gap: 10px; width: 440px; margin: 0; padding: 0; border: 0; color: var(--color-expresso, #2B1B16); font-family: Poppins, system-ui, sans-serif; } .ds-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } .ds-pagamento__opcao { display: flex; align-items: center; gap: 14px; min-height: 64px; padding: 12px 16px; border: 1px solid rgb(43 27 22 / .38); border-radius: 2px; font-size: 16px; cursor: pointer; transition: border-color .2s ease; } .ds-pagamento__opcao input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--color-expresso, #2B1B16); cursor: pointer; } .ds-pagamento__opcao input:focus-visible { outline: 2.5px solid var(--color-expresso, #2B1B16); outline-offset: 3px; } .ds-pagamento__opcao:hover { border-color: var(--color-expresso, #2B1B16); } .ds-pagamento__opcao:has(input:checked) { border-color: var(--color-expresso, #2B1B16); box-shadow: inset 0 0 0 1px var(--color-expresso, #2B1B16); } .ds-pagamento__aviso { margin: 4px 0 0; font-size: 13px; color: var(--color-suave, #5E4A40); }"
+    },
+    {
+      "name": "Fio das etapas do pedido",
+      "kind": "custom",
+      "refersTo": "title",
+      "description": "Minha conta: as etapas do pedido sobre o fio de 1 px, deitadas no desktop. A feita tem um tique no contorno de controle, a que vem na cor do fio, e na atual pousa o coração do logo, de 13 px. Embaixo, o nome em 15 px e a hora em 13 px suave. No celular o fio fica em pé, com o nome à esquerda e a hora à direita.",
+      "html": "<ol class=\"ds-etapas-pedido\" style=\"--n: 5\" aria-label=\"Etapas do pedido\"><li class=\"ds-etapas-pedido__feita\">Feito<time>22h22</time></li><li class=\"ds-etapas-pedido__feita\">Pago<time>22h52</time></li><li class=\"ds-etapas-pedido__feita\">Em preparo<time>22h52</time></li><li class=\"ds-etapas-pedido__atual\" aria-current=\"step\"><span class=\"ds-etapas-pedido__coracao\" aria-hidden=\"true\"></span>A caminho<time>22h52</time></li><li class=\"ds-etapas-pedido__vem\">Entregue</li></ol>",
+      "css": ".ds-etapas-pedido { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); width: 760px; margin: 0; padding: 0; list-style: none; color: var(--color-expresso, #2B1B16); font-family: Poppins, system-ui, sans-serif; } .ds-etapas-pedido::before { content: \"\"; position: absolute; left: 0; top: 6px; height: 1px; background: rgb(43 27 22 / .18); width: calc(100% * (var(--n) - 1) / var(--n) + 7px); } .ds-etapas-pedido li { position: relative; padding-top: 24px; font-size: 15px; line-height: 1.4; } .ds-etapas-pedido li::before { content: \"\"; position: absolute; left: 6px; top: 3px; width: 1px; height: 7px; background: rgb(43 27 22 / .38); } .ds-etapas-pedido__vem { color: var(--color-suave, #5E4A40); } .ds-etapas-pedido li.ds-etapas-pedido__vem::before { background: rgb(43 27 22 / .18); } .ds-etapas-pedido__atual { font-weight: 500; } .ds-etapas-pedido li.ds-etapas-pedido__atual::before { display: none; } .ds-etapas-pedido__coracao { position: absolute; left: 0; top: 0; width: 13px; height: 13px; background: var(--color-cobre, #C9784A); -webkit-mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20.6s-7.6-4.7-7.6-10.3a4.3 4.3 0 0 1 7.6-2.7 4.3 4.3 0 0 1 7.6 2.7c0 5.6-7.6 10.3-7.6 10.3z'/%3E%3C/svg%3E\") center / contain no-repeat; mask: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 20.6s-7.6-4.7-7.6-10.3a4.3 4.3 0 0 1 7.6-2.7 4.3 4.3 0 0 1 7.6 2.7c0 5.6-7.6 10.3-7.6 10.3z'/%3E%3C/svg%3E\") center / contain no-repeat; } .ds-etapas-pedido time { display: block; margin-top: 1px; font-size: 13px; font-weight: 400; color: var(--color-suave, #5E4A40); font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Lista de pedidos",
+      "kind": "custom",
+      "refersTo": "body-sm",
+      "description": "Minha conta: uma fileira por pedido, com fio de 1 px entre elas; a fileira inteira é o link. Número, dia, estado, potes, total e a seta fina. No hover e no foco o número vai a cobre de leitura e a seta anda 3 px; cancelado, estado e total recuam para suave. No celular, o dia e o estado descem para uma segunda linha.",
+      "html": "<ul class=\"ds-pedidos\"><li><a href=\"#\"><b>AMO-ENSA33BB</b><span class=\"ds-pedidos__suave\">20 de novembro</span><span>A caminho</span><span class=\"ds-pedidos__suave\">4 potes</span><span class=\"ds-pedidos__total\">R$ 85,50</span><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M6 3.5 10.5 8 6 12.5\"/></svg></a></li><li class=\"ds-pedidos__cancelado\"><a href=\"#\"><b>AMO-ENSA22AA</b><span class=\"ds-pedidos__suave\">20 de novembro</span><span class=\"ds-pedidos__estado\">Cancelado</span><span class=\"ds-pedidos__suave\">3 potes</span><span class=\"ds-pedidos__total\">R$ 73,60</span><svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M6 3.5 10.5 8 6 12.5\"/></svg></a></li></ul>",
+      "css": ".ds-pedidos { width: 760px; margin: 0; padding: 0; list-style: none; font-family: Poppins, system-ui, sans-serif; } .ds-pedidos li + li { border-top: 1px solid rgb(43 27 22 / .18); } .ds-pedidos a { display: grid; grid-template-columns: 150px 170px minmax(0, 1fr) 90px 104px 16px; gap: 20px; align-items: center; min-height: 56px; font-size: 15px; color: var(--color-expresso, #2B1B16); text-decoration: none; font-variant-numeric: tabular-nums; } .ds-pedidos b { font-weight: 500; letter-spacing: .02em; transition: color .2s ease; } .ds-pedidos__suave, .ds-pedidos__cancelado .ds-pedidos__estado, .ds-pedidos__cancelado .ds-pedidos__total { color: var(--color-suave, #5E4A40); } .ds-pedidos__total { text-align: right; } .ds-pedidos svg { width: 16px; height: 16px; fill: none; stroke: var(--color-suave, #5E4A40); stroke-width: 1.4; transition: transform .25s cubic-bezier(0.16, 1, 0.3, 1); } .ds-pedidos a:hover b, .ds-pedidos a:focus-visible b { color: var(--color-cobre-texto, #9A5530); } .ds-pedidos a:hover svg, .ds-pedidos a:focus-visible svg { transform: translateX(3px); } .ds-pedidos a:focus-visible { outline: 2.5px solid var(--color-expresso, #2B1B16); outline-offset: 3px; }"
     }
   ],
   "narrative": {
@@ -203,7 +220,8 @@
       "A voz da seção final: hoje o título dela é Poppins leve sem frase em script, seguido da assinatura \"AMO por você. Por seu AMO.\" numa voz só.",
       "A ligação entre as seções foi decidida em 2026-11-18: o cliente escolheu o Fio e a Costura entre as quatro ideias de `.impeccable/mocks/conexoes.html` (ver \"O fio e a costura\").",
       "A estrutura do catálogo foi decidida em 2026-11-18: o cliente escolheu \"O sumário\" entre as três estruturas de `.impeccable/mocks/decision/` (ver \"O sumário\").",
-      "O pagamento e a cotação da entrega são de exemplo até o cliente escolher o meio (decisão de 2026-11-18: o pedido fecha no site, com gaveta e página). A sacola diz isso em texto (ver \"A Regra do Exemplo Dito\"); o lugar do código Pix no pedido feito é provisório e não é padrão."
+      "O pagamento e a cotação da entrega são de exemplo até o cliente escolher o meio (decisão de 2026-11-18: o pedido fecha no site, com gaveta e página). A sacola diz isso em texto (ver \"A Regra do Exemplo Dito\"); o lugar do código Pix no pedido feito é provisório e não é padrão.",
+      "Minha conta foi decidida em 2026-11-20: o cliente escolheu \"O sumário da conta\" entre três esboços (ver \"Minha conta\"). As frases em script de cada título e os textos de apoio dos formulários ainda passam pela conferência do dono na tela pronta."
     ],
     "rules": [
       { "name": "A Regra do Cobre Raro", "body": "Cobre é para script, fio e foco. Texto em cobre sobre chão claro usa `cobre-texto`; `cobre` puro como cor de texto só existe na frase em script das superfícies escuras. O teste `tests/movimento.test.ts` guarda isso. Motivo medido no código: cobre sobre creme dá 3,02:1; sobre expresso dá 4,93:1.", "section": "colors" },
@@ -216,7 +234,8 @@
       { "name": "A Regra do Fio no Lugar da Sombra", "body": "Uma foto ganha presença pelo fio de 1 px deslocado atrás dela (12 px nas grandes, 7 px nas pequenas, 14 px na da vontade), não por sombra. Botões, pílulas e cards de produto não têm sombra em nenhum estado.", "section": "elevation" },
       { "name": "A Regra do Fio que Segura", "body": "Uma linha de 1 px só existe se prende alguma coisa. Fio entre seções, em volta de uma frase ou acima do copyright é \"um risco perdido\": saiu, e não volta. Teste: tire o fio; se nada ficar solto, ele não devia estar ali.", "section": "shapes" },
       { "name": "A Regra do Canto de Papel", "body": "Cantos de 2 a 4 px. Pílula de verdade, canto grande e círculo decorativo não fazem parte do sistema.", "section": "shapes" },
-      { "name": "A Regra do Exemplo Dito", "body": "Enquanto o pagamento e a cotação do Uber forem simulados, a página diz isso em texto, no ponto em que o valor aparece: \"(valor de exemplo)\" na linha de resumo da entrega e no pedido feito, \"Pagamento de exemplo: por enquanto nenhum valor é cobrado.\" embaixo das opções de pagamento, e o texto do pedido feito. É texto no tom do texto em volta; não ganha selo nem faixa.", "section": "components" }
+      { "name": "A Regra do Exemplo Dito", "body": "Enquanto o pagamento e a cotação do Uber forem simulados, a página diz isso em texto, no ponto em que o valor aparece: \"(valor de exemplo)\" na linha de resumo da entrega e no pedido feito, \"Pagamento de exemplo: por enquanto nenhum valor é cobrado.\" embaixo das opções de pagamento, e o texto do pedido feito. É texto no tom do texto em volta; não ganha selo nem faixa.", "section": "components" },
+      { "name": "A Regra da Conta sem Caixa", "body": "Nada em Minha conta mora numa caixa: nem cartão de atalho, nem painel com fundo ou borda em volta, nem ícone de seção, nem sombra além da da nav. Quem separa é o espaço, o fio de 1 px entre os itens de uma lista e a linha de soma; contorno, só o dos controles. Teste: se uma parte da conta ganhou fundo próprio ou borda em volta, ela saiu do sistema.", "section": "components" }
     ],
     "dos": [
       "Do escrever títulos em duas vozes: Poppins 300 e, no fim, uma frase curta em Allura dentro do `<em>`, em linha própria.",
@@ -230,12 +249,14 @@
       "Do deixar a foto do produto limpa: selos, nome e legenda moram no texto, embaixo dela.",
       "Do usar o coração do logo, em cobre, para apontar a regra da linha, o item atual e a etapa atual da sacola.",
       "Do mostrar o sumário só quando há o que escolher: 2 ou mais categorias, ou 2 ou mais linhas.",
-      "Do dizer em texto, no ponto em que o valor aparece, o que ainda é de exemplo (a entrega e o pagamento da sacola)."
+      "Do dizer em texto, no ponto em que o valor aparece, o que ainda é de exemplo (a entrega e o pagamento da sacola).",
+      "Do dizer o resultado de uma ação numa frase no tom do texto em volta: numa linha já reservada perto do botão, ou como aviso embaixo do título quando a página volta da ação."
     ],
     "donts": [
       "Don't traçar fio solto: divisor entre seções, fios em volta de uma frase, fio acima do copyright. O cliente chamou isso de \"um risco perdido\".",
       "Don't usar fonte gorda nos títulos, ondas, fotos em arco, nem botões e cartões \"retrô\": o cliente considera infantil.",
       "Don't fazer nada grosso, marcante ou cartoonizado. O pedido é moderno, fino e delicado.",
+      "Don't montar Minha conta como painel de cliente: cartões de atalho, caixas com fundo ou borda, ícones de seção ou sombra pesada. A conta é o sumário e listas presas em fio.",
       "Don't misturar caixa alta espaçada e script na mesma linha, nem escrever um título inteiro em script.",
       "Don't pôr rótulo em caixa alta solto acima de um título.",
       "Don't usar `cobre` puro como texto sobre chão claro, nem cobre de qualquer tom sobre caramelo.",
