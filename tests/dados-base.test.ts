@@ -133,7 +133,13 @@ describe('mercadoPagoEmTeste', () => {
     expect(mercadoPagoEmTeste()).toBe(false)
   })
   it('ausente e producao', () => {
-    vi.stubEnv('MERCADOPAGO_AMBIENTE', undefined as unknown as string)
-    expect(mercadoPagoEmTeste()).toBe(false)
+    const anterior = process.env.MERCADOPAGO_AMBIENTE
+    delete process.env.MERCADOPAGO_AMBIENTE
+    try {
+      expect(process.env.MERCADOPAGO_AMBIENTE).toBeUndefined()
+      expect(mercadoPagoEmTeste()).toBe(false)
+    } finally {
+      if (anterior !== undefined) process.env.MERCADOPAGO_AMBIENTE = anterior
+    }
   })
 })
