@@ -282,6 +282,10 @@ describe('a página /sacola', () => {
 
     expect(screen.getByRole('heading', { level: 1, name: 'Pedido 123456 aguardando o Pix' })).toBeInTheDocument()
     expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
+    // o numero do pedido nao quebra no hifen e o tradutor nao mexe nele (AMO-...)
+    const numero = within(screen.getByRole('heading', { level: 1 })).getByText('123456')
+    expect(numero).toHaveClass('feito__numero')
+    expect(numero).toHaveAttribute('translate', 'no')
     expect(screen.getByRole('img', { name: 'QR Code do Pix' })).toHaveAttribute('src', `data:image/png;base64,${PIX.qrBase64}`)
     const copiaECola = screen.getByRole('textbox', { name: 'Pix copia e cola' })
     expect(copiaECola).toHaveValue(PIX.copiaECola)

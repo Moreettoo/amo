@@ -45,7 +45,11 @@ export function PedidoFeito({ situacao, linhas, entrega, total, aoGerarOutro, ao
     <section className="feito" aria-labelledby="pedido-feito">
       {/* a chave troca com o estado: o titulo novo recebe o foco */}
       <Titulo key={pago ? 'recebido' : 'aguardando'} frase={pago ? 'recebido' : doCartao ? 'aguardando a confirmação do cartão' : 'aguardando o Pix'} id="pedido-feito" foco>
-        Pedido {situacao.numero}
+        Pedido{' '}
+        {/* o codigo (AMO-...) inteiro numa linha, e o tradutor nao mexe nele */}
+        <span className="feito__numero" translate="no">
+          {situacao.numero}
+        </span>
       </Titulo>
       <p className="feito__estado" role="status">
         {pago ? 'Pagamento aprovado.' : ''}

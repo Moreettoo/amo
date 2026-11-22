@@ -34,7 +34,7 @@ açúcar") e os selos dizem o que tem e o que não tem. Receita conhecida
   `/catalogo#prestigio`); não há página por linha. Cada produto tem a sua
   página, `/catalogo/<slug>` (cliente, 2026-11-18), e os cards da vitrine e
   do catálogo levam a ela.
-- O catálogo é um cadastro (`src/data/`, pronto para o Supabase). A página se
+- O catálogo é um cadastro (no Supabase desde a etapa 2). A página se
   adapta a ele: linhas, formatos e selos novos entram sem mexer em componente.
 - Hoje há uma categoria (Doces) com uma linha (Bolos no pote) e 7 sabores.
   As categorias previstas são doces, salgados e refeições (cliente,
@@ -51,12 +51,22 @@ açúcar") e os selos dizem o que tem e o que não tem. Receita conhecida
   só aparecem depois de aprovados.
 - Sacola e fechamento (cliente, 2026-11-18): gaveta da sacola pela direita
   e a página `/sacola` com as etapas potes, entrega, dados e pagamento (Pix
-  ou cartão). O pagamento ainda é de exemplo (`enviarPedidoDeExemplo`):
-  nada é cobrado e a página diz isso. Falta escolher o meio de pagamento e
-  mandar o pedido ao servidor, que recalcula preço e frete.
-- Preço, descrição e comentários vêm de `src/data/exemplos.ts`, DADOS DE
-  EXEMPLO, e a cotação de entrega é simulada (`cotarEntregaDeExemplo`).
-  Trocar pelos reais antes de publicar.
+  ou cartão). O pedido é fechado no servidor, que recalcula preço e frete
+  (etapa 3, 2026-11-21). Na etapa "Seus dados", quem não entrou encontra a
+  porta da conta ali mesmo e volta à etapa logada, com a entrega guardada.
+- O pagamento é de verdade, pelo Mercado Pago (Pix e cartão; o cartão
+  aparece quando houver a chave pública). No desenvolvimento usa as
+  credenciais de teste do Mercado Pago, que o dono ainda precisa cadastrar
+  no painel dele e pôr no ambiente (`supabase/README.md`, "O que é do dono").
+  Sem elas, a sacola só é percorrida no ensaio, com o Mercado Pago falso.
+- A cotação da entrega continua de exemplo até a conta do Uber Direct
+  (etapa 4), e a página diz "(valor de exemplo)" junto do valor: a Regra do
+  Exemplo Dito (`DESIGN.md`) agora vale só para a entrega.
+- A loja diz quando recebe pedidos: aberta, até que horas; fechada, quando
+  abre e os horários; com as vendas pausadas, que volta daqui a pouco. Fechada
+  ou pausada, o botão do pagamento diz "Cozinha fechada agora" e não cobra.
+- Catálogo e preço vêm do banco (Supabase, etapa 2); os comentários também, e
+  cada um só aparece depois de aprovado.
 - Produto sempre com o nome do produto ("Prestígio"), nunca nome poético.
 - Sem foto não há produto.
 - Ainda não há contato real. O rodapé não mostra contato até haver um; não inventar.

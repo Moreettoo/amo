@@ -111,9 +111,12 @@ etapa 2 (2026-11-20):
   5. Uma segunda cliente com um pedido `pago`: o `--apagar` falha (o Auth
      responde 500, porque o gatilho recusa) e o usuário continua existindo.
 
-  Limpar depois: os itens de pedido são imutáveis (gatilho
-  `itens_imutaveis`); numa transação, `disable trigger`, apagar os itens,
-  `enable trigger`, apagar pagamentos e pedidos, e só então a conta.
+  Limpar depois, numa transação só: apagar `privado.pagamentos_mp` (os ids
+  do Mercado Pago de cada pagamento) e `privado.entregas` dos pedidos da
+  conta, e as cotações dela em `privado.cotacoes`; os itens de pedido são
+  imutáveis (gatilho `itens_imutaveis`): `disable trigger`, apagar os itens,
+  `enable trigger`; apagar pagamentos e pedidos. Só então a conta, pela API
+  do Auth.
 - **Teste 0.** Pela internet, o teste era feito só como visitante; com o
   token de uma cliente, a porta era testada por dentro do banco
   (`10_porta.sql`). **Fechado**: com `SUPABASE_SECRET_KEY` no `.env.local`,
@@ -301,3 +304,41 @@ acabou de ser pago, a cobrança nova não é criada.
 4. **Credenciais de teste:** o Access Token em `MERCADOPAGO_ACCESS_TOKEN` e a
    chave pública em `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`.
 5. `MERCADOPAGO_AMBIENTE=teste` enquanto as credenciais forem de teste.
+
+### O ensaio com o Mercado Pago falso
+
+Para percorrer a sacola de ponta a ponta no navegador sem credenciais do
+Mercado Pago, o servidor de ensaio carrega `scripts/ensaio/mercadopago-falso.mjs`.
+Ele troca o `fetch` só para `https://api.mercadopago.com/v1/orders`; qualquer
+outro endereço passa para o de verdade. O site nunca importa esse arquivo.
+
+```bash
+NODE_OPTIONS=--import=./scripts/ensaio/mercadopago-falso.mjs \
+MERCADOPAGO_ACCESS_TOKEN=APP_USR-ensaio MERCADOPAGO_WEBHOOK_SECRET=ensaio \
+npm run dev
+```
+
+- As duas variáveis vão no ambiente do processo, nunca no `.env.local`
+  (`MERCADOPAGO_AMBIENTE=teste` já está nele). Sem a chave pública, só o Pix
+  aparece.
+- O terminal diz `[ensaio] Mercado Pago falso ligado neste processo` em cada
+  processo e uma linha por chamada que ele respondeu (`POST /v1/orders 201
+  action_required/waiting_transfer`, depois `GET /v1/orders/<id> 200
+  processed/accredited`). Sem essas linhas o falso não entrou: nada de ensaio.
+- O Pix nasce com um QR de ensaio e o copia e cola `00020126-ensaio` e passa a
+  pago 20 s depois de criado; cancelar e estornar respondem como o contrato
+  (`docs/superpowers/specs/2026-11-21-amo-mercadopago-orders.md`, seções 1 a
+  3); o cartão aprova na hora. O teste `tests/ensaio-mercadopago-falso.test.ts`
+  confere o falso pelo cliente de verdade.
+- A conta de ensaio nasce por `admin.auth.admin.createUser` com
+  `email_confirm: true`, nunca pelo cadastro do site (a cota de e-mail do
+  projeto é pequena). O Turnstile de teste deixa entrar.
+- Loja fechada na hora do ensaio: abrir um horário temporário em
+  `public.horarios` e, no fim, voltar a segunda a sábado, das 9h às 18h, sem
+  linha de domingo, conferindo com `select * from public.horarios order by 1`.
+  Para ver a loja fechada, `update public.loja set vendas_pausadas = true` por
+  um instante, e de volta a `false`.
+- No fim: a limpeza de "Limpar depois" (seção Testes) para a conta de ensaio,
+  as cotações sem conta feitas no ensaio, a conta pela API do Auth e o
+  servidor parado. No Windows, conferir que a porta 3000 ficou livre: o
+  processo do Next pode sobrar depois de parar o `npm run dev`.

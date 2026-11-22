@@ -304,3 +304,24 @@ describe('estilos', () => {
     expect(alvo).not.toMatch(/background|border|box-shadow|outline|color/)
   })
 })
+
+/**
+ * Achados do ensaio da etapa 3 no celular (Task 7): o titulo da etapa que
+ * recebe o foco parava embaixo da barra presa do site (64 px), o valor da
+ * entrega quebrava entre "R$" e o numero e o numero do pedido quebrava no
+ * hifen. So aparecia com a pagina pintada a 390 px.
+ */
+describe('a sacola no celular (ensaio da etapa 3)', () => {
+  const css = ler('sacola.css')
+
+  it('o titulo da etapa e o h1 que recebem o foco param abaixo da barra presa', () => {
+    expect(ultimo(regra(css, '.etapa__nome'), 'scroll-margin-top')).toBe('88px')
+    expect(ultimo(regra(css, '.sacola-pagina__titulo'), 'scroll-margin-top')).toBe('88px')
+  })
+
+  it('o valor nao quebra entre R$ e o numero, e o numero do pedido nao quebra no hifen', () => {
+    expect(ultimo(regra(css, '.feito__contas dd'), 'white-space')).toBe('nowrap')
+    expect(ultimo(regra(css, '.resumo__contas dd'), 'white-space')).toBe('nowrap')
+    expect(ultimo(regra(css, '.feito__numero'), 'white-space')).toBe('nowrap')
+  })
+})

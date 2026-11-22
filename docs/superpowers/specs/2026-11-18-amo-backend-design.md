@@ -3,7 +3,17 @@
 **Data:** 2026-11-18
 **Status:** aprovada pelo dono; etapa 1 (o banco) construída e testada em
 2026-11-18; etapa 2 (o site lê do banco e Minha conta) construída e testada em
-2026-11-20. Como rodar e manter: `supabase/README.md`.
+2026-11-20; etapa 3 (a sacola fecha o pedido no servidor e o pagamento é de
+verdade, pelo Mercado Pago, com Pix e cartão) construída e testada em
+2026-11-21. O Mercado Pago foi testado por `fetch` falso nos testes e, no
+ensaio de ponta a ponta no navegador, por um Mercado Pago falso carregado só no
+servidor de ensaio (`scripts/ensaio/mercadopago-falso.mjs`); nenhuma chamada
+foi ao Mercado Pago de verdade. Falta do dono, no painel do Mercado Pago: as
+credenciais de teste (`MERCADOPAGO_ACCESS_TOKEN` e
+`NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`), a URL do aviso, os eventos "Order
+(Mercado Pago)" e "Chargebacks" e a assinatura secreta
+(`MERCADOPAGO_WEBHOOK_SECRET`). A cotação da entrega continua de exemplo até
+o Uber Direct (etapa 4). Como rodar e manter: `supabase/README.md`.
 **Projeto Supabase:** `yuhrtuizxuvqvvjtcemz` (conta pessoal do dono; MCP `supabase-amo`).
 É o banco de **desenvolvimento** (decisão do dono, 2026-11-18). A produção
 nasce num projeto novo, na etapa 4 (§15).
