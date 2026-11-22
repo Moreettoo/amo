@@ -1106,7 +1106,8 @@ describe('o pedido feito volta depois de recarregar', () => {
     expect(screen.getByText('2 × Prestígio')).toBeInTheDocument()
     expect(screen.getByText(/Entrega pelo Uber \(valor de exemplo\), Rua Gomes de Carvalho, 10/)).toBeInTheDocument()
     expect(screen.getByText('Total, no Pix').nextElementSibling).toHaveTextContent(formatarPreco(5070))
-    expect(screen.getByRole('heading', { level: 1 })).toHaveFocus()
+    // o foco vai ao H1 no efeito do titulo, que pode rodar logo depois do desenho
+    await waitFor(() => expect(screen.getByRole('heading', { level: 1 })).toHaveFocus())
     expect(screen.queryByRole('list', { name: 'Etapas do pedido' })).toBeNull()
     expect(m.fechar).not.toHaveBeenCalled()
     expect(m.pagarPix).not.toHaveBeenCalled()
@@ -1586,7 +1587,7 @@ describe('o cartão pelo Card Payment Brick', () => {
     expect(criado.mock.calls[1][2].initialization).toEqual({ amount: 69.6 })
     const rotulo = `Pagar com cartão · ${formatarPreco(3 * 1890 + 1290)}`
     // o Brick velho saiu e o novo ainda nao esta pronto: o botao nao paga
-    expect(within(resumo()).getByRole('button', { name: rotulo })).toBeDisabled()
+    await waitFor(() => expect(within(resumo()).getByRole('button', { name: rotulo })).toBeDisabled())
     await act(async () => pronto())
     await waitFor(() => expect(within(resumo()).getByRole('button', { name: rotulo })).toBeEnabled())
   })
