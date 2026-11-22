@@ -96,6 +96,20 @@ type Props = {
 }
 
 /**
+ * O script do Mercado Pago nesta pagina. O next/script nao tenta de novo o
+ * que falhou, e o onError dele e o da primeira montagem, que pode ja ter
+ * saido: a falha fica lembrada aqui, toda montagem nova a diz, e so os
+ * cartoes montados (os ouvintes) ouvem a que chegar.
+ */
+const sdk = { falhou: false, ouvintes: new Set<() => void>() }
+function falhaDoSdk() {
+  sdk.falhou = true
+  for (const ouvir of sdk.ouvintes) ouvir()
+}
+/** A conta das criacoes: cada Brick mora numa casa propria dentro do lugar. */
+let criacoes = 0
+
+/**
  * O cartao: o script do Mercado Pago (next/script, com o nonce da pagina) e o
  * Card Payment Brick sem o botao dele, montado no lugar com o valor em reais.
  * Quem paga e o botao do resumo, pelo getFormData que o controle expoe. Ao
@@ -113,13 +127,32 @@ export function CartaoMercadoPago({ chave, nonce, valorCentavos, aoPronto, aoFal
   })
   useImperativeHandle(controle, () => ({ getFormData: async () => (brick.current ? brick.current.getFormData() : null) }), [])
 
+  // montado, o cartao ouve a falha do script; a que ja aconteceu ele diz agora
   useEffect(() => {
+    const ouvir = () => avisos.current.aoFalhar?.()
+    if (sdk.falhou) ouvir()
+    sdk.ouvintes.add(ouvir)
+    return () => {
+      sdk.ouvintes.delete(ouvir)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!carregado || sdk.falhou) return
     const MercadoPago = window.MercadoPago
-    if (!carregado || !MercadoPago) return
+    // carregou sem o MercadoPago: e falha, nesta montagem e nas proximas
+    if (!MercadoPago) {
+      falhaDoSdk()
+      return
+    }
     const guardado = brick
     let vivo = true
     let desenhado = false
     let criado: ControleDoBrick | null = null
+    // a casa deste Brick: uma criacao que ficar para tras desmonta so o Brick
+    // dela, numa casa que ja saiu da pagina, e nunca o Brick vivo
+    const casa = document.createElement('div')
+    casa.id = `${lugar}-${++criacoes}`
     // pronto e quando o Brick desenhou e o controle chegou, na ordem que vier
     const avisar = () => {
       if (vivo && desenhado && criado) avisos.current.aoPronto()
@@ -127,38 +160,46 @@ export function CartaoMercadoPago({ chave, nonce, valorCentavos, aoPronto, aoFal
     const falhar = () => {
       if (vivo) avisos.current.aoFalhar?.()
     }
-    let criacao: Promise<ControleDoBrick>
-    try {
-      criacao = new MercadoPago(chave, { locale: 'pt-BR' }).bricks().create('cardPayment', lugar, {
-        initialization: { amount: valorCentavos / 100 },
-        customization: { visual: { hidePaymentButton: true, style: { customVariables: VARIAVEIS } }, paymentMethods: { maxInstallments: 12 } },
-        callbacks: {
-          onReady: () => {
-            desenhado = true
-            avisar()
+    // um tique de espera: no Strict Mode a primeira montagem sai antes de criar, e o Brick nasce uma vez so
+    const relogio = setTimeout(() => {
+      const lugarDoBrick = document.getElementById(lugar)
+      if (!lugarDoBrick) return
+      lugarDoBrick.append(casa)
+      let criacao: Promise<ControleDoBrick>
+      try {
+        criacao = new MercadoPago(chave, { locale: 'pt-BR' }).bricks().create('cardPayment', casa.id, {
+          initialization: { amount: valorCentavos / 100 },
+          customization: { visual: { hidePaymentButton: true, style: { customVariables: VARIAVEIS } }, paymentMethods: { maxInstallments: 12 } },
+          callbacks: {
+            onReady: () => {
+              desenhado = true
+              avisar()
+            },
+            // o erro de campo o Brick mostra sozinho; so o critico impede pagar
+            onError: (erro) => {
+              if (erro?.type === 'critical') falhar()
+            },
+            // sem o botao do Brick, quem paga e o botao do resumo
+            onSubmit: async () => {},
           },
-          // o erro de campo o Brick mostra sozinho; so o critico impede pagar
-          onError: (erro) => {
-            if (erro?.type === 'critical') falhar()
-          },
-          // sem o botao do Brick, quem paga e o botao do resumo
-          onSubmit: async () => {},
-        },
-      })
-    } catch {
-      falhar()
-      return
-    }
-    criacao.then((c) => {
-      if (!vivo) return c.unmount()
-      criado = c
-      guardado.current = c
-      avisar()
-    }, falhar)
+        })
+      } catch {
+        falhar()
+        return
+      }
+      criacao.then((c) => {
+        if (!vivo) return c.unmount()
+        criado = c
+        guardado.current = c
+        avisar()
+      }, falhar)
+    }, 0)
     return () => {
       vivo = false
+      clearTimeout(relogio)
       if (guardado.current === criado) guardado.current = null
       criado?.unmount()
+      casa.remove()
     }
   }, [carregado, chave, valorCentavos, lugar])
 
@@ -170,7 +211,7 @@ export function CartaoMercadoPago({ chave, nonce, valorCentavos, aoPronto, aoFal
         strategy="afterInteractive"
         nonce={nonce}
         onReady={() => setCarregado(true)}
-        onError={() => avisos.current.aoFalhar?.()}
+        onError={falhaDoSdk}
       />
       <div id={lugar} className="cartao" />
     </>

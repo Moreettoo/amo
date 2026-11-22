@@ -1014,10 +1014,13 @@ describe('o cartão pelo Card Payment Brick', () => {
     criado.mockReset()
     construido.mockReset()
     m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('aprovado') })
+    // o pedido feito rola ao topo: o jsdom nao rola
+    vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
   })
   afterEach(() => {
     vi.unstubAllEnvs()
     vi.unstubAllGlobals()
+    vi.mocked(window.scrollTo).mockRestore()
   })
 
   // primeiro: o script do Brick ainda nao entrou na pagina deste arquivo
@@ -1083,6 +1086,8 @@ describe('o cartão pelo Card Payment Brick', () => {
     await user.click(botaoDoResumo())
     await waitFor(() => expect(brick.getFormData).toHaveBeenCalledTimes(1))
     expect(m.fechar).not.toHaveBeenCalled()
+    // o Brick marca os campos dele; a linha viva da etapa diz o que fazer
+    expect(await screen.findByText(MENSAGENS_DO_FECHAMENTO.cartao_ilegivel)).toBeInTheDocument()
     await waitFor(() => expect(botaoDoResumo()).toBeEnabled())
     brick.getFormData.mockResolvedValueOnce({ ...DADOS, formData: { ...DADOS.formData, payer: { email: 'ana@exemplo.com' } } })
     await user.click(botaoDoResumo())
@@ -1136,5 +1141,59 @@ describe('o cartão pelo Card Payment Brick', () => {
     await user.click(screen.getByRole('radio', { name: 'Pix' }))
     expect(brick.unmount).toHaveBeenCalledTimes(1)
     expect(botaoDoResumo()).toHaveTextContent(`Pagar com Pix · ${formatarPreco(5070)}`)
+  })
+
+  it('durante o pagamento as opções travam: não dá para trocar para o Pix no meio', async () => {
+    const { user } = await comCartao()
+    brick.getFormData.mockReturnValue(new Promise(() => {}))
+    await user.click(botaoDoResumo())
+    const pix = screen.getByRole('radio', { name: 'Pix' })
+    expect(pix).toBeDisabled()
+    expect(botaoDoResumo()).toBeDisabled()
+    await user.click(pix)
+    expect(screen.getByRole('radio', { name: 'Cartão de crédito' })).toBeChecked()
+    expect(brick.unmount).not.toHaveBeenCalled()
+  })
+
+  it('o desafio que termina recusado volta à etapa 4 com a frase, e o Brick monta de novo', async () => {
+    const url = 'https://www.mercadopago.com.br/3ds/desafio?id=abc'
+    m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
+    await comCartao()
+    relogioFalso()
+    fireEvent.click(botaoDoResumo())
+    await andar(0)
+    expect(screen.getByTitle('Confirmação do banco')).toBeInTheDocument()
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('recusado', { recusa: 'cc_rejected_3ds_challenge' }) })
+    await andar(5000)
+    // o quadro da frase (requestAnimationFrame) e o tique em que o Brick novo e criado
+    await andar(50)
+    expect(screen.getByText(mensagemDaRecusa('cc_rejected_3ds_challenge'))).toBeInTheDocument()
+    expect(screen.queryByTitle('Confirmação do banco')).not.toBeInTheDocument()
+    expect(screen.getByRole('radio', { name: 'Cartão de crédito' })).toBeChecked()
+    expect(criado).toHaveBeenCalledTimes(2)
+    expect(guardada()).toEqual({ prestigio: 2 })
+  })
+
+  // por ultimo: a falha do script fica lembrada no modulo pelo resto do arquivo
+  it('o script que falha avisa em toda montagem do cartão, e o botão não paga', async () => {
+    vi.stubGlobal('MercadoPago', undefined)
+    const { user } = await naEtapa3()
+    await user.click(screen.getByRole('button', { name: 'Continuar para o pagamento' }))
+    await user.click(await screen.findByRole('radio', { name: 'Cartão de crédito' }))
+    // o script falha; no arquivo inteiro o next/script ja o deu por carregado,
+    // e o cartao ve o carregado sem o MercadoPago: falha do mesmo jeito
+    act(() => {
+      document.querySelector(SDK)!.dispatchEvent(new Event('error'))
+    })
+    const indisponivel = MENSAGENS_DO_FECHAMENTO.pagamento_indisponivel
+    expect(await screen.findByText(indisponivel)).toBeInTheDocument()
+    expect(botaoDoResumo()).toBeDisabled()
+    await user.click(screen.getByRole('radio', { name: 'Pix' }))
+    expect(screen.queryByText(indisponivel)).not.toBeInTheDocument()
+    await user.click(screen.getByRole('radio', { name: 'Cartão de crédito' }))
+    expect(await screen.findByText(indisponivel)).toBeInTheDocument()
+    expect(botaoDoResumo()).toBeDisabled()
+    expect(construido).not.toHaveBeenCalled()
   })
 })

@@ -24,6 +24,8 @@ type Props = {
   /** a frase do ultimo erro do pagamento (ou da recusa do cartao), na linha de erro da etapa */
   aviso: string | null
   aoPagar: () => void
+  /** o pagamento em curso: as opcoes travam, e a forma nao troca no meio */
+  travada: boolean
   /** o cartao, com a chave publica; sem ela, so o Pix */
   cartao: CartaoDaEtapa | null
   /** o desafio do banco (3DS): a tentativa com a URL dele e o que fazer quando a espera vir mudar */
@@ -38,7 +40,7 @@ type Props = {
  * uma regiao viva sempre no lugar, diz o que deu errado quando o pagamento
  * fica nesta etapa.
  */
-export function EtapaPagamento({ id, forma, aoMudarForma, aviso, aoPagar, cartao, desafio }: Props) {
+export function EtapaPagamento({ id, forma, aoMudarForma, aviso, aoPagar, travada, cartao, desafio }: Props) {
   const formas: readonly Pagamento[] = cartao ? ['pix', 'cartao'] : ['pix']
   const url = desafio?.situacao.pagamento?.desafioUrl
   return (
@@ -56,7 +58,7 @@ export function EtapaPagamento({ id, forma, aoMudarForma, aviso, aoPagar, cartao
         </div>
       ) : (
         <>
-          <fieldset className="pagamento">
+          <fieldset className="pagamento" disabled={travada}>
             <legend className="sr-only">Como pagar</legend>
             {formas.map((f) => (
               <label key={f} className="pagamento__opcao">

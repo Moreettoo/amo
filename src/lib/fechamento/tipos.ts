@@ -21,6 +21,7 @@ export type CodigoDoFechamento =
   | 'tentativas_esgotadas'
   | 'pagamento_indisponivel'
   | 'pagamento_recusado'
+  | 'cartao_ilegivel'
 
 export const MENSAGENS_DO_FECHAMENTO: Record<CodigoDoFechamento, string> = {
   campos_invalidos: 'Confira os campos marcados.',
@@ -40,6 +41,8 @@ export const MENSAGENS_DO_FECHAMENTO: Record<CodigoDoFechamento, string> = {
   tentativas_esgotadas: 'Foram muitas tentativas de pagamento neste pedido. Faça o pedido de novo.',
   pagamento_indisponivel: 'O pagamento não respondeu agora. Tente de novo em instantes.',
   pagamento_recusado: 'O pagamento foi recusado. Confira os dados ou use outro cartão.',
+  // o Brick nao devolveu o cartao (campo faltando ou errado): ele marca os campos, e a etapa diz isto
+  cartao_ilegivel: 'Confira os dados do cartão.',
 }
 
 export type EnderecoDaCotacao = {

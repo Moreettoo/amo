@@ -155,6 +155,9 @@
   }
   .pagamento__opcao input { width: 18px; height: 18px; margin: 0; flex: none; accent-color: var(--color-expresso); cursor: pointer; }
   .pagamento__opcao:has(input:checked) { border-color: var(--color-expresso); box-shadow: inset 0 0 0 1px var(--color-expresso); }
+  /* durante o pagamento as opcoes travam, a 75% como o botao que envia */
+  .pagamento:disabled .pagamento__opcao, .pagamento:disabled .pagamento__opcao input { cursor: default; }
+  .pagamento:disabled .pagamento__opcao { opacity: .75; }
   /* o cartao: o Brick do Mercado Pago no chao da etapa, sem caixa em volta (as cores vao nas variaveis dele) */
   .cartao { margin: 18px 0 0; font-family: var(--font-sans); color: var(--color-expresso); }
   /* o desafio do banco (3DS): a pagina do banco num iframe, que o fio de 1 px segura */

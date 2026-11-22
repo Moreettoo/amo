@@ -307,6 +307,8 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
       if (erro) tratarErro(erro)
     }
     setAviso(null)
+    // ocupado desde o comeco: o botao e as opcoes travam, e a forma nao troca no meio
+    setOcupado(true)
 
     let doBrick: DadosDoBrick | null = null
     if (pagamento === 'cartao') {
@@ -316,9 +318,13 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
         doBrick = null
       }
       if (minha !== chamada.current) return
-      if (!doBrick?.formData?.token) return fim(null)
+      if (!doBrick?.formData?.token) {
+        fim(null)
+        // o Brick marca os campos dele; a linha da etapa diz o que fazer
+        setAviso({ etapa: 4, codigo: 'cartao_ilegivel' })
+        return
+      }
     }
-    setOcupado(true)
     setFase('fechando')
 
     let pedido: RespostaDoPedido
@@ -479,6 +485,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
                   }}
                   aviso={textoDoAviso(aviso?.etapa === 4 ? aviso : null)}
                   aoPagar={() => void pagar()}
+                  travada={ocupado}
                   cartao={
                     dados.chavePublicaMp
                       ? {
