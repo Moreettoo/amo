@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { aprovado, codigoAcabou, horaDeSaoPaulo, mesmaSituacao, proximaEspera, terminou } from '@/components/sacola/espera'
+import {
+  aprovado,
+  codigoAcabou,
+  ESPERA_DO_DESAFIO_MS,
+  ESPERA_DO_PIX_MS,
+  horaDeSaoPaulo,
+  mesmaSituacao,
+  proximaEspera,
+  terminou,
+} from '@/components/sacola/espera'
 import type { SituacaoDoPedido } from '@/lib/fechamento/tipos'
 
 const MINUTO = 60_000
@@ -25,6 +34,16 @@ describe('o ritmo da espera do pagamento', () => {
     expect(proximaEspera(desde, desde + 2 * MINUTO)).toBe(15000)
     expect(proximaEspera(desde, desde + 30 * MINUTO - 1)).toBe(15000)
     expect(proximaEspera(desde, desde + 30 * MINUTO)).toBeNull()
+  })
+
+  it('o desafio do banco espera até 40 min (contrato do Mercado Pago, 1.2); o Pix, 30', () => {
+    expect(ESPERA_DO_PIX_MS).toBe(30 * MINUTO)
+    expect(ESPERA_DO_DESAFIO_MS).toBe(40 * MINUTO)
+    expect(proximaEspera(desde, desde + 1 * MINUTO, ESPERA_DO_DESAFIO_MS)).toBe(5000)
+    expect(proximaEspera(desde, desde + 35 * MINUTO, ESPERA_DO_DESAFIO_MS)).toBe(15000)
+    expect(proximaEspera(desde, desde + 40 * MINUTO - 1, ESPERA_DO_DESAFIO_MS)).toBe(15000)
+    expect(proximaEspera(desde, desde + 40 * MINUTO, ESPERA_DO_DESAFIO_MS)).toBeNull()
+    expect(proximaEspera(desde, desde + 35 * MINUTO, ESPERA_DO_PIX_MS)).toBeNull()
   })
 })
 

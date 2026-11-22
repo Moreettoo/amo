@@ -7,11 +7,16 @@ import type { SituacaoDoPedido } from '@/lib/fechamento/tipos'
 
 const MINUTO = 60_000
 
-/** O ritmo: a cada 5 s nos 2 primeiros minutos, a cada 15 s ate 30 min; depois para (null). */
-export function proximaEspera(desde: number, agora: number): number | null {
+/** Ate quando a espera pergunta sozinha: no Pix, 30 min, o tempo do codigo. */
+export const ESPERA_DO_PIX_MS = 30 * MINUTO
+/** No desafio do banco (3DS), 40 min: o tempo que a cliente tem (contrato do Mercado Pago, 1.2). */
+export const ESPERA_DO_DESAFIO_MS = 40 * MINUTO
+
+/** O ritmo: a cada 5 s nos 2 primeiros minutos, a cada 15 s ate o fim da espera (30 min no Pix); depois para (null). */
+export function proximaEspera(desde: number, agora: number, ate: number = ESPERA_DO_PIX_MS): number | null {
   const passou = agora - desde
   if (passou < 2 * MINUTO) return 5_000
-  if (passou < 30 * MINUTO) return 15_000
+  if (passou < ate) return 15_000
   return null
 }
 

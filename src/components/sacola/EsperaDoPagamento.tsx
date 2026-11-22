@@ -3,7 +3,7 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import { situacaoDoPedido } from '@/app/sacola/acoes'
 import type { SituacaoDoPedido } from '@/lib/fechamento/tipos'
-import { mesmaSituacao, proximaEspera, terminou } from './espera'
+import { ESPERA_DO_PIX_MS, mesmaSituacao, proximaEspera, terminou } from './espera'
 
 type Props = {
   numero: string
@@ -13,6 +13,8 @@ type Props = {
   aoMudar: (s: SituacaoDoPedido) => void
   /** o texto de quando a espera para, se a pagina que a mostra ja e a do pedido (sem o link para ela mesma) */
   textoAoParar?: string
+  /** ate quando pergunta sozinha, em ms: 30 min no Pix (o padrao), 40 min no desafio do banco */
+  ate?: number
 }
 
 type Resposta = Awaited<ReturnType<typeof situacaoDoPedido>>
@@ -24,8 +26,8 @@ type Resposta = Awaited<ReturnType<typeof situacaoDoPedido>>
  * retoma o ritmo. Erro de rede, ou resposta de erro, nao muda o que a tela
  * mostra. Nada gira: a espera e dita em texto.
  */
-export function EsperaDoPagamento({ numero, inicial, aoMudar, textoAoParar }: Props) {
-  // a situacao com que o ritmo acabou (30 min sem mudanca); outra inicial recomeca
+export function EsperaDoPagamento({ numero, inicial, aoMudar, textoAoParar, ate = ESPERA_DO_PIX_MS }: Props) {
+  // a situacao com que o ritmo acabou (30 min sem mudanca, ou o ate dado); outra inicial recomeca
   const [parouEm, setParouEm] = useState<SituacaoDoPedido | null>(null)
   const avisar = useEffectEvent((s: SituacaoDoPedido) => aoMudar(s))
 
@@ -42,7 +44,7 @@ export function EsperaDoPagamento({ numero, inicial, aoMudar, textoAoParar }: Pr
     const agendar = (): boolean => {
       clearTimeout(relogio)
       if (!viva || escondida()) return true
-      const ms = proximaEspera(desde, Date.now())
+      const ms = proximaEspera(desde, Date.now(), ate)
       if (ms === null) return false
       relogio = setTimeout(perguntar, ms)
       return true
@@ -82,7 +84,7 @@ export function EsperaDoPagamento({ numero, inicial, aoMudar, textoAoParar }: Pr
       clearTimeout(relogio)
       document.removeEventListener('visibilitychange', aoTrocarDeAba)
     }
-  }, [numero, inicial])
+  }, [numero, inicial, ate])
 
   if (terminou(inicial)) return null
   return (

@@ -19,7 +19,7 @@ import { mascararCelular, type Pagamento } from '@/lib/pedido'
 import { formatarPreco } from '@/lib/produto'
 import { contarPotes, esvaziarSacola, somarLinhas, textoPotes, type ItemDaLoja, type LinhaDaSacola } from '@/lib/sacola'
 import { CAMINHO_CATALOGO } from '@/lib/visao'
-import { entradaDoCartao, type ControleDoCartao, type DadosDoBrick } from './CartaoMercadoPago'
+import { cartaoDoBrick, type CartaoDoBrick, type ControleDoCartao } from './CartaoMercadoPago'
 import { EtapaDados } from './EtapaDados'
 import { EtapaEntrega } from './EtapaEntrega'
 import { EtapaPagamento } from './EtapaPagamento'
@@ -54,6 +54,8 @@ const DICA_COM_CARTAO = 'Pix ou cartão.'
 
 /** O pedido fechado, pago ou esperando o pagamento: a situacao que o servidor devolveu e o que foi pedido. */
 type Feito = { situacao: SituacaoDoPedido; linhas: LinhaDaSacola[]; entrega: Cotacao; total: number }
+/** O pedido no desafio do banco (3DS), com a URL da janela: so a criacao a devolve, e ela fica na memoria da tela. */
+type Desafio = Feito & { url: string }
 
 /** A frase de um erro, na etapa em que a cliente resolve; a recusa do cartao leva o motivo. */
 type Aviso = { etapa: Etapa; codigo: CodigoDoFechamento; recusa?: string | null }
@@ -65,6 +67,9 @@ const textoDoAviso = (a: Aviso | null) =>
   !a ? null : a.codigo === 'pagamento_recusado' ? mensagemDaRecusa(a.recusa ?? null) : MENSAGENS_DO_FECHAMENTO[a.codigo]
 /** A tentativa do cartao que acabou sem pagar (recusada, vencida, cancelada): a cliente tenta de novo na etapa 4. */
 const cartaoAcabou = (s: SituacaoDoPedido) => codigoAcabou(s) && s.pagamento?.forma === 'cartao'
+/** O banco ainda nao respondeu ao desafio: a tentativa do cartao segue pendente, e a janela dele fica na tela. */
+const desafioSegue = (s: SituacaoDoPedido) =>
+  s.estado === 'aguardando_pagamento' && s.pagamento?.forma === 'cartao' && s.pagamento.estado === 'pendente'
 
 /** Onde cada erro do pagamento se resolve; o resto fica na etapa 4, com a frase. */
 const ETAPA_DO_ERRO: Partial<Record<CodigoDoFechamento, Etapa>> = {
@@ -91,10 +96,10 @@ const SEM_ENDERECO: EnderecoDigitado = { cep: '', numero: '', complemento: '' }
  * etapa atual: um botao so, ligado ao formulario pelo atributo form.
  * A etapa, o endereco e a cotacao ficam guardados na aba (progresso.ts).
  * Pagar com Pix fecha o pedido (fecharPedido) e gera o Pix (pagarComPix);
- * pagar com cartao le o Brick (getFormData), fecha o pedido e cobra
- * (pagarComCartao). Cada erro leva a etapa em que a cliente resolve; a
- * recusa do cartao fica na 4, dita. A sacola so esvazia com o pagamento
- * aprovado.
+ * pagar com cartao le o Brick (getFormData e getAdditionalData), fecha o
+ * pedido e cobra (pagarComCartao). O desafio do banco fica na etapa 4 ate o
+ * resultado. Cada erro leva a etapa em que a cliente resolve; a recusa do
+ * cartao fica na 4, dita. A sacola so esvazia com o pagamento aprovado.
  */
 export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados: DadosDaSacola }) {
   const id = useId()
@@ -135,7 +140,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   // o Brick do cartao na tela, pronto para ler o cartao (o botao so paga com ele)
   const [cartaoPronto, setCartaoPronto] = useState(false)
   // o desafio do banco (3DS): o pedido fechado, esperando a cliente confirmar no iframe
-  const [desafio, setDesafio] = useState<Feito | null>(null)
+  const [desafio, setDesafio] = useState<Desafio | null>(null)
   const controleDoCartao = useRef<ControleDoCartao | null>(null)
   // o pagamento em curso (o clique duplo nao fecha dois pedidos) e o numero da
   // chamada: a resposta de uma chamada que ficou para tras e ignorada
@@ -215,12 +220,13 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
       apagarProgresso()
     }
     if (desafio && desafio.situacao.numero === s.numero) {
-      // aprovado, ou o banco ja respondeu e falta so confirmar: o pedido feito, com a espera
-      if (aprovado(s) || !s.pagamento?.desafioUrl) {
-        setDesafio(null)
-        setFeito({ ...desafio, situacao: s })
-        window.scrollTo({ top: 0 })
-      } else setDesafio({ ...desafio, situacao: s })
+      // o banco ainda nao respondeu: a janela dele fica, com a URL guardada (a
+      // situacao lida depois nunca a traz), e a espera segue no ritmo dela
+      if (desafioSegue(s)) return
+      // aprovado, ou outra tentativa tomou o lugar da do desafio: o pedido feito
+      setDesafio(null)
+      setFeito({ situacao: s, linhas: desafio.linhas, entrega: desafio.entrega, total: desafio.total })
+      window.scrollTo({ top: 0 })
       return
     }
     setFeito((f) => (f && f.situacao.numero === s.numero ? { ...f, situacao: s } : f))
@@ -310,15 +316,17 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
     // ocupado desde o comeco: o botao e as opcoes travam, e a forma nao troca no meio
     setOcupado(true)
 
-    let doBrick: DadosDoBrick | null = null
+    let doBrick: CartaoDoBrick | null = null
     if (pagamento === 'cartao') {
       try {
-        doBrick = (await controleDoCartao.current?.getFormData()) ?? null
+        const lido = await controleDoCartao.current?.lerCartao()
+        doBrick = lido ? cartaoDoBrick(lido) : null
       } catch {
         doBrick = null
       }
       if (minha !== chamada.current) return
-      if (!doBrick?.formData?.token) {
+      // sem o token, o tipo ou o final, nada sai e nada e cobrado
+      if (!doBrick) {
         fim(null)
         // o Brick marca os campos dele; a linha da etapa diz o que fazer
         setAviso({ etapa: 4, codigo: 'cartao_ilegivel' })
@@ -345,7 +353,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
     setFase(doBrick ? 'cobrando' : 'gerando')
     let pago: RespostaDoPagamento
     try {
-      pago = doBrick ? await pagarComCartao(entradaDoCartao(numero, doBrick)) : await pagarComPix({ numero })
+      pago = doBrick ? await pagarComCartao({ numero, ...doBrick }) : await pagarComPix({ numero })
     } catch {
       pago = { ok: false, erro: 'tente_de_novo' }
     }
@@ -357,7 +365,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
     if (cartaoAcabou(s)) return recusar(s)
     const fechado: Feito = { situacao: s, linhas: pedidas, entrega, total: pedido.pedido.totalCentavos }
     if (!aprovado(s) && s.pagamento?.desafioUrl) {
-      setDesafio(fechado)
+      setDesafio({ ...fechado, url: s.pagamento.desafioUrl })
       setCartaoPronto(false)
       // o foco vai a janela do banco: o leitor de tela ouve o titulo dela
       requestAnimationFrame(() => document.getElementById(`${formulario(4)}-desafio`)?.focus())
@@ -501,7 +509,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
                         }
                       : null
                   }
-                  desafio={desafio ? { situacao: desafio.situacao, aoMudar: chegou } : null}
+                  desafio={desafio ? { situacao: desafio.situacao, url: desafio.url, aoMudar: chegou } : null}
                 />
               ) : null}
             </li>

@@ -3,21 +3,31 @@
 import Script from 'next/script'
 import { useEffect, useId, useImperativeHandle, useRef, useState, type RefObject } from 'react'
 
-/** O que o getFormData do Brick devolve (contrato do Mercado Pago, 6). */
-export type DadosDoBrick = {
-  formData: {
-    token: string
-    payment_method_id: string
-    installments: number
-    payer?: { identification?: { type?: string; number?: string } }
-  }
-  additionalData?: { lastFourDigits?: string; paymentTypeId?: string }
+/**
+ * O que o getFormData do Brick devolve: o formData plano (contrato do Mercado
+ * Pago, 6). Vem do navegador, de um script de fora: tudo pode faltar.
+ */
+export type FormDataDoBrick = {
+  token?: string
+  payment_method_id?: string
+  installments?: number | string
+  payer?: { email?: string; identification?: { type?: string; number?: string } }
 }
 
-/** O que o pai usa do Brick montado: o getFormData dele (null enquanto nao ha Brick). */
-export type ControleDoCartao = { getFormData: () => Promise<DadosDoBrick | null | undefined> }
+/** O que o getAdditionalData devolve, so depois do getFormData; o tipo do cartao vem do paymentTypeId (contrato, 6). */
+export type AdicionaisDoBrick = { bin?: string; lastFourDigits?: string; cardholderName?: string; paymentTypeId?: string }
 
-type ControleDoBrick = ControleDoCartao & { unmount: () => void }
+/** O cartao lido no Brick: o formData e os dados adicionais, cada um da sua chamada. */
+export type DadosDoBrick = { formData: FormDataDoBrick; additionalData: AdicionaisDoBrick | null }
+
+/** O que o pai usa do Brick montado: le o cartao (null enquanto nao ha Brick ou sem dados validos nele). */
+export type ControleDoCartao = { lerCartao: () => Promise<DadosDoBrick | null> }
+
+type ControleDoBrick = {
+  getFormData: () => Promise<FormDataDoBrick | null | undefined>
+  getAdditionalData: () => Promise<AdicionaisDoBrick | null | undefined>
+  unmount: () => void
+}
 type OpcoesDoBrick = {
   initialization: { amount: number }
   customization: {
@@ -69,16 +79,36 @@ const VARIAVEIS: Record<string, string> = {
   formPadding: '0px',
 }
 
-/** Os campos que pagarComCartao espera, tirados do getFormData; o documento so com o CPF que o Brick pediu. */
-export function entradaDoCartao(numero: string, { formData, additionalData }: DadosDoBrick) {
+/** Os campos do cartao que pagarComCartao espera, alem do numero do pedido. */
+export type CartaoDoBrick = {
+  token: string
+  bandeira: string | undefined
+  tipo: 'credit_card' | 'debit_card'
+  parcelas: number
+  final: string
+  documento?: { tipo: 'CPF'; numero: string }
+}
+
+/**
+ * Os campos que pagarComCartao espera, tirados do formData e dos dados
+ * adicionais; o documento so com o CPF que o Brick pediu. Sem o token, sem um
+ * tipo que seja credito ou debito, ou sem os 4 ultimos digitos, null: nada
+ * sai, e nunca um campo vazio no lugar.
+ */
+export function cartaoDoBrick({ formData, additionalData }: DadosDoBrick): CartaoDoBrick | null {
+  const token = formData.token
+  const tipo = additionalData?.paymentTypeId
+  const final = additionalData?.lastFourDigits
+  if (typeof token !== 'string' || token === '') return null
+  if (tipo !== 'credit_card' && tipo !== 'debit_card') return null
+  if (typeof final !== 'string' || !/^\d{4}$/.test(final)) return null
   const id = formData.payer?.identification
   return {
-    numero,
-    token: formData.token,
+    token,
     bandeira: formData.payment_method_id,
-    tipo: additionalData?.paymentTypeId ?? '',
+    tipo,
     parcelas: Number(formData.installments),
-    final: additionalData?.lastFourDigits ?? '',
+    final,
     ...(id?.type === 'CPF' && id.number ? { documento: { tipo: 'CPF' as const, numero: id.number } } : {}),
   }
 }
@@ -91,7 +121,7 @@ type Props = {
   aoPronto: () => void
   /** o script ou o Brick nao carregou */
   aoFalhar?: () => void
-  /** onde o pai acha o getFormData do Brick montado */
+  /** onde o pai acha a leitura do cartao do Brick montado */
   controle: RefObject<ControleDoCartao | null>
 }
 
@@ -112,8 +142,9 @@ let criacoes = 0
 /**
  * O cartao: o script do Mercado Pago (next/script, com o nonce da pagina) e o
  * Card Payment Brick sem o botao dele, montado no lugar com o valor em reais.
- * Quem paga e o botao do resumo, pelo getFormData que o controle expoe. Ao
- * sair (trocar para o Pix, sair da etapa), o Brick desmonta.
+ * Quem paga e o botao do resumo, pela leitura que o controle expoe (o
+ * getFormData e, depois dele, o getAdditionalData). Ao sair (trocar para o
+ * Pix, sair da etapa), o Brick desmonta.
  */
 export function CartaoMercadoPago({ chave, nonce, valorCentavos, aoPronto, aoFalhar, controle }: Props) {
   const lugar = `cartao-${useId().replace(/[^\w-]/g, '')}`
@@ -125,7 +156,22 @@ export function CartaoMercadoPago({ chave, nonce, valorCentavos, aoPronto, aoFal
   useEffect(() => {
     avisos.current = { aoPronto, aoFalhar }
   })
-  useImperativeHandle(controle, () => ({ getFormData: async () => (brick.current ? brick.current.getFormData() : null) }), [])
+  // o getFormData resolve com o formData plano; os dados adicionais (o tipo e o
+  // final do cartao) vem de outra chamada, que so vale depois dele
+  useImperativeHandle(
+    controle,
+    () => ({
+      lerCartao: async () => {
+        const b = brick.current
+        if (!b) return null
+        const formData = await b.getFormData()
+        if (!formData) return null
+        const additionalData = (await b.getAdditionalData()) ?? null
+        return { formData, additionalData }
+      },
+    }),
+    [],
+  )
 
   // montado, o cartao ouve a falha do script; a que ja aconteceu ele diz agora
   useEffect(() => {

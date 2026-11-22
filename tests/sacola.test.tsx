@@ -953,26 +953,30 @@ describe('o cartão pelo Card Payment Brick', () => {
   const SDK = 'script[src="https://sdk.mercadopago.com/js/v2"]'
   const resumo = () => screen.getByRole('complementary', { name: 'Resumo' })
   const botaoDoResumo = () => within(resumo()).getByRole('button')
-  /** o que o Brick devolve no getFormData, com o CPF que ele pediu */
-  const DADOS = {
-    formData: {
-      token: 'f'.repeat(32),
-      issuer_id: '24',
-      payment_method_id: 'master',
-      installments: 3,
-      payer: { email: 'ana@exemplo.com', identification: { type: 'CPF', number: '12345678909' } },
-    },
-    additionalData: { bin: '548083', lastFourDigits: '3311', paymentTypeId: 'credit_card' },
+  /**
+   * O que o Brick devolve, na forma documentada pelo Mercado Pago: o getFormData
+   * resolve com o formData plano (com o CPF que ele pediu), e os dados
+   * adicionais vem de outra chamada, o getAdditionalData, feita depois dele.
+   */
+  const FORM_DATA = {
+    token: 'f'.repeat(32),
+    issuer_id: '24',
+    payment_method_id: 'master',
+    installments: 3,
+    payer: { email: 'ana@exemplo.com', identification: { type: 'CPF', number: '12345678909' } },
   }
+  const ADICIONAIS = { bin: '548083', lastFourDigits: '3311', cardholderName: 'APRO', paymentTypeId: 'credit_card' }
   const cartao = (estado: string, extra: { recusa?: string; desafioUrl?: string } = {}): SituacaoDoPedido => ({
     numero: '123456',
     estado: estado === 'aprovado' ? 'pago' : 'aguardando_pagamento',
     pagamento: { forma: 'cartao', estado, recusa: null, pix: null, desafioUrl: null, ...extra },
   })
   // o Brick falso: o que a pagina chama no window.MercadoPago
-  const brick = { getFormData: vi.fn(), unmount: vi.fn() }
+  const brick = { getFormData: vi.fn(), getAdditionalData: vi.fn(), unmount: vi.fn() }
   const criado = vi.fn()
   const construido = vi.fn()
+  /** a criacao do proximo Brick, quando o teste quer escolher a hora em que ele fica pronto */
+  let criacaoDoProximo: ((opcoes: { callbacks: { onReady: () => void } }) => Promise<typeof brick>) | null = null
   class MercadoPagoFalso {
     constructor(chave: string, opcoes: unknown) {
       construido(chave, opcoes)
@@ -981,6 +985,9 @@ describe('o cartão pelo Card Payment Brick', () => {
       return {
         create: async (tipo: string, lugar: string, opcoes: { callbacks: { onReady: () => void } }) => {
           criado(tipo, lugar, opcoes)
+          const criar = criacaoDoProximo
+          criacaoDoProximo = null
+          if (criar) return criar(opcoes)
           opcoes.callbacks.onReady()
           return brick
         },
@@ -1013,8 +1020,11 @@ describe('o cartão pelo Card Payment Brick', () => {
     vi.stubEnv('NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY', CHAVE)
     vi.stubGlobal('MercadoPago', MercadoPagoFalso)
     brick.getFormData.mockReset()
-    brick.getFormData.mockResolvedValue(DADOS)
+    brick.getFormData.mockResolvedValue(FORM_DATA)
+    brick.getAdditionalData.mockReset()
+    brick.getAdditionalData.mockResolvedValue(ADICIONAIS)
     brick.unmount.mockReset()
+    criacaoDoProximo = null
     criado.mockReset()
     construido.mockReset()
     m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('aprovado') })
@@ -1067,8 +1077,11 @@ describe('o cartão pelo Card Payment Brick', () => {
     await user.click(botaoDoResumo())
     expect(await screen.findByRole('heading', { level: 1, name: 'Pedido 123456 recebido' })).toBeInTheDocument()
     expect(brick.getFormData).toHaveBeenCalledTimes(1)
+    expect(brick.getAdditionalData).toHaveBeenCalledTimes(1)
     expect(m.fechar).toHaveBeenCalledTimes(1)
-    expect(brick.getFormData.mock.invocationCallOrder[0]).toBeLessThan(m.fechar.mock.invocationCallOrder[0])
+    // os dados adicionais so depois do getFormData, e os dois antes de fechar o pedido
+    expect(brick.getFormData.mock.invocationCallOrder[0]).toBeLessThan(brick.getAdditionalData.mock.invocationCallOrder[0])
+    expect(brick.getAdditionalData.mock.invocationCallOrder[0]).toBeLessThan(m.fechar.mock.invocationCallOrder[0])
     expect(m.fechar.mock.invocationCallOrder[0]).toBeLessThan(m.pagarCartao.mock.invocationCallOrder[0])
     expect(m.pagarCartao).toHaveBeenCalledWith({
       numero: '123456',
@@ -1090,13 +1103,52 @@ describe('o cartão pelo Card Payment Brick', () => {
     await user.click(botaoDoResumo())
     await waitFor(() => expect(brick.getFormData).toHaveBeenCalledTimes(1))
     expect(m.fechar).not.toHaveBeenCalled()
+    // sem o formData, os dados adicionais nem sao pedidos
+    expect(brick.getAdditionalData).not.toHaveBeenCalled()
     // o Brick marca os campos dele; a linha viva da etapa diz o que fazer
     expect(await screen.findByText(MENSAGENS_DO_FECHAMENTO.cartao_ilegivel)).toBeInTheDocument()
     await waitFor(() => expect(botaoDoResumo()).toBeEnabled())
-    brick.getFormData.mockResolvedValueOnce({ ...DADOS, formData: { ...DADOS.formData, payer: { email: 'ana@exemplo.com' } } })
+    brick.getFormData.mockResolvedValueOnce({ ...FORM_DATA, payer: { email: 'ana@exemplo.com' } })
     await user.click(botaoDoResumo())
     await waitFor(() => expect(m.pagarCartao).toHaveBeenCalledTimes(1))
     expect(m.pagarCartao.mock.calls[0][0]).not.toHaveProperty('documento')
+  })
+
+  it('sem token, sem tipo válido ou sem o final nos dados do Brick: nada sai, nada é cobrado, e a etapa diz para conferir o cartão', async () => {
+    const { user } = await comCartao()
+    const LANCA = Symbol('o getAdditionalData lanca')
+    const casos: [typeof FORM_DATA | { token?: string }, unknown][] = [
+      [{ ...FORM_DATA, token: undefined }, ADICIONAIS],
+      [FORM_DATA, { ...ADICIONAIS, paymentTypeId: undefined }],
+      [FORM_DATA, { ...ADICIONAIS, paymentTypeId: 'prepaid_card' }],
+      [FORM_DATA, { ...ADICIONAIS, paymentTypeId: '' }],
+      [FORM_DATA, { ...ADICIONAIS, lastFourDigits: undefined }],
+      [FORM_DATA, { ...ADICIONAIS, lastFourDigits: '' }],
+      [FORM_DATA, { ...ADICIONAIS, lastFourDigits: '33a1' }],
+      [FORM_DATA, undefined],
+      [FORM_DATA, LANCA],
+    ]
+    for (const [i, [formData, adicionais]] of casos.entries()) {
+      brick.getFormData.mockResolvedValueOnce(formData)
+      if (adicionais === LANCA) brick.getAdditionalData.mockRejectedValueOnce(new Error('sem os dados adicionais'))
+      else brick.getAdditionalData.mockResolvedValueOnce(adicionais)
+      await user.click(botaoDoResumo())
+      await waitFor(() => expect(brick.getFormData).toHaveBeenCalledTimes(i + 1))
+      await waitFor(() => expect(botaoDoResumo()).toBeEnabled())
+      expect(screen.getByText(MENSAGENS_DO_FECHAMENTO.cartao_ilegivel)).toBeInTheDocument()
+    }
+    expect(m.fechar).not.toHaveBeenCalled()
+    expect(m.pagarCartao).not.toHaveBeenCalled()
+    // nunca "Confira os campos marcados.", que nao marca campo nenhum
+    expect(screen.queryByText(MENSAGENS_DO_FECHAMENTO.campos_invalidos)).toBeNull()
+  })
+
+  it('o cartão de débito vai como debit_card, com o final que o Brick deu', async () => {
+    const { user } = await comCartao()
+    brick.getAdditionalData.mockResolvedValueOnce({ ...ADICIONAIS, lastFourDigits: '5682', paymentTypeId: 'debit_card' })
+    await user.click(botaoDoResumo())
+    await waitFor(() => expect(m.pagarCartao).toHaveBeenCalledTimes(1))
+    expect(m.pagarCartao.mock.calls[0][0]).toMatchObject({ tipo: 'debit_card', final: '5682' })
   })
 
   it('recusado fica na etapa 4 com a frase da recusa, e o Brick continua pronto', async () => {
@@ -1111,10 +1163,11 @@ describe('o cartão pelo Card Payment Brick', () => {
     expect(guardada()).toEqual({ prestigio: 2 })
   })
 
-  it('com o desafio do banco, o iframe aparece na etapa 4 e a espera decide', async () => {
+  it('com o desafio do banco, o iframe aparece na etapa 4 e fica até o resultado; a espera decide', async () => {
     const url = 'https://www.mercadopago.com.br/3ds/desafio?id=abc'
     m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
-    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
+    // como o servidor de verdade: a situacao lida do banco nunca traz a URL do desafio
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('pendente') })
     await comCartao()
     relogioFalso()
     fireEvent.click(botaoDoResumo())
@@ -1124,10 +1177,68 @@ describe('o cartão pelo Card Payment Brick', () => {
     expect(janela).toHaveAttribute('src', url)
     expect(brick.unmount).toHaveBeenCalled()
     expect(botaoDoResumo()).toBeDisabled()
-    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('aprovado') })
+
+    // a espera pergunta e o banco ainda nao respondeu: a janela do banco fica, com a mesma URL
     await andar(5000)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(1)
+    expect(screen.getByTitle('Confirmação do banco')).toBe(janela)
+    expect(janela).toHaveAttribute('src', url)
+    expect(screen.queryByRole('heading', { level: 1, name: /^Pedido/ })).toBeNull()
+    await andar(5 * 60_000)
+    expect(m.situacaoPedido.mock.calls.length).toBeGreaterThan(10)
+    expect(screen.getByTitle('Confirmação do banco')).toBe(janela)
+    expect(botaoDoResumo()).toHaveTextContent('Confirmando com o banco')
+
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('aprovado') })
+    await andar(15_000)
     expect(screen.getByRole('heading', { level: 1, name: 'Pedido 123456 recebido' })).toBeInTheDocument()
+    expect(screen.queryByTitle('Confirmação do banco')).toBeNull()
     expect(guardada()).toEqual({})
+  })
+
+  it('o desafio do banco espera até 40 min, e a janela fica na tela quando a espera para', async () => {
+    const url = 'https://www.mercadopago.com.br/3ds/desafio?id=abc'
+    m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('pendente') })
+    await comCartao()
+    relogioFalso()
+    fireEvent.click(botaoDoResumo())
+    await andar(0)
+    // passou dos 30 min do Pix: o desafio ainda pergunta
+    await andar(35 * 60_000)
+    const aos35 = m.situacaoPedido.mock.calls.length
+    await andar(60_000)
+    expect(m.situacaoPedido.mock.calls.length).toBeGreaterThan(aos35)
+    expect(screen.queryByText(/Paramos de conferir sozinhos/)).toBeNull()
+    // passou dos 40 min: para, diz isso, e a janela do banco continua
+    await andar(5 * 60_000)
+    expect(screen.getByText(/Paramos de conferir sozinhos/)).toBeInTheDocument()
+    const parou = m.situacaoPedido.mock.calls.length
+    await andar(10 * 60_000)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(parou)
+    expect(screen.getByTitle('Confirmação do banco')).toHaveAttribute('src', url)
+  }, 15000)
+
+  it('o pedido cancelado durante o desafio sai dele e volta à etapa 4 com a frase', async () => {
+    const url = 'https://www.mercadopago.com.br/3ds/desafio?id=abc'
+    m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('pendente') })
+    await comCartao()
+    relogioFalso()
+    fireEvent.click(botaoDoResumo())
+    await andar(0)
+    await andar(5000)
+    expect(screen.getByTitle('Confirmação do banco')).toBeInTheDocument()
+    m.situacaoPedido.mockResolvedValue({
+      ok: true,
+      situacao: { numero: '123456', estado: 'cancelado', pagamento: { forma: 'cartao', estado: 'cancelado', recusa: null, pix: null, desafioUrl: null } },
+    })
+    await andar(5000)
+    await andar(50)
+    expect(screen.queryByTitle('Confirmação do banco')).toBeNull()
+    expect(screen.getByText(MENSAGENS_DO_FECHAMENTO.pedido_invalido)).toBeInTheDocument()
+    expect(document.querySelector('.etapa[aria-current="step"]')).toHaveTextContent('4. Pagamento')
+    expect(guardada()).toEqual({ prestigio: 2 })
   })
 
   it('pendente sem desafio: o pedido feito aguarda a confirmação do cartão, com a espera', async () => {
@@ -1162,11 +1273,12 @@ describe('o cartão pelo Card Payment Brick', () => {
   it('o desafio que termina recusado volta à etapa 4 com a frase, e o Brick monta de novo', async () => {
     const url = 'https://www.mercadopago.com.br/3ds/desafio?id=abc'
     m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
-    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('pendente') })
     await comCartao()
     relogioFalso()
     fireEvent.click(botaoDoResumo())
     await andar(0)
+    await andar(5000)
     expect(screen.getByTitle('Confirmação do banco')).toBeInTheDocument()
     m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('recusado', { recusa: 'cc_rejected_3ds_challenge' }) })
     await andar(5000)
