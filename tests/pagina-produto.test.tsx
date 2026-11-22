@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { axe } from 'vitest-axe'
 import PaginaDoProduto, * as rotaDoProduto from '@/app/catalogo/[produto]/page'
@@ -252,6 +252,15 @@ describe('o formulario do comentario', () => {
     const u = await abrir()
     await preencher(u)
     expect((await screen.findByText(frase)).textContent).toContain(frase)
+  })
+
+  it('a tabulacao do texto vai como espaco, e a quebra de linha do Windows como a de todo lugar', async () => {
+    m.comentar.mockResolvedValue({ ok: true })
+    const u = await abrir()
+    await u.click(screen.getAllByRole('radio')[3])
+    fireEvent.change(screen.getByLabelText('O que achou'), { target: { value: 'Muito bom,\tvoltarei\r\na pedir.' } })
+    await u.click(screen.getByRole('button', { name: 'Enviar comentário' }))
+    expect(m.comentar).toHaveBeenCalledWith({ produto: 'prestigio', nota: 4, texto: 'Muito bom, voltarei\na pedir.' })
   })
 
   it('sem_sessao traz o link Entrar com a volta do produto', async () => {

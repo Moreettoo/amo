@@ -12,6 +12,9 @@ export const ESPERA_DO_PIX_MS = 30 * MINUTO
 /** No desafio do banco (3DS), 40 min: o tempo que a cliente tem (contrato do Mercado Pago, 1.2). */
 export const ESPERA_DO_DESAFIO_MS = 40 * MINUTO
 
+/** Depois de muitas_tentativas (o limite de perguntas da hora), a proxima pergunta espera isto, fora do ritmo. */
+export const PAUSA_NO_LIMITE_MS = MINUTO
+
 /** O ritmo: a cada 5 s nos 2 primeiros minutos, a cada 15 s ate o fim da espera (30 min no Pix); depois para (null). */
 export function proximaEspera(desde: number, agora: number, ate: number = ESPERA_DO_PIX_MS): number | null {
   const passou = agora - desde

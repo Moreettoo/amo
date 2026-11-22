@@ -376,6 +376,19 @@ describe('/conta/pedidos/[numero]', () => {
       expect(within(principal()).queryByDisplayValue('000201codigo')).toBeNull()
     })
 
+    it('a espera que ve uma tentativa de cartao no pedido (trocada na sacola) esconde o painel: so a espera, sem Gerar outro codigo', async () => {
+      m.pedido = aguardando()
+      m.situacao = { numero: NUMERO, estado: 'aguardando_pagamento', pagamento: { forma: 'cartao', estado: 'pendente', recusa: null, pix: null, desafioUrl: null } }
+      vi.useFakeTimers()
+      render(await Pedido.default(comNumero(NUMERO)))
+      await esperar()
+      expect(principal()).not.toHaveTextContent('O código venceu.')
+      expect(within(principal()).queryByRole('button', { name: /Gerar outro c/ })).toBeNull()
+      expect(within(principal()).queryByRole('img', { name: 'QR Code do Pix' })).toBeNull()
+      expect(within(principal()).queryByDisplayValue('000201codigo')).toBeNull()
+      expect(principal()).toHaveTextContent('Assim que o pagamento for confirmado')
+    })
+
     it('Gerar outro codigo que falha diz o texto fixo', async () => {
       m.pedido = aguardando()
       m.situacao = venceu('expirado')

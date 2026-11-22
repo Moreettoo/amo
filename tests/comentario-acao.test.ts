@@ -77,7 +77,7 @@ describe('campos', () => {
   })
 
   it('o texto: 10 a 1000, sem < > nem controle alem da quebra', async () => {
-    for (const texto of ['curto', 'a'.repeat(1001), 'bom <b>demais</b>', 'bom demais >', 'bom\u0000demais', 'bom\u007fdemais!', 'bom\u009fdemais!', '😀'.repeat(1001), '😀'.repeat(9), 'bom\rdemais!', 'bom\u0085demais!', 'bom\tdemais!', '          ']) {
+    for (const texto of ['curto', 'a'.repeat(1001), 'bom <b>demais</b>', 'bom demais >', 'bom\u0000demais', 'bom\u007fdemais!', 'bom\u009fdemais!', '😀'.repeat(1001), '😀'.repeat(9), 'bom\rdemais!', 'bom\u0085demais!', '          ', '\t\t\t\t\t\t\t\t\t\t\t']) {
       expect(await enviarComentario({ ...ok, texto })).toEqual({ ok: false, erro: 'campos_invalidos', campos: { texto: MSG_TEXTO } })
     }
     expect((await enviarComentario({ ...ok, texto: 'a'.repeat(1000) })).ok).toBe(true)
@@ -87,6 +87,13 @@ describe('campos', () => {
     m.gravarComentario.mockClear()
     expect((await enviarComentario({ ...ok, texto: 'linha um\r\nlinha dois' })).ok).toBe(true)
     expect(m.gravarComentario).toHaveBeenCalledWith('prestigio', 5, 'linha um\nlinha dois')
+  })
+
+  it('a tabulacao vira espaco antes da conferencia, como a quebra de linha do navegador', async () => {
+    expect((await enviarComentario({ ...ok, texto: 'bom\tdemais!' })).ok).toBe(true)
+    expect(m.gravarComentario).toHaveBeenLastCalledWith('prestigio', 5, 'bom demais!')
+    expect((await enviarComentario({ ...ok, texto: '\tMuito bom,\tvoltarei\r\na pedir.\t' })).ok).toBe(true)
+    expect(m.gravarComentario).toHaveBeenLastCalledWith('prestigio', 5, 'Muito bom, voltarei\na pedir.')
   })
 
   it.each(HOSTIS.map((h) => [h.slice(0, 24), h]))('texto hostil %j: recusa ou ao pe da letra, nunca excecao', async (_, hostil) => {

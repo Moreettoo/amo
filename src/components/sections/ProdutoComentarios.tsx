@@ -2,7 +2,7 @@
 
 import { useId, useState, type FormEvent } from 'react'
 import { enviarComentario } from '@/app/catalogo/acoes'
-import { MENSAGENS_DO_FECHAMENTO, TEXTOS_DO_COMENTARIO } from '@/lib/fechamento/tipos'
+import { MENSAGENS_DO_FECHAMENTO, normalizarComentario, TEXTOS_DO_COMENTARIO } from '@/lib/fechamento/tipos'
 import {
   MINIMO_PARA_RESUMO,
   contarComentarios,
@@ -40,9 +40,9 @@ type Props = { produto: string; comentarios: readonly Comentario[]; resumo: Resu
 
 /**
  * Os comentarios: o resumo das notas (so com 6 ou mais; com poucos ele
- * engana), que filtra a lista quando tocado, a ordem e o formulario. O
- * comentario novo so aparece depois que a marca aprova; por enquanto o
- * envio e de exemplo e nao guarda nada.
+ * engana), que filtra a lista quando tocado, a ordem e o formulario. O envio
+ * vai a enviarComentario e fica pendente de moderacao: o comentario novo so
+ * aparece depois que a marca aprova.
  */
 export function ProdutoComentarios({ produto, comentarios, resumo }: Props) {
   const [filtro, setFiltro] = useState<Nota | null>(null)
@@ -143,7 +143,8 @@ function Formulario({ produto }: { produto: string }) {
   async function enviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (enviando) return
-    const texto = String(new FormData(e.currentTarget).get('texto') ?? '')
+    // a tabulacao vira espaco e o CRLF vira LF antes de sair, como a acao confere
+    const texto = normalizarComentario(String(new FormData(e.currentTarget).get('texto') ?? ''))
     setErro(null)
     setSemSessao(false)
     setEnviando(true)

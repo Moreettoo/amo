@@ -21,6 +21,11 @@
 // Qualquer outro endereco passa para o fetch de verdade. O id do pedido traz a
 // hora da criacao, o valor e a referencia, para outro processo do servidor de
 // desenvolvimento responder o mesmo pedido.
+//
+// So vale no ensaio: sem MERCADOPAGO_AMBIENTE=teste, ou com NODE_ENV=production,
+// ate o /v1/orders passa para o fetch de verdade (um NODE_OPTIONS esquecido num
+// ambiente de verdade nao vira Pix falso pago). A conferencia e na hora da
+// chamada: no --import, o .env.local ainda nao foi lido.
 
 import { deflateSync } from 'node:zlib'
 
@@ -125,7 +130,11 @@ const QR_BASE64 = qrDeEnsaio(COPIA_E_COLA)
 
 /** id -> { criadoEm, centavos, referencia, tipo, bandeira, parcelas, fim: null | 'cancelado' | 'estornado' } */
 const pedidos = new Map()
-/** chave de idempotencia da criacao -> { corpo, id } */
+/**
+ * chave de idempotencia da criacao -> { corpo, id }. A idempotencia so vale
+ * dentro deste processo: outro processo do servidor (o Next pode ter mais de
+ * um) nao conhece a chave e, com ela repetida, cria outro pedido.
+ */
 const criacoes = new Map()
 
 const semTracos = (uuid) => uuid.toLowerCase().replaceAll('-', '')
@@ -255,6 +264,9 @@ function responder(metodo, caminho, cabecalhos, corpoEmTexto) {
 
 const fetchDeVerdade = globalThis.fetch
 
+/** O ensaio, lido na hora da chamada: MERCADOPAGO_AMBIENTE=teste e fora de um build de producao. */
+const noEnsaio = () => process.env.MERCADOPAGO_AMBIENTE?.trim() === 'teste' && process.env.NODE_ENV !== 'production'
+
 function enderecoDe(entrada) {
   if (typeof entrada === 'string') return entrada
   if (entrada instanceof URL) return entrada.href
@@ -264,6 +276,10 @@ function enderecoDe(entrada) {
 globalThis.fetch = async function fetchDoEnsaio(entrada, init) {
   const endereco = enderecoDe(entrada)
   if (endereco !== BASE && !endereco.startsWith(`${BASE}/`)) return fetchDeVerdade(entrada, init)
+  if (!noEnsaio()) {
+    console.warn('[ensaio] Mercado Pago falso desligado (sem MERCADOPAGO_AMBIENTE=teste, ou com NODE_ENV=production): a chamada vai ao Mercado Pago de verdade.')
+    return fetchDeVerdade(entrada, init)
+  }
 
   const pedido = entrada instanceof Request ? entrada : null
   const metodo = (init?.method ?? pedido?.method ?? 'GET').toUpperCase()
@@ -284,4 +300,6 @@ globalThis.fetch = async function fetchDoEnsaio(entrada, init) {
   return resposta
 }
 
-console.warn(`[ensaio] Mercado Pago falso ligado neste processo (pid ${process.pid}). Nada vai ao Mercado Pago de verdade.`)
+console.warn(
+  `[ensaio] Mercado Pago falso ligado neste processo (pid ${process.pid}). Com MERCADOPAGO_AMBIENTE=teste, nada vai ao Mercado Pago de verdade.`,
+)

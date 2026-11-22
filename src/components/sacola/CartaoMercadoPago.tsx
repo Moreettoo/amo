@@ -121,6 +121,8 @@ type Props = {
   aoPronto: () => void
   /** o script ou o Brick nao carregou */
   aoFalhar?: () => void
+  /** o Brick saiu da tela (o valor mudou e ele e refeito, ou o cartao saiu): o botao espera o proximo */
+  aoSair?: () => void
   /** onde o pai acha a leitura do cartao do Brick montado */
   controle: RefObject<ControleDoCartao | null>
 }
@@ -146,15 +148,15 @@ let criacoes = 0
  * getFormData e, depois dele, o getAdditionalData). Ao sair (trocar para o
  * Pix, sair da etapa), o Brick desmonta.
  */
-export function CartaoMercadoPago({ chave, nonce, valorCentavos, aoPronto, aoFalhar, controle }: Props) {
+export function CartaoMercadoPago({ chave, nonce, valorCentavos, aoPronto, aoFalhar, aoSair, controle }: Props) {
   const lugar = `cartao-${useId().replace(/[^\w-]/g, '')}`
   // o script ja carregado (uma volta ao cartao) monta o Brick sem esperar
   const [carregado, setCarregado] = useState(() => typeof window !== 'undefined' && window.MercadoPago !== undefined)
   const brick = useRef<ControleDoBrick | null>(null)
   // os avisos mais novos do pai, sem desmontar o Brick a cada desenho
-  const avisos = useRef({ aoPronto, aoFalhar })
+  const avisos = useRef({ aoPronto, aoFalhar, aoSair })
   useEffect(() => {
-    avisos.current = { aoPronto, aoFalhar }
+    avisos.current = { aoPronto, aoFalhar, aoSair }
   })
   // o getFormData resolve com o formData plano; os dados adicionais (o tipo e o
   // final do cartao) vem de outra chamada, que so vale depois dele
@@ -246,6 +248,8 @@ export function CartaoMercadoPago({ chave, nonce, valorCentavos, aoPronto, aoFal
       if (guardado.current === criado) guardado.current = null
       criado?.unmount()
       casa.remove()
+      // sem Brick na tela ate o proximo ficar pronto: o botao nao paga no meio
+      avisos.current.aoSair?.()
     }
   }, [carregado, chave, valorCentavos, lugar])
 

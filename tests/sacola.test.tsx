@@ -909,6 +909,47 @@ describe('o Pix e a espera do pagamento', () => {
     expect(m.situacaoPedido).toHaveBeenCalledTimes(2)
   })
 
+  it('muitas_tentativas na espera: a próxima pergunta só depois de 60 s, e a tela fica como estava', async () => {
+    await pagoComPix()
+    m.situacaoPedido.mockResolvedValue({ ok: false, erro: 'muitas_tentativas' })
+    await andar(5000)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(1)
+    // no ritmo normal a proxima viria em 5 s; depois do limite, so em 60 s
+    await andar(59_999)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(1)
+    expect(screen.getByRole('heading', { level: 1, name: 'Pedido 123456 aguardando o Pix' })).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: 'QR Code do Pix' })).toBeInTheDocument()
+    expect(document.body.textContent).not.toContain(MENSAGENS_DO_FECHAMENTO.muitas_tentativas)
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: pixPago() })
+    await andar(1)
+    expect(m.situacaoPedido).toHaveBeenCalledTimes(2)
+    expect(screen.getByText('Pagamento aprovado.')).toBeInTheDocument()
+  })
+
+  it('a criação sem o QR diz "Gerando o código Pix." numa região viva, e o código que chega depois é dito nela', async () => {
+    await naEtapa4()
+    relogioFalso()
+    const semQr = pixPendente()
+    semQr.pagamento = { ...semQr.pagamento!, pix: null }
+    m.pagarPix.mockResolvedValue({ ok: true, situacao: semQr })
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: semQr })
+    fireEvent.click(botaoDoResumo())
+    await andar(0)
+    const linha = screen.getByText('Gerando o código Pix.')
+    expect(linha).toHaveAttribute('aria-live', 'polite')
+    // ainda gerando: nem "venceu" nem o botao de outro codigo
+    expect(screen.queryByText('O código venceu.')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Gerar outro código' })).toBeNull()
+
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: pixPendente() })
+    await andar(5000)
+    expect(screen.getByRole('img', { name: 'QR Code do Pix' })).toBeInTheDocument()
+    // a mesma regiao viva, que ja estava na pagina, diz que o codigo chegou
+    expect(linha).toBeInTheDocument()
+    expect(linha).toHaveTextContent('Código pronto.')
+    expect(screen.queryByText('Código novo pronto.')).toBeNull()
+  })
+
   it('depois de 30 min sem mudança a espera para e diz isso', async () => {
     await pagoComPix()
     await andar(30 * 60_000 + 15_000)
@@ -1491,6 +1532,63 @@ describe('o cartão pelo Card Payment Brick', () => {
     expect(screen.getByText('Assim que o pagamento for confirmado, esta página avisa sozinha.')).toBeInTheDocument()
     expect(screen.queryByText('Gerando o código Pix.')).not.toBeInTheDocument()
     expect(guardada()).toEqual({ prestigio: 2 })
+  })
+
+  it('a tentativa do cartão cancelada sem o desafio na tela não fala do banco: diz que o pagamento não respondeu', async () => {
+    m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('pendente') })
+    await comCartao()
+    relogioFalso()
+    fireEvent.click(botaoDoResumo())
+    await andar(0)
+    expect(screen.getByRole('heading', { level: 1, name: 'Pedido 123456 aguardando a confirmação do cartão' })).toBeInTheDocument()
+    // a reconciliacao cancelou a tentativa (a criacao ficou sem resposta): o banco nunca foi chamado
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('cancelado') })
+    await andar(5000)
+    await andar(50)
+    expect(screen.getByText(MENSAGENS_DO_FECHAMENTO.pagamento_indisponivel)).toBeInTheDocument()
+    expect(screen.queryByText(mensagemDaRecusa('3ds_challenge_expired'))).toBeNull()
+    expect(document.querySelector('.etapa[aria-current="step"]')).toHaveTextContent('4. Pagamento')
+    expect(guardada()).toEqual({ prestigio: 2 })
+  })
+
+  it('o desafio na tela que vence diz que a confirmação do banco não foi concluída', async () => {
+    const url = 'https://www.mercadopago.com.br/3ds/desafio?id=abc'
+    m.pagarCartao.mockResolvedValue({ ok: true, situacao: cartao('pendente', { desafioUrl: url }) })
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('pendente') })
+    await comCartao()
+    relogioFalso()
+    fireEvent.click(botaoDoResumo())
+    await andar(0)
+    m.situacaoPedido.mockResolvedValue({ ok: true, situacao: cartao('expirado') })
+    await andar(5000)
+    await andar(50)
+    expect(screen.getByText(mensagemDaRecusa('3ds_challenge_expired'))).toBeInTheDocument()
+    expect(screen.queryByTitle('Confirmação do banco')).toBeNull()
+    expect(screen.queryByText(MENSAGENS_DO_FECHAMENTO.pagamento_indisponivel)).toBeNull()
+  })
+
+  it('o total que muda refaz o Brick, e o botão espera o Brick novo ficar pronto', async () => {
+    await comCartao()
+    let pronto: () => void = () => {}
+    criacaoDoProximo = (opcoes) =>
+      new Promise((resolve) => {
+        pronto = () => {
+          opcoes.callbacks.onReady()
+          resolve(brick)
+        }
+      })
+    // outra aba poe mais um pote: o total muda e o Brick e refeito com o valor novo
+    act(() => {
+      guardar({ prestigio: 3 })
+      window.dispatchEvent(new StorageEvent('storage', { key: CHAVE_SACOLA }))
+    })
+    await waitFor(() => expect(criado).toHaveBeenCalledTimes(2))
+    expect(criado.mock.calls[1][2].initialization).toEqual({ amount: 69.6 })
+    const rotulo = `Pagar com cartão · ${formatarPreco(3 * 1890 + 1290)}`
+    // o Brick velho saiu e o novo ainda nao esta pronto: o botao nao paga
+    expect(within(resumo()).getByRole('button', { name: rotulo })).toBeDisabled()
+    await act(async () => pronto())
+    await waitFor(() => expect(within(resumo()).getByRole('button', { name: rotulo })).toBeEnabled())
   })
 
   it('trocar para o Pix desmonta o Brick', async () => {

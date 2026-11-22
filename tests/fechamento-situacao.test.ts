@@ -83,7 +83,7 @@ describe('situacaoDoPedido', () => {
   it('limite estourado', async () => {
     m.consumirLimite.mockResolvedValue(false)
     expect(await situacaoDoPedido({ numero: NUMERO })).toEqual({ ok: false, erro: 'muitas_tentativas' })
-    expect(m.consumirLimite).toHaveBeenCalledWith('situacao:u1', 240, 3600)
+    expect(m.consumirLimite).toHaveBeenCalledWith('situacao:u1', 600, 3600)
     nada()
   })
 

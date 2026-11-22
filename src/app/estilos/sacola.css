@@ -207,7 +207,6 @@
   .feito__acompanhar { display: inline-block; margin-top: 6px; }
   /* o numero do pedido (AMO-...) nao quebra no hifen */
   .feito__numero { white-space: nowrap; }
-  .feito__gerando { margin: 22px 0 0; padding-top: 22px; border-top: 1px solid var(--fio); font-size: 15px; line-height: 1.6; color: var(--color-suave); }
   .feito__contas { margin-top: 22px; padding-top: 8px; border-top: 1px solid var(--fio); }
   .feito > .btn-retro { margin-top: 26px; }
 

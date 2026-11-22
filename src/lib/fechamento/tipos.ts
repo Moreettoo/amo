@@ -107,6 +107,15 @@ export function mensagemDaRecusa(recusa: string | null): string {
   return (recusa !== null && Object.hasOwn(RECUSAS, recusa) ? RECUSAS[recusa] : null) ?? MENSAGENS_DO_FECHAMENTO.pagamento_recusado
 }
 
+/**
+ * O texto do comentario antes da conferencia, no navegador e na acao: a quebra
+ * de linha do Windows (CRLF) vira a de todo lugar (LF) e a tabulacao vira
+ * espaco. O banco recusa os dois como controle.
+ */
+export function normalizarComentario(texto: string): string {
+  return texto.replace(/\r\n/g, '\n').replace(/\t/g, ' ')
+}
+
 /** As frases do comentario da pagina de produto. */
 export const TEXTOS_DO_COMENTARIO = {
   sem_sessao: 'Entre na sua conta para comentar.',

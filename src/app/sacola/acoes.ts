@@ -403,7 +403,11 @@ export async function pagarComCartao(entrada: unknown): Promise<RespostaDoPagame
   return pagar('cartao', entrada)
 }
 
-/** Pergunta ao Mercado Pago, no maximo a cada 15 s por tentativa, enquanto o pagamento espera. */
+/**
+ * Pergunta ao Mercado Pago, no maximo a cada 15 s por tentativa, enquanto o
+ * pagamento espera. Ate 600 perguntas por hora por cliente: um ciclo da espera
+ * (cerca de 136 em 30 min) cabe duas vezes na mesma hora, ou em duas abas.
+ */
 export async function situacaoDoPedido(
   entrada: unknown,
 ): Promise<{ ok: true; situacao: SituacaoDoPedido } | { ok: false; erro: CodigoDoFechamento }> {
@@ -415,7 +419,7 @@ export async function situacaoDoPedido(
     const numero = conferirNumeroDoPedido(entrada.numero)
     if (!numero) return { ok: false, erro: 'campos_invalidos' }
 
-    if (!(await consumirLimite(`situacao:${usuario.id}`, 240, 3600))) return { ok: false, erro: 'muitas_tentativas' }
+    if (!(await consumirLimite(`situacao:${usuario.id}`, 600, 3600))) return { ok: false, erro: 'muitas_tentativas' }
 
     let pedido = await lerPedidoParaPagar(numero)
     if (!pedido) return { ok: false, erro: 'pedido_invalido' }

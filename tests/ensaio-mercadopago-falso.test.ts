@@ -26,6 +26,7 @@ async function pixCriado(totalCentavos = 9280) {
 
 beforeEach(() => {
   vi.stubEnv('MERCADOPAGO_ACCESS_TOKEN', 'APP_USR-ensaio')
+  vi.stubEnv('MERCADOPAGO_AMBIENTE', 'teste')
   vi.useFakeTimers({ toFake: ['Date'] })
   vi.setSystemTime(T0)
 })
@@ -92,6 +93,29 @@ describe('o Mercado Pago falso do ensaio, lido pelo cliente de verdade', () => {
     const r = await fetch('https://exemplo.com/qualquer', { method: 'POST' })
     expect(await r.text()).toBe('de verdade')
     expect(real).toHaveBeenCalledWith('https://exemplo.com/qualquer', { method: 'POST' })
+  })
+
+  it.each([
+    ['sem MERCADOPAGO_AMBIENTE', 'MERCADOPAGO_AMBIENTE', undefined],
+    ['com MERCADOPAGO_AMBIENTE de producao', 'MERCADOPAGO_AMBIENTE', 'producao'],
+    ['com NODE_ENV=production', 'NODE_ENV', 'production'],
+  ])('fora do ensaio (%s), a chamada ao Mercado Pago passa para o fetch de verdade', async (_, nome, valor) => {
+    vi.stubEnv(nome, valor)
+    real.mockClear()
+    const r = await fetch('https://api.mercadopago.com/v1/orders', { method: 'POST', body: '{}' })
+    expect(await r.text()).toBe('de verdade')
+    expect(real).toHaveBeenCalledWith('https://api.mercadopago.com/v1/orders', { method: 'POST', body: '{}' })
+  })
+
+  it('o ambiente e lido na hora da chamada: com teste de volta, o falso responde de novo', async () => {
+    vi.stubEnv('MERCADOPAGO_AMBIENTE', undefined)
+    real.mockClear()
+    await fetch('https://api.mercadopago.com/v1/orders/ORD1', { method: 'GET' })
+    expect(real).toHaveBeenCalledTimes(1)
+    vi.stubEnv('MERCADOPAGO_AMBIENTE', ' teste ')
+    const pedido = await pixCriado()
+    expect(pedido.pagamento?.pix?.copiaECola).toBe('00020126-ensaio')
+    expect(real).toHaveBeenCalledTimes(1)
   })
 
   it('outro processo do servidor (um falso novo, sem memoria) responde o mesmo pedido pelo id', async () => {

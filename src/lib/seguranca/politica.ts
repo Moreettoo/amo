@@ -14,13 +14,14 @@ export const HASH_DO_SCRIPT_DO_TOPO = `'sha256-${createHash('sha256').update(MAR
  * Os destinos do Card Payment Brick (contrato do Mercado Pago, 6), observados
  * no js/v2: nao ha lista oficial. Com 'strict-dynamic' o que o script com
  * nonce carrega ja e aceito; a lista serve aos navegadores sem ele. Os
- * frames *.mercadopago.com e *.mercadopago.com.br cobrem o desafio do banco
- * (3DS) em qualquer host do Mercado Pago que o servidor aceite.
+ * frames mercadopago.com e mercadopago.com.br, e os subdominios deles, cobrem
+ * o desafio do banco (3DS) em qualquer host do Mercado Pago que o servidor
+ * aceite (urlDoDesafio, em src/lib/mercadopago/cliente.ts).
  */
 const DO_MERCADO_PAGO = {
   script: ' https://sdk.mercadopago.com https://http2.mlstatic.com',
   connect: ' https://api.mercadopago.com https://api-static.mercadopago.com https://api.mercadolibre.com https://http2.mlstatic.com',
-  frame: ' https://secure-fields.mercadopago.com https://*.mercadopago.com https://*.mercadopago.com.br',
+  frame: ' https://secure-fields.mercadopago.com https://mercadopago.com https://*.mercadopago.com https://mercadopago.com.br https://*.mercadopago.com.br',
   img: ' https://http2.mlstatic.com',
 }
 

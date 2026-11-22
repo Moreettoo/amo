@@ -12,7 +12,9 @@ type Pix = NonNullable<NonNullable<SituacaoDoPedido['pagamento']>['pix']>
 /**
  * O Pix do pedido que ainda espera, em Minha conta: o mesmo painel e a mesma
  * espera do fechamento. O codigo vem do servidor (a pagina o leu); quando a
- * espera ve o pedido sair de aguardando, a pagina e lida de novo.
+ * espera ve o pedido sair de aguardando, a pagina e lida de novo. A tentativa
+ * de cartao no mesmo pedido (trocada na sacola) nao tem codigo: fica so a
+ * espera, sem o "Gerar outro codigo", que cancelaria o cartao em curso.
  */
 export function PixDoPedido({ numero, pix }: { numero: string; pix: Pix }) {
   const router = useRouter()
@@ -46,13 +48,15 @@ export function PixDoPedido({ numero, pix }: { numero: string; pix: Pix }) {
 
   return (
     <div className="pedido__pix">
-      <PainelDoPix
-        pix={situacao.pagamento?.pix ?? null}
-        aoGerarOutro={() => void gerarOutro()}
-        recusado={situacao.pagamento?.estado === 'recusado'}
-        gerando={gerando}
-        erro={erro}
-      />
+      {situacao.pagamento?.forma === 'cartao' ? null : (
+        <PainelDoPix
+          pix={situacao.pagamento?.pix ?? null}
+          aoGerarOutro={() => void gerarOutro()}
+          recusado={situacao.pagamento?.estado === 'recusado'}
+          gerando={gerando}
+          erro={erro}
+        />
+      )}
       <EsperaDoPagamento numero={numero} inicial={situacao} aoMudar={mudou} textoAoParar="Paramos de conferir sozinhos. Atualize a página para conferir." />
     </div>
   )

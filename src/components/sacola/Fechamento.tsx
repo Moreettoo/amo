@@ -291,12 +291,24 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
     requestAnimationFrame(() => setAviso({ etapa: destino, codigo }))
   }
 
-  /** O cartao recusado (ou o desafio do banco que nao terminou): a etapa 4 diz por que, com o Brick para outra tentativa. */
+  /**
+   * O cartao recusado, ou a tentativa que acabou sem pagar: a etapa 4 diz por
+   * que, com o Brick para outra tentativa. "A confirmacao do banco nao foi
+   * concluida" so quando o desafio esteve na tela; a tentativa vencida ou
+   * cancelada sem ele (a criacao sem resposta, a troca em outra aba) nunca
+   * chamou o banco: o pagamento nao respondeu.
+   */
   function recusar(s: SituacaoDoPedido) {
-    const recusa = s.pagamento?.estado === 'recusado' ? s.pagamento.recusa : '3ds_challenge_expired'
+    const comDesafio = desafio !== null && desafio.situacao.numero === s.numero
+    const aviso: Aviso =
+      s.pagamento?.estado === 'recusado'
+        ? { etapa: 4, codigo: 'pagamento_recusado', recusa: s.pagamento.recusa }
+        : comDesafio
+          ? { etapa: 4, codigo: 'pagamento_recusado', recusa: '3ds_challenge_expired' }
+          : { etapa: 4, codigo: 'pagamento_indisponivel' }
     setFeito(null)
     if (etapa !== 4 || feito || desafio) ir(4)
-    requestAnimationFrame(() => setAviso({ etapa: 4, codigo: 'pagamento_recusado', recusa }))
+    requestAnimationFrame(() => setAviso(aviso))
   }
 
   /** O que o servidor disse do pedido: pago esvazia a sacola; cancelado volta as etapas; o cartao recusado, a etapa 4. */
@@ -593,6 +605,8 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
                           nonce: dados.porta.nonce,
                           valorCentavos: total,
                           aoPronto: () => setCartaoPronto(true),
+                          // o Brick saiu (o total mudou e ele e refeito): o botao espera o novo
+                          aoSair: () => setCartaoPronto(false),
                           aoFalhar: () => {
                             setCartaoPronto(false)
                             setAviso({ etapa: 4, codigo: 'pagamento_indisponivel' })

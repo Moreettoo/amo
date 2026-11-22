@@ -14,6 +14,7 @@ export type CartaoDaEtapa = {
   valorCentavos: number
   aoPronto: () => void
   aoFalhar: () => void
+  aoSair: () => void
   controle: RefObject<ControleDoCartao | null>
 }
 

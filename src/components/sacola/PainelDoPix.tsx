@@ -10,6 +10,8 @@ export type PixDaTela = NonNullable<PagamentoNaTela['pix']>
 type Props = {
   /** o codigo da tentativa que espera; null quando ele nao vale mais (venceu, foi trocado ou recusado) */
   pix: PixDaTela | null
+  /** a tentativa espera, mas o codigo ainda nao veio (a criacao sem o QR): o painel diz que gera, e a espera o traz */
+  aguardando?: boolean
   aoGerarOutro: () => void
   /** sem codigo porque a tentativa foi recusada: nao diz que venceu */
   recusado?: boolean
@@ -26,12 +28,14 @@ const COPIADO_MS = 4000
  * O Pix do pedido: o QR sobre o papel, o copia e cola num campo so de leitura
  * com o botao "Copiar codigo", ate que horas vale e o que fazer. Vencido pelo
  * relogio daqui, ou trocado no servidor (pix null), diz que venceu e oferece
- * outro; recusado, diz que nao deu para gerar. A linha de cima e a do "Codigo
- * copiado." sao regioes vivas, sempre no lugar, para o leitor de tela ouvir
- * quando mudam. Quando o codigo vence ou chega um novo, o controle com o foco
- * sai da tela: o foco vai ao "Gerar outro codigo" ou ao "Copiar codigo".
+ * outro; recusado, diz que nao deu para gerar; ainda sem o codigo, diz que o
+ * gera. A linha de cima e a do "Codigo copiado." sao regioes vivas, sempre no
+ * lugar, para o leitor de tela ouvir quando mudam ("Codigo pronto." quando o
+ * que era gerado chega). Quando o codigo vence ou chega um novo, o controle
+ * com o foco sai da tela: o foco vai ao "Gerar outro codigo" ou ao "Copiar
+ * codigo".
  */
-export function PainelDoPix({ pix, aoGerarOutro, recusado = false, gerando = false, erro = null }: Props) {
+export function PainelDoPix({ pix, aguardando = false, aoGerarOutro, recusado = false, gerando = false, erro = null }: Props) {
   const id = useId()
   const campo = useRef<HTMLInputElement>(null)
   const botaoCopiar = useRef<HTMLButtonElement>(null)
@@ -59,13 +63,17 @@ export function PainelDoPix({ pix, aoGerarOutro, recusado = false, gerando = fal
   const valendo = pix !== null && (vence === null || vencido !== vence) ? pix : null
   const atual = valendo?.copiaECola ?? null
 
-  // o codigo que chega depois de outro (ou de nenhum) e dito: "Codigo novo pronto."
+  // o codigo que chega depois de outro (ou de nenhum) e dito: "Codigo novo
+  // pronto."; o primeiro, que chega depois de "Gerando", so "Codigo pronto."
   const [anterior, setAnterior] = useState(atual)
   const [novo, setNovo] = useState<string | null>(null)
+  const [vistos, setVistos] = useState(atual === null ? 0 : 1)
   if (atual !== anterior) {
     setAnterior(atual)
     setNovo(atual)
+    if (atual !== null) setVistos(vistos + 1)
   }
+  const semCodigoAinda = aguardando && pix === null
 
   // o codigo mudou (venceu, ou chegou outro): se o controle com o foco saiu da
   // tela com ele, o foco vai ao controle que segue
@@ -104,13 +112,17 @@ export function PainelDoPix({ pix, aoGerarOutro, recusado = false, gerando = fal
       <p className="pix__aviso" aria-live="polite">
         {valendo
           ? novo === valendo.copiaECola
-            ? 'Código novo pronto.'
+            ? vistos > 1
+              ? 'Código novo pronto.'
+              : 'Código pronto.'
             : ''
-          : erro
-            ? MENSAGENS_DO_FECHAMENTO[erro]
-            : pix === null && recusado
-              ? 'Não conseguimos gerar o código. Tente de novo.'
-              : 'O código venceu.'}
+          : semCodigoAinda
+            ? 'Gerando o código Pix.'
+            : erro
+              ? MENSAGENS_DO_FECHAMENTO[erro]
+              : pix === null && recusado
+                ? 'Não conseguimos gerar o código. Tente de novo.'
+                : 'O código venceu.'}
       </p>
       {valendo ? (
         <>
@@ -149,7 +161,7 @@ export function PainelDoPix({ pix, aoGerarOutro, recusado = false, gerando = fal
             {valendo.expiraEm ? <p className="pix__validade">Vale até {horaDeSaoPaulo(valendo.expiraEm)}</p> : null}
           </div>
         </>
-      ) : (
+      ) : semCodigoAinda ? null : (
         <button
           ref={botaoOutro}
           type="button"

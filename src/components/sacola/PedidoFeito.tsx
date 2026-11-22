@@ -60,17 +60,18 @@ export function PedidoFeito({ situacao, linhas, entrega, total, aoGerarOutro, ao
         </a>
       ) : (
         <>
-          {/* o cartao pendente nao tem codigo: so a espera, que diz em texto */}
-          {doCartao ? null : pix || acabou ? (
+          {/* o cartao pendente nao tem codigo: so a espera, que diz em texto; o
+              Pix que ainda gera o codigo ja mostra o painel, e a regiao viva dele
+              diz quando o codigo chega */}
+          {doCartao ? null : (
             <PainelDoPix
               pix={pix}
+              aguardando={!acabou && pix === null}
               aoGerarOutro={aoGerarOutro}
               recusado={situacao.pagamento?.estado === 'recusado'}
               gerando={gerando}
               erro={erro}
             />
-          ) : (
-            <p className="feito__gerando">Gerando o código Pix.</p>
           )}
           <EsperaDoPagamento numero={situacao.numero} inicial={situacao} aoMudar={aoMudar} />
         </>

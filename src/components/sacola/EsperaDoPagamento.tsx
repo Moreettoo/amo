@@ -3,7 +3,7 @@
 import { useEffect, useEffectEvent, useState } from 'react'
 import { situacaoDoPedido } from '@/app/sacola/acoes'
 import type { SituacaoDoPedido } from '@/lib/fechamento/tipos'
-import { ESPERA_DO_PIX_MS, mesmaSituacao, proximaEspera, terminou } from './espera'
+import { ESPERA_DO_PIX_MS, mesmaSituacao, PAUSA_NO_LIMITE_MS, proximaEspera, terminou } from './espera'
 
 type Props = {
   numero: string
@@ -24,7 +24,8 @@ type Resposta = Awaited<ReturnType<typeof situacaoDoPedido>>
  * proximaEspera ate o pedido sair de aguardando_pagamento ou a tentativa
  * acabar. Com a aba escondida nao pergunta; ao voltar, pergunta uma vez e
  * retoma o ritmo. Erro de rede, ou resposta de erro, nao muda o que a tela
- * mostra. Nada gira: a espera e dita em texto.
+ * mostra; depois de muitas_tentativas, a proxima pergunta espera 60 s. Nada
+ * gira: a espera e dita em texto.
  */
 export function EsperaDoPagamento({ numero, inicial, aoMudar, textoAoParar, ate = ESPERA_DO_PIX_MS }: Props) {
   // a situacao com que o ritmo acabou (30 min sem mudanca, ou o ate dado); outra inicial recomeca
@@ -40,13 +41,13 @@ export function EsperaDoPagamento({ numero, inicial, aoMudar, textoAoParar, ate 
     let relogio: ReturnType<typeof setTimeout> | undefined
     const escondida = () => document.visibilityState === 'hidden'
 
-    /** Marca a proxima pergunta; false quando o ritmo acabou. */
-    const agendar = (): boolean => {
+    /** Marca a proxima pergunta (no ritmo, ou depois da pausa dada); false quando o ritmo acabou. */
+    const agendar = (pausa?: number): boolean => {
       clearTimeout(relogio)
       if (!viva || escondida()) return true
       const ms = proximaEspera(desde, Date.now(), ate)
       if (ms === null) return false
-      relogio = setTimeout(perguntar, ms)
+      relogio = setTimeout(perguntar, pausa ?? ms)
       return true
     }
 
@@ -69,7 +70,9 @@ export function EsperaDoPagamento({ numero, inicial, aoMudar, textoAoParar, ate 
         }
         if (terminou(r.situacao)) return
       }
-      if (!agendar()) setParouEm(inicial)
+      // o limite de perguntas da hora: a proxima espera, e a tela fica como estava
+      const pausa = r !== null && !r.ok && r.erro === 'muitas_tentativas' ? PAUSA_NO_LIMITE_MS : undefined
+      if (!agendar(pausa)) setParouEm(inicial)
     }
 
     const aoTrocarDeAba = () => {
