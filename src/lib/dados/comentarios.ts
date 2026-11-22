@@ -1,6 +1,7 @@
 import 'server-only'
 import type { Tables } from '@/lib/dados/banco'
-import { falhaDoBanco } from '@/lib/dados/erros'
+import { criarClienteServidor } from '@/lib/auth/servidor'
+import { erroDoBanco, falhaDoBanco } from '@/lib/dados/erros'
 import { criarClienteDoCatalogo } from '@/lib/dados/publico'
 import type { Comentario, Nota } from '@/lib/produto'
 
@@ -37,4 +38,11 @@ export async function lerComentariosAprovados(produto: string): Promise<Comentar
     .order('criado_em', { ascending: false })
   if (error) throw falhaDoBanco('comentarios', error, status)
   return (data ?? []).flatMap((linha) => montarComentario(linha) ?? [])
+}
+
+/** Grava o comentario pela public.enviar_comentario, com a sessao da cliente: o banco confere quem recebeu o sabor e deixa pendente de moderacao. */
+export async function gravarComentario(produto: string, nota: number, texto: string): Promise<void> {
+  const banco = await criarClienteServidor()
+  const { error, status } = await banco.rpc('enviar_comentario', { p_produto: produto, p_nota: nota, p_texto: texto })
+  if (error) throw erroDoBanco('enviar_comentario', error, status)
 }

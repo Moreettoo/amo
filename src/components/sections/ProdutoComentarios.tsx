@@ -1,6 +1,8 @@
 'use client'
 
 import { useId, useState, type FormEvent } from 'react'
+import { enviarComentario } from '@/app/catalogo/acoes'
+import { MENSAGENS_DO_FECHAMENTO } from '@/lib/fechamento/tipos'
 import {
   MINIMO_PARA_RESUMO,
   contarComentarios,
@@ -34,7 +36,7 @@ export function Estrelas({ nota, rotulo }: { nota: number; rotulo?: string }) {
   )
 }
 
-type Props = { comentarios: readonly Comentario[]; resumo: ResumoDasNotas }
+type Props = { produto: string; comentarios: readonly Comentario[]; resumo: ResumoDasNotas }
 
 /**
  * Os comentarios: o resumo das notas (so com 6 ou mais; com poucos ele
@@ -42,7 +44,7 @@ type Props = { comentarios: readonly Comentario[]; resumo: ResumoDasNotas }
  * comentario novo so aparece depois que a marca aprova; por enquanto o
  * envio e de exemplo e nao guarda nada.
  */
-export function ProdutoComentarios({ comentarios, resumo }: Props) {
+export function ProdutoComentarios({ produto, comentarios, resumo }: Props) {
   const [filtro, setFiltro] = useState<Nota | null>(null)
   const [ordem, setOrdem] = useState<Ordem>('recentes')
   const comResumo = resumo.total >= MINIMO_PARA_RESUMO
@@ -77,7 +79,7 @@ export function ProdutoComentarios({ comentarios, resumo }: Props) {
             </ul>
           </>
         ) : null}
-        <Formulario />
+        <Formulario produto={produto} />
       </div>
 
       <div className="comentarios__lista">
@@ -129,21 +131,36 @@ export function ProdutoComentarios({ comentarios, resumo }: Props) {
 }
 
 /** O formulario abre no lugar do botao; enviado, vira o agradecimento. */
-function Formulario() {
+function Formulario({ produto }: { produto: string }) {
   const id = useId()
   const [aberto, setAberto] = useState(false)
   const [nota, setNota] = useState<Nota | null>(null)
   const [erro, setErro] = useState<string | null>(null)
+  const [semSessao, setSemSessao] = useState(false)
+  const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
 
-  function enviar(e: FormEvent<HTMLFormElement>) {
+  async function enviar(e: FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    const dados = new FormData(e.currentTarget)
-    if (!nota) return setErro('Escolha uma nota de 1 a 5.')
-    if (!String(dados.get('nome') ?? '').trim()) return setErro('Falta o seu nome.')
-    if (String(dados.get('texto') ?? '').trim().length < 10) return setErro('Conte um pouco mais: pelo menos 10 letras.')
-    setErro(null)
-    setEnviado(true)
+    if (enviando) return
+    const texto = String(new FormData(e.currentTarget).get('texto') ?? '')
+    setSemSessao(false)
+    setEnviando(true)
+    try {
+      const r = await enviarComentario({ produto, nota, texto })
+      if (r.ok) return setEnviado(true)
+      if (r.erro === 'sem_sessao') {
+        setErro('Entre na sua conta para comentar.')
+        return setSemSessao(true)
+      }
+      if (r.erro === 'campos_invalidos') return setErro(r.campos?.nota ?? r.campos?.texto ?? MENSAGENS_DO_FECHAMENTO.campos_invalidos)
+      if (r.erro === 'comentario_nao_permitido') return setErro('Só quem já recebeu este sabor pode comentar.')
+      setErro(r.erro === 'muitas_tentativas' ? MENSAGENS_DO_FECHAMENTO.muitas_tentativas : MENSAGENS_DO_FECHAMENTO.tente_de_novo)
+    } catch {
+      setErro(MENSAGENS_DO_FECHAMENTO.tente_de_novo)
+    } finally {
+      setEnviando(false)
+    }
   }
 
   if (enviado) {
@@ -179,20 +196,22 @@ function Formulario() {
           ))}
         </fieldset>
         <label className="comentar__campo">
-          Seu nome
-          <input name="nome" autoComplete="given-name" maxLength={40} />
-        </label>
-        <label className="comentar__campo">
           O que achou
-          <textarea name="texto" rows={4} maxLength={600} />
+          <textarea name="texto" rows={4} maxLength={1000} />
         </label>
         <p className="comentar__erro" aria-live="assertive">
           {erro}
+          {semSessao ? (
+            <>
+              {' '}
+              <a href={`/entrar?volta=/catalogo/${produto}`}>Entrar</a>
+            </>
+          ) : null}
         </p>
-        <button type="submit" className="btn-retro btn-retro--escuro">
+        <button type="submit" className="btn-retro btn-retro--escuro" disabled={enviando}>
           Enviar comentário
         </button>
-        <p className="comentar__nota">Os comentários aparecem depois que a gente lê.</p>
+        <p className="comentar__nota">Seu nome aparece como no seu perfil, com a inicial do sobrenome. Os comentários aparecem depois que a gente lê.</p>
       </form>
     </div>
   )

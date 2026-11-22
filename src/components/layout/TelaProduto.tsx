@@ -123,7 +123,7 @@ export function TelaProduto({ pagina, gaveta, linhas }: Props) {
             <h2 id="titulo-comentarios" className="titulo-secao">
               Quem provou <em>conta</em>
             </h2>
-            <ProdutoComentarios comentarios={comentarios} resumo={resumo} />
+            <ProdutoComentarios produto={produto.slug} comentarios={comentarios} resumo={resumo} />
           </div>
         </section>
 

@@ -14,10 +14,14 @@ import { MENSAGENS_DO_FECHAMENTO } from '@/lib/fechamento/tipos'
 import { formatarPreco, montarPaginaProduto, resumirNotas } from '@/lib/produto'
 import { linhasComProduto, montarGaveta } from '@/lib/visao'
 
-const m = vi.hoisted(() => ({ cotar: vi.fn() }))
+const m = vi.hoisted(() => ({ cotar: vi.fn(), comentar: vi.fn() }))
 // a acao do servidor e falsa aqui: no Vitest uma acao e uma funcao comum
 vi.mock('@/app/sacola/acoes', () => ({ cotarEntrega: m.cotar }))
-beforeEach(() => m.cotar.mockReset())
+vi.mock('@/app/catalogo/acoes', () => ({ enviarComentario: m.comentar }))
+beforeEach(() => {
+  m.cotar.mockReset()
+  m.comentar.mockReset()
+})
 
 const pagina = async (slug: string) => render(await PaginaDoProduto({ params: Promise.resolve({ produto: slug }) }))
 
@@ -207,5 +211,54 @@ describe('as regras da entrega e das notas', () => {
     ])
     expect(r.media).toBe(4.3)
     expect(r.porNota.map((n) => n.quantos)).toEqual([1, 2, 0, 0, 0])
+  })
+})
+
+describe('o formulario do comentario', () => {
+  async function abrir() {
+    const u = userEvent.setup()
+    await pagina('prestigio')
+    await u.click(screen.getByRole('button', { name: 'Escrever um comentário' }))
+    return u
+  }
+  const preencher = async (u: ReturnType<typeof userEvent.setup>, nota = 4) => {
+    await u.click(screen.getAllByRole('radio')[nota - 1])
+    await u.type(screen.getByLabelText('O que achou'), 'Muito bom, voltarei a pedir.')
+    await u.click(screen.getByRole('button', { name: 'Enviar comentário' }))
+  }
+
+  it('sem o campo de nome, e diz de onde vem o nome', async () => {
+    await abrir()
+    expect(screen.queryByLabelText('Seu nome')).toBeNull()
+    expect(screen.getByText(/Seu nome aparece como no seu perfil, com a inicial do sobrenome\./)).toBeTruthy()
+    expect(screen.getByLabelText('O que achou')).toHaveProperty('maxLength', 1000)
+  })
+
+  it('envia produto, nota e texto e agradece', async () => {
+    m.comentar.mockResolvedValue({ ok: true })
+    const u = await abrir()
+    await preencher(u)
+    expect(m.comentar).toHaveBeenCalledWith({ produto: 'prestigio', nota: 4, texto: 'Muito bom, voltarei a pedir.' })
+    expect(await screen.findByText(/Recebemos seu comentário/)).toBeTruthy()
+  })
+
+  it.each([
+    [{ ok: false, erro: 'comentario_nao_permitido' }, 'Só quem já recebeu este sabor pode comentar.'],
+    [{ ok: false, erro: 'muitas_tentativas' }, MENSAGENS_DO_FECHAMENTO.muitas_tentativas],
+    [{ ok: false, erro: 'tente_de_novo' }, MENSAGENS_DO_FECHAMENTO.tente_de_novo],
+    [{ ok: false, erro: 'campos_invalidos', campos: { texto: 'Conte um pouco mais: de 10 a 1000 letras, sem < nem >.' } }, 'Conte um pouco mais: de 10 a 1000 letras, sem < nem >.'],
+  ])('resposta %j mostra a frase dela', async (resposta, frase) => {
+    m.comentar.mockResolvedValue(resposta)
+    const u = await abrir()
+    await preencher(u)
+    expect((await screen.findByText(frase)).textContent).toContain(frase)
+  })
+
+  it('sem_sessao traz o link Entrar com a volta do produto', async () => {
+    m.comentar.mockResolvedValue({ ok: false, erro: 'sem_sessao' })
+    const u = await abrir()
+    await preencher(u)
+    await screen.findByText(/Entre na sua conta para comentar\./)
+    expect(screen.getByRole('link', { name: 'Entrar' }).getAttribute('href')).toBe('/entrar?volta=/catalogo/prestigio')
   })
 })
