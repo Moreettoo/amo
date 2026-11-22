@@ -106,3 +106,9 @@ const RECUSAS: Record<string, string> = {
 export function mensagemDaRecusa(recusa: string | null): string {
   return (recusa !== null && Object.hasOwn(RECUSAS, recusa) ? RECUSAS[recusa] : null) ?? MENSAGENS_DO_FECHAMENTO.pagamento_recusado
 }
+
+/** As frases do comentario da pagina de produto. */
+export const TEXTOS_DO_COMENTARIO = {
+  sem_sessao: 'Entre na sua conta para comentar.',
+  comentario_nao_permitido: 'Só quem já recebeu este sabor pode comentar.',
+} as const

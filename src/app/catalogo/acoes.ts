@@ -46,8 +46,9 @@ export async function enviarComentario(entrada: unknown): Promise<RespostaDoCome
     }
     const campos: { nota?: string; texto?: string } = {}
     if (typeof nota !== 'number' || !Number.isInteger(nota) || nota < 1 || nota > 5) campos.nota = MSG_NOTA
-    const texto = bruto.length > 20_000 ? '' : bruto.trim()
-    if (texto.length < 10 || texto.length > 1000 || PROIBIDO.test(texto)) campos.texto = MSG_TEXTO
+    const texto = bruto.length > 20_000 ? '' : bruto.replace(/\r\n/g, '\n').trim()
+    const letras = [...texto].length
+    if (letras < 10 || letras > 1000 || PROIBIDO.test(texto)) campos.texto = MSG_TEXTO
     if (campos.nota || campos.texto) return { ok: false, erro: 'campos_invalidos', campos }
 
     if (!(await consumirLimite(`comentario:${usuario.id}`, 5, 86400))) return { ok: false, erro: 'muitas_tentativas' }

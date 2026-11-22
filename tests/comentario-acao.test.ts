@@ -77,11 +77,16 @@ describe('campos', () => {
   })
 
   it('o texto: 10 a 1000, sem < > nem controle alem da quebra', async () => {
-    for (const texto of ['curto', 'a'.repeat(1001), 'bom <b>demais</b>', 'bom demais >', 'bom\u0000demais', 'bom\rdemais!', 'bom\u0085demais!', 'bom\tdemais!', '          ']) {
+    for (const texto of ['curto', 'a'.repeat(1001), 'bom <b>demais</b>', 'bom demais >', 'bom\u0000demais', 'bom\u007fdemais!', 'bom\u009fdemais!', '😀'.repeat(1001), '😀'.repeat(9), 'bom\rdemais!', 'bom\u0085demais!', 'bom\tdemais!', '          ']) {
       expect(await enviarComentario({ ...ok, texto })).toEqual({ ok: false, erro: 'campos_invalidos', campos: { texto: MSG_TEXTO } })
     }
     expect((await enviarComentario({ ...ok, texto: 'a'.repeat(1000) })).ok).toBe(true)
     expect((await enviarComentario({ ...ok, texto: 'linha um\nlinha dois' })).ok).toBe(true)
+    expect((await enviarComentario({ ...ok, texto: '😀'.repeat(1000) })).ok).toBe(true)
+    expect((await enviarComentario({ ...ok, texto: '😀'.repeat(10) })).ok).toBe(true)
+    m.gravarComentario.mockClear()
+    expect((await enviarComentario({ ...ok, texto: 'linha um\r\nlinha dois' })).ok).toBe(true)
+    expect(m.gravarComentario).toHaveBeenCalledWith('prestigio', 5, 'linha um\nlinha dois')
   })
 
   it.each(HOSTIS.map((h) => [h.slice(0, 24), h]))('texto hostil %j: recusa ou ao pe da letra, nunca excecao', async (_, hostil) => {

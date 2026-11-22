@@ -2,7 +2,7 @@
 
 import { useId, useState, type FormEvent } from 'react'
 import { enviarComentario } from '@/app/catalogo/acoes'
-import { MENSAGENS_DO_FECHAMENTO } from '@/lib/fechamento/tipos'
+import { MENSAGENS_DO_FECHAMENTO, TEXTOS_DO_COMENTARIO } from '@/lib/fechamento/tipos'
 import {
   MINIMO_PARA_RESUMO,
   contarComentarios,
@@ -144,17 +144,18 @@ function Formulario({ produto }: { produto: string }) {
     e.preventDefault()
     if (enviando) return
     const texto = String(new FormData(e.currentTarget).get('texto') ?? '')
+    setErro(null)
     setSemSessao(false)
     setEnviando(true)
     try {
       const r = await enviarComentario({ produto, nota, texto })
       if (r.ok) return setEnviado(true)
       if (r.erro === 'sem_sessao') {
-        setErro('Entre na sua conta para comentar.')
+        setErro(TEXTOS_DO_COMENTARIO.sem_sessao)
         return setSemSessao(true)
       }
       if (r.erro === 'campos_invalidos') return setErro(r.campos?.nota ?? r.campos?.texto ?? MENSAGENS_DO_FECHAMENTO.campos_invalidos)
-      if (r.erro === 'comentario_nao_permitido') return setErro('Só quem já recebeu este sabor pode comentar.')
+      if (r.erro === 'comentario_nao_permitido') return setErro(TEXTOS_DO_COMENTARIO.comentario_nao_permitido)
       setErro(r.erro === 'muitas_tentativas' ? MENSAGENS_DO_FECHAMENTO.muitas_tentativas : MENSAGENS_DO_FECHAMENTO.tente_de_novo)
     } catch {
       setErro(MENSAGENS_DO_FECHAMENTO.tente_de_novo)
