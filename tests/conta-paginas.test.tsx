@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import { axe } from 'vitest-axe'
 import type { PedidoCompleto, PedidoNaLista } from '@/lib/dados/pedidos'
 import type { Endereco } from '@/lib/dados/enderecos'
@@ -21,6 +21,7 @@ const m = vi.hoisted(() => ({
   semSessao: false,
   refresh: vi.fn(),
   situacao: null as unknown,
+  pagar: vi.fn(),
 }))
 
 // sem sessao, como o de verdade: entrar e voltar a rota, pela mesma conferencia do volta
@@ -62,7 +63,7 @@ vi.mock('@/app/conta/acoes', () => {
 vi.mock('@/lib/auth/acoes', () => ({ sair: async () => undefined }))
 vi.mock('@/app/sacola/acoes', () => ({
   situacaoDoPedido: async () => ({ ok: true, situacao: m.situacao }),
-  pagarComPix: async () => ({ ok: false, erro: 'tente_de_novo' }),
+  pagarComPix: (e: unknown) => m.pagar(e),
 }))
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-nonce': 'nonce-de-teste' }) }))
 vi.mock('next/navigation', () => ({
@@ -356,6 +357,54 @@ describe('/conta/pedidos/[numero]', () => {
       render(await Pedido.default(comNumero(NUMERO)))
       expect(within(principal()).queryByDisplayValue('000201codigo')).toBeNull()
       expect(principal()).not.toHaveTextContent('Assim que o pagamento for confirmado')
+    })
+
+    const venceu = (estado: string) => ({ numero: NUMERO, estado: 'aguardando_pagamento', pagamento: { forma: 'pix', estado, recusa: null, pix: null, desafioUrl: null } })
+    const esperar = () => act(async () => { await vi.advanceTimersByTimeAsync(60_000) })
+
+    it.each([
+      ['expirado', 'O código venceu.'],
+      ['recusado', 'Não conseguimos gerar o código. Tente de novo.'],
+    ])('a espera que ve a tentativa %s diz em voz alta e tira o QR', async (estado, texto) => {
+      m.pedido = aguardando()
+      m.situacao = venceu(estado)
+      vi.useFakeTimers()
+      render(await Pedido.default(comNumero(NUMERO)))
+      await esperar()
+      expect(principal()).toHaveTextContent(texto)
+      expect(within(principal()).queryByRole('img', { name: 'QR Code do Pix' })).toBeNull()
+      expect(within(principal()).queryByDisplayValue('000201codigo')).toBeNull()
+    })
+
+    it('Gerar outro codigo que falha diz o texto fixo', async () => {
+      m.pedido = aguardando()
+      m.situacao = venceu('expirado')
+      m.pagar.mockResolvedValue({ ok: false, erro: 'tente_de_novo' })
+      vi.useFakeTimers()
+      render(await Pedido.default(comNumero(NUMERO)))
+      await esperar()
+      vi.useRealTimers()
+      fireEvent.click(within(principal()).getByRole('button', { name: /Gerar outro c/ }))
+      expect(await within(principal()).findByText('Não deu certo agora. Tente de novo em instantes.')).toBeInTheDocument()
+    })
+
+    it('Gerar outro codigo que da certo troca o codigo, com uma chamada so no duplo clique', async () => {
+      m.pedido = aguardando()
+      m.situacao = venceu('expirado')
+      const novo = { copiaECola: '000201novo', qrBase64: 'QUJD', expiraEm: new Date(Date.now() + 3_600_000).toISOString() }
+      m.pagar.mockReset()
+      m.pagar.mockResolvedValue({ ok: true, situacao: { ...venceu('pendente'), pagamento: { forma: 'pix', estado: 'pendente', recusa: null, pix: novo, desafioUrl: null } } })
+      vi.useFakeTimers()
+      render(await Pedido.default(comNumero(NUMERO)))
+      await esperar()
+      vi.useRealTimers()
+      const botao = within(principal()).getByRole('button', { name: /Gerar outro c/ })
+      fireEvent.click(botao)
+      fireEvent.click(botao)
+      expect(await within(principal()).findByDisplayValue('000201novo')).toBeInTheDocument()
+      expect(m.pagar).toHaveBeenCalledTimes(1)
+      expect(m.pagar).toHaveBeenCalledWith({ numero: NUMERO })
+      expect(within(principal()).queryByDisplayValue('000201codigo')).toBeNull()
     })
 
     it('a espera que ve o pagamento aprovado atualiza a pagina', async () => {

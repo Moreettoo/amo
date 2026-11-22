@@ -33,14 +33,15 @@ export function PixDoPedido({ numero, pix }: { numero: string; pix: Pix }) {
     if (gerando) return
     setGerando(true)
     setErro(null)
+    let r: Awaited<ReturnType<typeof pagarComPix>>
     try {
-      const r = await pagarComPix({ numero })
-      if (r.ok) mudou(r.situacao)
-      else setErro(r.erro)
+      r = await pagarComPix({ numero })
     } catch {
-      setErro('tente_de_novo')
+      r = { ok: false, erro: 'tente_de_novo' }
     }
     setGerando(false)
+    if (r.ok) mudou(r.situacao)
+    else setErro(r.erro)
   }
 
   return (
