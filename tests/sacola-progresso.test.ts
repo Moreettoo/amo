@@ -72,6 +72,79 @@ describe('o progresso do fechamento, guardado na aba', () => {
     expect(lerProgresso(AGORA, null)).toBeNull()
   })
 
+  describe('o pedido feito guardado (para voltar a ele depois de recarregar)', () => {
+    const MARCA = 'aaaaaaaaaaaaaaaa'
+    const pedido = () => ({
+      numero: 'AMO-7K2M9QXR',
+      forma: 'pix' as const,
+      linhas: [
+        { slug: 'prestigio', nome: 'Prestígio', quantos: 2, total: 3780 },
+        { slug: 'mousse-de-maracuja', nome: 'Mousse de maracujá', quantos: 1, total: 1690 },
+      ],
+      entrega: cotacao(600_000),
+      total: 6760,
+    })
+    const comPedido = (p: unknown, extra: Record<string, unknown> = {}) =>
+      guardar({ etapa: 4, endereco, cotacao: cotacao(600_000), conta: MARCA, pedido: p, ...extra })
+
+    it('volta como foi guardado, com a conta que guardou; sem ele, o progresso nem tem a chave', () => {
+      const p: Progresso = { etapa: 4, endereco, cotacao: cotacao(600_000), conta: MARCA, pedido: pedido() }
+      gravarProgresso(p)
+      expect(lerProgresso(AGORA, MARCA)).toEqual(p)
+      gravarProgresso({ etapa: 2, endereco, cotacao: null, conta: null })
+      expect(lerProgresso(AGORA, null)).not.toHaveProperty('pedido')
+    })
+
+    it('a entrega do pedido é só exibição: volta mesmo vencida, e a cotação vencida do progresso leva a etapa à 2', () => {
+      comPedido({ ...pedido(), entrega: cotacao(-3_600_000) }, { cotacao: cotacao(30_000) })
+      expect(lerProgresso(AGORA, MARCA)).toEqual({ etapa: 2, endereco, cotacao: null, conta: MARCA, pedido: { ...pedido(), entrega: cotacao(-3_600_000) } })
+    })
+
+    it('o pedido de outra conta não volta, e o pedido sem a conta que guardou é entrada estranha: nada volta', () => {
+      comPedido(pedido())
+      expect(lerProgresso(AGORA, 'bbbbbbbbbbbbbbbb')).toBeNull()
+      comPedido(pedido(), { conta: null })
+      expect(lerProgresso(AGORA, null)).toBeNull()
+      expect(lerProgresso(AGORA, MARCA)).toBeNull()
+    })
+
+    it('qualquer coisa fora da forma ou dos tamanhos no pedido: nada volta', () => {
+      const p = pedido()
+      const linha = p.linhas[0]
+      const ruins: unknown[] = [
+        null,
+        'AMO-7K2M9QXR',
+        [p],
+        { ...p, numero: "AMO-7K2M9QXR' or 1=1" },
+        { ...p, numero: '123456' },
+        { ...p, numero: undefined },
+        { ...p, forma: 'boleto' },
+        { ...p, linhas: [] },
+        { ...p, linhas: 'prestigio' },
+        { ...p, linhas: Array.from({ length: 31 }, (_, i) => ({ ...linha, slug: `sabor-${i}` })) },
+        { ...p, linhas: [linha, linha] },
+        { ...p, linhas: [{ ...linha, slug: 'Prestígio <b>' }] },
+        { ...p, linhas: [{ ...linha, nome: '' }] },
+        { ...p, linhas: [{ ...linha, nome: 'x'.repeat(121) }] },
+        { ...p, linhas: [{ ...linha, quantos: 0 }] },
+        { ...p, linhas: [{ ...linha, quantos: 21 }] },
+        { ...p, linhas: [{ ...linha, quantos: 2.5 }] },
+        { ...p, linhas: [{ ...linha, total: -1 }] },
+        { ...p, linhas: [{ ...linha, total: '3780' }] },
+        { ...p, linhas: [{ ...linha, total: 10_000_001 }] },
+        { ...p, entrega: null },
+        { ...p, entrega: { ...p.entrega, valorCentavos: '1290' } },
+        { ...p, total: 0 },
+        { ...p, total: 10_000_001 },
+        { ...p, total: 67.6 },
+      ]
+      for (const ruim of ruins) {
+        comPedido(ruim)
+        expect(lerProgresso(AGORA, MARCA), JSON.stringify(ruim)?.slice(0, 80)).toBeNull()
+      }
+    })
+  })
+
   it('o sessionStorage que lança não faz lançar', () => {
     const lanca = () => {
       throw new Error('SecurityError')

@@ -1,8 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
-import { fecharPedido, pagarComCartao, pagarComPix } from '@/app/sacola/acoes'
+import { useEffect, useEffectEvent, useId, useRef, useState, type ReactNode } from 'react'
+import { fecharPedido, pagarComCartao, pagarComPix, situacaoDoPedido } from '@/app/sacola/acoes'
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
 import { useSacola } from '@/components/ui/useSacola'
 import { mascararCep } from '@/lib/entrega'
@@ -17,7 +17,7 @@ import {
 } from '@/lib/fechamento/tipos'
 import { mascararCelular, type Pagamento } from '@/lib/pedido'
 import { formatarPreco } from '@/lib/produto'
-import { contarPotes, esvaziarSacola, somarLinhas, textoPotes, type ItemDaLoja, type LinhaDaSacola } from '@/lib/sacola'
+import { contarPotes, esvaziarSacola, somarLinhas, textoPotes, type ItemDaLoja } from '@/lib/sacola'
 import { CAMINHO_CATALOGO } from '@/lib/visao'
 import { cartaoDoBrick, type CartaoDoBrick, type ControleDoCartao } from './CartaoMercadoPago'
 import { EtapaDados } from './EtapaDados'
@@ -26,7 +26,15 @@ import { EtapaPagamento } from './EtapaPagamento'
 import { aprovado, codigoAcabou } from './espera'
 import { PedidoFeito } from './PedidoFeito'
 import { deExemplo, Fio, ListaDePotes, ruaENumero, Titulo } from './pecas'
-import { apagarProgresso, gravarProgresso, lerProgresso, type EnderecoDigitado, type Etapa } from './progresso'
+import {
+  apagarProgresso,
+  gravarProgresso,
+  lerProgresso,
+  type EnderecoDigitado,
+  type Etapa,
+  type LinhaDoPedido,
+  type PedidoGuardado,
+} from './progresso'
 
 /** O que a pagina le no servidor para o fechamento. */
 export type DadosDaSacola = {
@@ -53,7 +61,7 @@ const DICAS: Record<Etapa, string> = {
 const DICA_COM_CARTAO = 'Pix ou cartão.'
 
 /** O pedido fechado, pago ou esperando o pagamento: a situacao que o servidor devolveu e o que foi pedido. */
-type Feito = { situacao: SituacaoDoPedido; linhas: LinhaDaSacola[]; entrega: Cotacao; total: number }
+type Feito = { situacao: SituacaoDoPedido; linhas: LinhaDoPedido[]; entrega: Cotacao; total: number }
 /** O pedido no desafio do banco (3DS), com a URL da janela: so a criacao a devolve, e ela fica na memoria da tela. */
 type Desafio = Feito & { url: string }
 
@@ -74,10 +82,21 @@ const desafioSegue = (s: SituacaoDoPedido) =>
 /** Onde cada erro do pagamento se resolve; o resto fica na etapa 4, com a frase. */
 const ETAPA_DO_ERRO: Partial<Record<CodigoDoFechamento, Etapa>> = {
   cotacao_vencida: 2,
+  tentativas_esgotadas: 2,
   produto_indisponivel: 1,
   sem_sessao: 3,
   email_nao_confirmado: 3,
 }
+/**
+ * Estes pedem outra cotacao: a vencida, e a do pedido que esgotou as
+ * tentativas (a mesma cotacao devolveria o mesmo pedido; a nova cria outro, e
+ * criar_pedido cancela o esgotado).
+ */
+const PEDEM_OUTRA_COTACAO = new Set<CodigoDoFechamento>(['cotacao_vencida', 'tentativas_esgotadas'])
+/** A resposta de erro de situacaoDoPedido que e passageira, como a rede: a espera pergunta de novo. */
+const PASSAGEIROS = new Set<CodigoDoFechamento>(['tente_de_novo', 'muitas_tentativas'])
+
+type RespostaDaSituacao = Awaited<ReturnType<typeof situacaoDoPedido>>
 /** O que mudou no servidor e volta com a pagina (router.refresh): os precos, o cardapio, a loja, a sessao. */
 const PEDEM_A_PAGINA = new Set<CodigoDoFechamento>(['total_mudou', 'loja_fechada', 'produto_indisponivel', 'sem_sessao', 'email_nao_confirmado'])
 /** Do codigo novo, estes pedem o pedido de novo (ou a conta): a cliente volta as etapas. */
@@ -94,7 +113,9 @@ const SEM_ENDERECO: EnderecoDigitado = { cep: '', numero: '', complemento: '' }
  * etapa atual. Uma etapa feita vira uma linha de resumo com "Alterar". O
  * resumo fica ao lado (no celular, preso embaixo) e o botao dele envia a
  * etapa atual: um botao so, ligado ao formulario pelo atributo form.
- * A etapa, o endereco e a cotacao ficam guardados na aba (progresso.ts).
+ * A etapa, o endereco e a cotacao ficam guardados na aba (progresso.ts); com
+ * o pedido feito na tela, tambem o pedido, e a recarga volta a ele pela
+ * situacao que o servidor da.
  * Pagar com Pix fecha o pedido (fecharPedido) e gera o Pix (pagarComPix);
  * pagar com cartao le o Brick (getFormData e getAdditionalData), fecha o
  * pedido e cobra (pagarComCartao). O desafio do banco fica na etapa 4 ate o
@@ -108,9 +129,13 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   // o progresso da aba so existe no navegador; no servidor (e enquanto a
   // sacola e lida) a pagina mostra a area reservada, sem as etapas
   const [guardado] = useState(() => lerProgresso(Date.now(), dados.conta))
-  // a escolha de guardar o endereco nao fica na aba: quem parou na 4 volta
-  // para a 3, onde ela esta
-  const [etapa, setEtapa] = useState<Etapa>(guardado ? (guardado.etapa === 4 ? 3 : guardado.etapa) : 1)
+  // com um pedido feito guardado, a pagina pergunta ao servidor como ele esta
+  // antes de mostrar qualquer etapa: nada convida a pagar de novo no meio
+  const [retomando, setRetomando] = useState(() => guardado?.pedido !== undefined)
+  // a escolha de guardar o endereco nao fica na aba: quem parou na 4, antes
+  // de existir pedido, volta para a 3, onde ela esta; o pedido guardado que o
+  // servidor ja nao espera leva a 4 (ou a 2, com a cotacao vencida)
+  const [etapa, setEtapa] = useState<Etapa>(guardado ? (guardado.etapa === 4 && !guardado.pedido ? 3 : guardado.etapa) : 1)
   const [endereco, setEndereco] = useState<EnderecoDigitado>(() => {
     if (guardado) return guardado.endereco
     const p = dados.enderecoPrincipal
@@ -151,8 +176,74 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   const prontas = linhas !== null && linhas.length > 0
 
   useEffect(() => {
-    if (!feito) gravarProgresso({ etapa, endereco, cotacao, conta: dados.conta })
-  }, [feito, etapa, endereco, cotacao, dados.conta])
+    // antes da resposta do servidor, o pedido guardado continua como estava
+    if (retomando) return
+    if (!feito) {
+      gravarProgresso({ etapa, endereco, cotacao, conta: dados.conta })
+      return
+    }
+    // pago, o progresso ja foi apagado (e nao volta)
+    if (aprovado(feito.situacao)) return
+    // o pedido feito na tela fica guardado com o que ele mostra, para a recarga voltar a ele
+    const pedido: PedidoGuardado = {
+      numero: feito.situacao.numero,
+      forma: feito.situacao.pagamento?.forma ?? 'pix',
+      linhas: feito.linhas.map(({ slug, nome, quantos, total }) => ({ slug, nome, quantos, total })),
+      entrega: feito.entrega,
+      total: feito.total,
+    }
+    gravarProgresso({ etapa, endereco, cotacao, conta: dados.conta, pedido })
+  }, [retomando, feito, etapa, endereco, cotacao, dados.conta])
+
+  /**
+   * O pedido guardado, depois da recarga, conforme o servidor: esperando o
+   * pagamento (o Pix ou o cartao pendente), o pedido feito com a espera; pago,
+   * a sacola esvazia e o progresso sai; a rede (ou o servidor) que falhou, o
+   * pedido feito com a espera, que pergunta de novo. O resto (cancelado, a
+   * tentativa acabada, a situacao ilegivel, a sessao que caiu) esquece o
+   * pedido, e a pagina segue das etapas.
+   */
+  const retomar = useEffectEvent((pedido: PedidoGuardado, r: RespostaDaSituacao | null) => {
+    setRetomando(false)
+    const mostrado = { linhas: pedido.linhas, entrega: pedido.entrega, total: pedido.total }
+    if (r === null || (!r.ok && PASSAGEIROS.has(r.erro))) {
+      const pendente = { forma: pedido.forma, estado: 'pendente', recusa: null, pix: null, desafioUrl: null }
+      setFeito({ ...mostrado, situacao: { numero: pedido.numero, estado: 'aguardando_pagamento', pagamento: pendente } })
+      return
+    }
+    const s = r.ok && r.situacao.numero === pedido.numero ? r.situacao : null
+    if (s && aprovado(s)) {
+      esvaziarSacola()
+      apagarProgresso()
+      setFeito({ ...mostrado, situacao: s })
+      return
+    }
+    if (s && s.estado === 'aguardando_pagamento' && s.pagamento?.estado === 'pendente') {
+      setFeito({ ...mostrado, situacao: s })
+      return
+    }
+    // o pedido cancelado diz por que, na etapa em que a pagina segue
+    if (s?.estado === 'cancelado') requestAnimationFrame(() => setAviso({ etapa, codigo: 'pedido_invalido' }))
+  })
+
+  useEffect(() => {
+    const pedido = guardado?.pedido
+    if (!pedido) return
+    let viva = true
+    void (async () => {
+      let r: RespostaDaSituacao | null
+      try {
+        r = await situacaoDoPedido({ numero: pedido.numero })
+      } catch {
+        // a rede caiu: o pedido feito volta com a espera, que trata o erro de rede
+        r = null
+      }
+      if (viva) retomar(pedido, r)
+    })()
+    return () => {
+      viva = false
+    }
+  }, [guardado])
 
   useEffect(() => {
     const chamadas = chamada
@@ -191,7 +282,7 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
   /** O erro leva a etapa em que a cliente resolve, com a frase na linha de erro dela. */
   function tratarErro(codigo: CodigoDoFechamento) {
     const destino = ETAPA_DO_ERRO[codigo] ?? 4
-    if (codigo === 'cotacao_vencida') setCotacao(null)
+    if (PEDEM_OUTRA_COTACAO.has(codigo)) setCotacao(null)
     if (codigo === 'loja_fechada') setLojaFechou(true)
     if (PEDEM_A_PAGINA.has(codigo)) router.refresh()
     // vindo do pedido feito (ou do desafio), o que tinha o foco sai da tela: o foco vai a etapa tambem
@@ -266,7 +357,8 @@ export function Fechamento({ loja, dados }: { loja: readonly ItemDaLoja[]; dados
         erro={erroDoCodigo}
       />
     )
-  if (linhas === null)
+  // a sacola ainda sendo lida, ou o pedido guardado esperando a resposta do servidor
+  if (retomando || linhas === null)
     return (
       <>
         <Titulo>Sua sacola</Titulo>

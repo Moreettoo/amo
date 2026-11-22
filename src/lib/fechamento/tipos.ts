@@ -38,7 +38,7 @@ export const MENSAGENS_DO_FECHAMENTO: Record<CodigoDoFechamento, string> = {
   muitos_pedidos: 'Muitos pedidos em pouco tempo. Espere um pouco e tente de novo.',
   total_mudou: 'Os preços mudaram desde que você abriu a sacola. Confira o novo total.',
   pedido_invalido: 'Esse pedido não pode mais ser pago. Faça o pedido de novo.',
-  tentativas_esgotadas: 'Foram muitas tentativas de pagamento neste pedido. Faça o pedido de novo.',
+  tentativas_esgotadas: 'Foram muitas tentativas de pagamento neste pedido. Calcule a entrega de novo para fazer outro pedido.',
   pagamento_indisponivel: 'O pagamento não respondeu agora. Tente de novo em instantes.',
   pagamento_recusado: 'O pagamento foi recusado. Confira os dados ou use outro cartão.',
   // o Brick nao devolveu o cartao (campo faltando ou errado): ele marca os campos, e a etapa diz isto

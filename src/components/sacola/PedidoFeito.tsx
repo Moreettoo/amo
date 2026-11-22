@@ -3,17 +3,17 @@
 import { BotaoRetro } from '@/components/ui/BotaoRetro'
 import type { CodigoDoFechamento, Cotacao, SituacaoDoPedido } from '@/lib/fechamento/tipos'
 import { formatarPreco } from '@/lib/produto'
-import type { LinhaDaSacola } from '@/lib/sacola'
 import { CAMINHO_CATALOGO } from '@/lib/visao'
 import { EsperaDoPagamento } from './EsperaDoPagamento'
 import { aprovado, codigoAcabou } from './espera'
 import { PainelDoPix } from './PainelDoPix'
 import { deExemplo, ruaENumero, Titulo } from './pecas'
+import type { LinhaDoPedido } from './progresso'
 
 type Props = {
   situacao: SituacaoDoPedido
-  /** os potes do pedido, como estavam quando ele foi fechado */
-  linhas: readonly LinhaDaSacola[]
+  /** os potes do pedido, como estavam quando ele foi fechado (ou como a aba os guardou) */
+  linhas: readonly LinhaDoPedido[]
   /** a cotacao da entrega com que o pedido foi fechado */
   entrega: Cotacao
   /** o total que o servidor devolveu ao fechar o pedido */
