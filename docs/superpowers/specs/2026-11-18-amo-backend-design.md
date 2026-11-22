@@ -8,7 +8,15 @@ verdade, pelo Mercado Pago, com Pix e cartão) construída e testada em
 2026-11-21. O Mercado Pago foi testado por `fetch` falso nos testes e, no
 ensaio de ponta a ponta no navegador, por um Mercado Pago falso carregado só no
 servidor de ensaio (`scripts/ensaio/mercadopago-falso.mjs`); nenhuma chamada
-foi ao Mercado Pago de verdade. Falta do dono, no painel do Mercado Pago: as
+foi ao Mercado Pago de verdade. O cartão (o Card Payment Brick, a CSP dele e o
+desafio do banco, 3DS) só foi testado com dublês que imitam o SDK e o servidor:
+o ensaio do cartão com a chave de teste é o portão antes de ligar
+`NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`, com o resultado registrado em
+`supabase/README.md` ("O que é do dono"): o Brick visível a 390 e 1440 px; o
+console sem violação de CSP (connect, frame, font, img); `APRO` aprova; `OTHE`
+recusa e deixa tentar de novo, com um token novo a cada `getFormData`; `CONT`
+fica pendente; `APRO-CHOK` mostra o desafio, e ele fica na tela até o
+resultado. Falta do dono, no painel do Mercado Pago: as
 credenciais de teste (`MERCADOPAGO_ACCESS_TOKEN` e
 `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`), a URL do aviso, os eventos "Order
 (Mercado Pago)" e "Chargebacks" e a assinatura secreta

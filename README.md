@@ -3,7 +3,9 @@
 Home v2 da AMO, direção "Retrô doce", e o catálogo. Páginas institucionais
 dirigidas por um cadastro (linhas, produtos, selos, vontades), com a sacola,
 Minha conta e o fechamento do pedido sobre o Supabase e o pagamento pelo
-Mercado Pago (etapas 1 a 3, `docs/superpowers/specs/2026-11-18-amo-backend-design.md`). A home tem uma vitrine e a gaveta do catálogo na nav; o catálogo
+Mercado Pago (etapas 1 a 3,
+`docs/superpowers/specs/2026-11-18-amo-backend-design.md`). A home tem uma
+vitrine e a gaveta do catálogo na nav; o catálogo
 mora em `/catalogo`, uma página estática só, em capítulos por categoria com
 as linhas dentro (categoria, linha e produto são âncoras dela). As
 especificações estão em
@@ -73,7 +75,9 @@ foi parar no que vai ao navegador.
 
 As credenciais do Mercado Pago (de teste, no desenvolvimento) são do dono: ele
 as cria no painel do Mercado Pago, junto com a URL do aviso, os eventos e a
-assinatura secreta (`supabase/README.md`, "O que é do dono"). A cotação da
+assinatura secreta (`supabase/README.md`, "O que é do dono"). O cartão só foi
+testado com dublês: o ensaio dele com a chave de teste é o portão antes de
+ligar `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` (mesma seção). A cotação da
 entrega continua de exemplo até o Uber Direct.
 
 ## O ensaio da sacola
@@ -87,6 +91,18 @@ NODE_OPTIONS=--import=./scripts/ensaio/mercadopago-falso.mjs \
 MERCADOPAGO_ACCESS_TOKEN=APP_USR-ensaio MERCADOPAGO_WEBHOOK_SECRET=ensaio \
 npm run dev
 ```
+
+No PowerShell:
+
+```powershell
+$env:NODE_OPTIONS = '--import=./scripts/ensaio/mercadopago-falso.mjs'
+$env:MERCADOPAGO_ACCESS_TOKEN = 'APP_USR-ensaio'
+$env:MERCADOPAGO_WEBHOOK_SECRET = 'ensaio'
+npm run dev
+```
+
+As variáveis do PowerShell ficam na janela até ela fechar (no fim,
+`Remove-Item Env:NODE_OPTIONS, Env:MERCADOPAGO_ACCESS_TOKEN, Env:MERCADOPAGO_WEBHOOK_SECRET`).
 
 O Pix nasce com um QR de ensaio e passa a pago 20 s depois. A conta de
 ensaio, o horário temporário da loja e a limpeza do fim estão em

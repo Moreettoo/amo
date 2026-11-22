@@ -305,6 +305,29 @@ acabou de ser pago, a cobrança nova não é criada.
    chave pública em `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`.
 5. `MERCADOPAGO_AMBIENTE=teste` enquanto as credenciais forem de teste.
 
+#### O portão do cartão: o ensaio com a chave de teste
+
+O cartão (o Card Payment Brick, a CSP dele e o desafio do banco, 3DS) só foi
+testado com dublês que imitam o SDK e o servidor; nunca rodou com o Mercado
+Pago de verdade. Sem `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`, só o Pix aparece.
+Antes de ligar a chave pública para as clientes, o cartão é ensaiado no
+servidor de desenvolvimento com as credenciais de teste (os cartões e os
+nomes do titular estão no contrato do Mercado Pago, §5), e o resultado fica
+registrado aqui:
+
+- o Brick visível a 390 e 1440 px;
+- o console sem violação de CSP (connect, frame, font, img);
+- `APRO` aprova;
+- `OTHE` recusa e deixa tentar de novo, com um token novo a cada `getFormData`;
+- `CONT` fica pendente;
+- `APRO-CHOK` mostra o desafio, e ele fica na tela até o resultado.
+
+O mesmo ensaio confirma que o `getAdditionalData` do Brick traz o
+`paymentTypeId` (contrato, §6): sem ele, todo cartão termina em "Confira os
+dados do cartão." e nada é cobrado.
+
+Resultado: ainda não ensaiado (falta a chave de teste do dono).
+
 ### O ensaio com o Mercado Pago falso
 
 Para percorrer a sacola de ponta a ponta no navegador sem credenciais do
@@ -318,9 +341,24 @@ MERCADOPAGO_ACCESS_TOKEN=APP_USR-ensaio MERCADOPAGO_WEBHOOK_SECRET=ensaio \
 npm run dev
 ```
 
+No PowerShell (a máquina de desenvolvimento é Windows):
+
+```powershell
+$env:NODE_OPTIONS = '--import=./scripts/ensaio/mercadopago-falso.mjs'
+$env:MERCADOPAGO_ACCESS_TOKEN = 'APP_USR-ensaio'
+$env:MERCADOPAGO_WEBHOOK_SECRET = 'ensaio'
+npm run dev
+```
+
+No PowerShell as variáveis ficam na janela até ela fechar. No fim do ensaio,
+`Remove-Item Env:NODE_OPTIONS, Env:MERCADOPAGO_ACCESS_TOKEN, Env:MERCADOPAGO_WEBHOOK_SECRET`.
+
 - As duas variáveis vão no ambiente do processo, nunca no `.env.local`
   (`MERCADOPAGO_AMBIENTE=teste` já está nele). Sem a chave pública, só o Pix
   aparece.
+- O falso só responde com `MERCADOPAGO_AMBIENTE=teste` e fora de um build de
+  produção (`NODE_ENV=production`): sem isso, a chamada vai ao Mercado Pago de
+  verdade, e o terminal diz `[ensaio] Mercado Pago falso desligado`.
 - O terminal diz `[ensaio] Mercado Pago falso ligado neste processo` em cada
   processo e uma linha por chamada que ele respondeu (`POST /v1/orders 201
   action_required/waiting_transfer`, depois `GET /v1/orders/<id> 200

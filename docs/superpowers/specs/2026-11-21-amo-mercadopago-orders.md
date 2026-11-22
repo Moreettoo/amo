@@ -16,7 +16,8 @@ Fontes principais (prefixo `https://www.mercadopago.com.br/developers/en`):
 `.../integration-errors/api`, `/docs/checkout-api-orders/notifications`,
 `/docs/checkout-api-orders/resources/credentials`, `.../resources/test-cards`,
 `/docs/checkout-api-orders/integration-test/pix`, e, para o botão de fora do
-Brick, `/docs/checkout-bricks/card-payment-brick/visual-customizations/hide-element`.
+Brick, `/docs/checkout-bricks/card-payment-brick/visual-customizations/hide-element`
+e `/docs/checkout-bricks/card-payment-brick/advanced-features/additional-data`.
 
 ## 1. Chamadas
 
@@ -86,10 +87,12 @@ Base `https://api.mercadopago.com`. Todo `POST` leva `Authorization: Bearer
 ```
 
 - `payment_method.id` é a bandeira (`formData.payment_method_id` do Brick);
-  `type` é `credit_card` ou `debit_card` (`additionalData.paymentTypeId`);
-  `token` tem 32 ou 33 caracteres, vale uma vez; `installments` inteiro.
+  `type` é `credit_card` ou `debit_card` (`additionalData.paymentTypeId`, do
+  `getAdditionalData()`, §6); `token` tem 32 ou 33 caracteres, vale uma vez;
+  `installments` inteiro.
 - O Mercado Pago **não devolve os 4 últimos dígitos**. Eles vêm do Brick
-  (`additionalData.lastFourDigits`), conferidos como 4 dígitos.
+  (`additionalData.lastFourDigits`, do `getAdditionalData()`), conferidos
+  como 4 dígitos.
 - HTTP 402: o pedido foi criado e a transação falhou; o corpo traz o pedido.
 - **3DS** (com o `config` acima, pedido só quando há risco): o pedido volta
   `action_required` / `pending_challenge`, com a URL do desafio em
@@ -98,6 +101,11 @@ Base `https://api.mercadopago.com`. Todo `POST` leva `Authorization: Bearer
   `{ status: "COMPLETE" }` do iframe não é o resultado: o resultado vem pelo
   `GET` ou pelo aviso (`processed`/`accredited`, `failed`/`cc_rejected_3ds_challenge`
   ou `canceled`/`expired`).
+- A URL do desafio só vem na criação: o banco da AMO não a guarda, e a
+  situação lida depois (`situacaoDoPedido`) não a traz. A tela a guarda na
+  memória e mantém o `iframe` até o resultado (aprovado, a tentativa acabada
+  ou o pedido cancelado); a resposta ainda pendente não o tira. A espera do
+  desafio pergunta por até 40 min; a do Pix, 30.
 
 ## 2. Estados e a tradução para os da AMO (backend §10.3)
 
@@ -179,15 +187,34 @@ documentação; o pagamento fica `contestado` e a equipe resolve no painel.
 - `const mp = new MercadoPago(<chave pública>, { locale: 'pt-BR' })` e
   `mp.bricks().create('cardPayment', '<id do lugar>', { initialization: { amount: <reais> }, customization: { visual: { hidePaymentButton: true } }, callbacks: { onReady, onError } })`.
 - Com `hidePaymentButton`, o botão de fora (o do resumo da sacola) chama
-  `controller.getFormData()`, que devolve `formData` (`token`, `payment_method_id`,
-  `issuer_id`, `installments`, `payer.email`, `payer.identification`) e, no
-  cartão, os dados adicionais (`lastFourDigits`, `paymentTypeId`). Ao sair da
-  etapa, `controller.unmount()`.
+  `controller.getFormData()`, que resolve com o próprio `formData`, plano
+  (`token`, `payment_method_id`, `issuer_id`, `installments`, `payer.email`,
+  `payer.identification`), ou sem nada quando um campo está errado (o Brick
+  marca o campo). Os dados adicionais **não** vêm nele: vêm de outra chamada,
+  `controller.getAdditionalData()`, que devolve uma Promise e só pode ser
+  chamada depois de `getFormData()` (com o botão do próprio Brick, eles chegam
+  no segundo argumento do `onSubmit`). A página "Additional data" do Card
+  Payment Brick documenta os campos `bin`, `lastFourDigits` e `cardholderName`:
+  https://www.mercadopago.com.br/developers/en/docs/checkout-bricks/card-payment-brick/advanced-features/additional-data
+- O tipo do cartão (o `payment_method.type` do §1.2) vem de
+  `additionalData.paymentTypeId`. Esse campo vem do exemplo da API de Orders
+  para cartões, que preenche `type: additionalData.paymentTypeId`
+  (https://www.mercadopago.com.br/developers/en/docs/checkout-api-orders/payment-integration/websites/cards),
+  e não está na tabela de dados adicionais: o ensaio com a chave de teste
+  confirma o campo (`supabase/README.md`, "O que é do dono"). A AMO aceita só
+  `credit_card` e `debit_card`, e o final vem de `lastFourDigits` (4 dígitos).
+  Sem o token, sem um desses tipos ou sem o final, a tela diz
+  `cartao_ilegivel` ("Confira os dados do cartão.") e nada sai: o pedido não
+  fecha e nada é cobrado. Nunca um `tipo` ou um `final` vazio.
+- Ao sair da etapa, `controller.unmount()`.
 - **CSP**: não há lista oficial. Observada no `js/v2` (v2.83.7):
   `script-src https://sdk.mercadopago.com https://http2.mlstatic.com`;
   `connect-src https://api.mercadopago.com https://api-static.mercadopago.com https://api.mercadolibre.com https://http2.mlstatic.com`;
   `frame-src https://secure-fields.mercadopago.com https://www.mercadopago.com.br` (o
   segundo para o 3DS); `img-src https://http2.mlstatic.com`. Com
   `'strict-dynamic'`, o que o script com nonce carrega é aceito; a lista de
-  domínios serve aos navegadores sem `'strict-dynamic'`. Conferir no console,
-  com a chave pública de teste, antes de ir ao ar.
+  domínios serve aos navegadores sem `'strict-dynamic'`. Para o desafio, a
+  política da AMO aceita no `frame-src` os hosts que o servidor aceita na URL
+  dele: `mercadopago.com`, `mercadopago.com.br` e os subdomínios dos dois.
+  Conferir no console, com a chave pública de teste, antes de ir ao ar: é o
+  portão do ensaio do cartão (`supabase/README.md`, "O que é do dono").
