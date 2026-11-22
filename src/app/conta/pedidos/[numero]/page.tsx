@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { cache } from 'react'
 import { notFound } from 'next/navigation'
+import { PixDoPedido } from '@/components/conta/PixDoPedido'
 import { CancelarPedido } from '@/components/conta/FormsDaConta'
 import { CabecaDaConta, PainelDaConta, lerDadosDoPainel } from '@/components/conta/PainelDaConta'
 import { EtapasDoPedido, PotesDoPedido } from '@/components/conta/PecasDoPedido'
@@ -84,6 +85,7 @@ export default async function PaginaDoPedido({ params, searchParams }: Props) {
               Acompanhar no Uber
             </a>
           ) : null}
+          {pedido.pixPendente ? <PixDoPedido numero={pedido.numero} pix={pedido.pixPendente} /> : null}
           {pedido.estado === 'aguardando_pagamento' ? <CancelarPedido numero={pedido.numero} /> : null}
           <dl className="pedido__dados">
             <div>

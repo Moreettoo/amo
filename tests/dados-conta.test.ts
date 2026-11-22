@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { buscarCep } from '@/lib/dados/cep'
 import { ErroDeRegra, erroDoBanco } from '@/lib/dados/erros'
-import { rastreioSeguro } from '@/lib/dados/pedidos'
+import { pixPendenteDe, rastreioSeguro } from '@/lib/dados/pedidos'
 
 /**
  * A camada de dados da conta sem banco: o que e puro e a chamada ao ViaCEP
@@ -107,5 +107,39 @@ describe('rastreioSeguro', () => {
     [null],
   ])('%j vira null', (url) => {
     expect(rastreioSeguro(url)).toBeNull()
+  })
+})
+
+describe('pixPendenteDe', () => {
+  const agora = Date.parse('2026-11-21T12:00:00Z')
+  const pix = (extra: Record<string, unknown> = {}) => ({
+    forma: 'pix',
+    status: 'pendente',
+    criado_em: '2026-11-21T11:50:00Z',
+    pix_copia_e_cola: '000201abc',
+    pix_qr_base64: 'QUJD',
+    pix_expira_em: '2026-11-21T12:30:00Z',
+    ...extra,
+  })
+
+  it('aguardando, ultima tentativa Pix pendente com QR: devolve o codigo', () => {
+    expect(pixPendenteDe('aguardando_pagamento', [pix()], agora)).toEqual({ copiaECola: '000201abc', qrBase64: 'QUJD', expiraEm: '2026-11-21T12:30:00Z' })
+  })
+
+  it('so a ultima tentativa conta', () => {
+    const velha = pix({ criado_em: '2026-11-21T11:00:00Z', pix_copia_e_cola: 'velho' })
+    expect(pixPendenteDe('aguardando_pagamento', [velha, pix()], agora)?.copiaECola).toBe('000201abc')
+    expect(pixPendenteDe('aguardando_pagamento', [pix(), pix({ criado_em: '2026-11-21T11:55:00Z', status: 'recusado' })], agora)).toBeNull()
+  })
+
+  it.each([
+    ['pedido pago', 'pago', [pix({ status: 'aprovado' })]],
+    ['tentativa de cartao', 'aguardando_pagamento', [pix({ forma: 'cartao' })]],
+    ['Pix sem QR', 'aguardando_pagamento', [pix({ pix_qr_base64: null })]],
+    ['Pix sem copia e cola', 'aguardando_pagamento', [pix({ pix_copia_e_cola: null })]],
+    ['Pix expirado', 'aguardando_pagamento', [pix({ pix_expira_em: '2026-11-21T11:59:00Z' })]],
+    ['sem tentativas', 'aguardando_pagamento', []],
+  ])('%s: null', (_, estado, tentativas) => {
+    expect(pixPendenteDe(estado as string, tentativas as never, agora)).toBeNull()
   })
 })

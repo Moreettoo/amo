@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { act, render, screen, within } from '@testing-library/react'
 import { axe } from 'vitest-axe'
 import type { PedidoCompleto, PedidoNaLista } from '@/lib/dados/pedidos'
 import type { Endereco } from '@/lib/dados/enderecos'
@@ -19,6 +19,8 @@ const m = vi.hoisted(() => ({
   pode: { pode: true, motivo: null } as { pode: boolean; motivo: string | null },
   contagens: { pedidos: 4, enderecos: 2 },
   semSessao: false,
+  refresh: vi.fn(),
+  situacao: null as unknown,
 }))
 
 // sem sessao, como o de verdade: entrar e voltar a rota, pela mesma conferencia do volta
@@ -58,8 +60,13 @@ vi.mock('@/app/conta/acoes', () => {
   }
 })
 vi.mock('@/lib/auth/acoes', () => ({ sair: async () => undefined }))
+vi.mock('@/app/sacola/acoes', () => ({
+  situacaoDoPedido: async () => ({ ok: true, situacao: m.situacao }),
+  pagarComPix: async () => ({ ok: false, erro: 'tente_de_novo' }),
+}))
 vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-nonce': 'nonce-de-teste' }) }))
 vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: m.refresh }),
   notFound: () => {
     throw new Error('NAO_ENCONTRADO')
   },
@@ -121,6 +128,7 @@ const completo = (extra: Partial<PedidoCompleto> = {}): PedidoCompleto => ({
     rastreioUrl: 'https://m.uber.com/ul/?rastreio=1',
   },
   pagamento: { forma: 'pix', parcelas: null, cartaoBandeira: null, cartaoFinal: null },
+  pixPendente: null,
   ...extra,
 })
 
@@ -319,6 +327,48 @@ describe('/conta/pedidos/[numero]', () => {
     m.pedido = completo({ estado: 'aguardando_pagamento', pagamento: null, datas: { ...completo().datas, pago: null, emPreparo: null, aCaminho: null } })
     render(await Pedido.default(comNumero(NUMERO)))
     expect(within(principal()).getAllByRole('button', { name: 'Cancelar pedido' })[0]).toBeInTheDocument()
+  })
+
+  describe('aguardando o Pix', () => {
+    const aguardando = (extra: Partial<PedidoCompleto> = {}) =>
+      completo({
+        estado: 'aguardando_pagamento',
+        pagamento: null,
+        datas: { ...completo().datas, pago: null, emPreparo: null, aCaminho: null },
+        pixPendente: { copiaECola: '000201codigo', qrBase64: 'QUJD', expiraEm: new Date(Date.now() + 3_600_000).toISOString() },
+        ...extra,
+      })
+
+    afterEach(() => vi.useRealTimers())
+
+    it('mostra o painel do Pix e a espera, acima de Cancelar pedido', async () => {
+      m.pedido = aguardando()
+      const { container } = render(await Pedido.default(comNumero(NUMERO)))
+      const campo = within(principal()).getByDisplayValue('000201codigo')
+      const cancelar = within(principal()).getAllByRole('button', { name: 'Cancelar pedido' })[0]
+      expect(campo.compareDocumentPosition(cancelar) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(principal()).toHaveTextContent('Assim que o pagamento for confirmado')
+      expect(await axe(container)).toHaveNoViolations()
+    })
+
+    it('sem pixPendente a pagina fica como antes', async () => {
+      m.pedido = aguardando({ pixPendente: null })
+      render(await Pedido.default(comNumero(NUMERO)))
+      expect(within(principal()).queryByDisplayValue('000201codigo')).toBeNull()
+      expect(principal()).not.toHaveTextContent('Assim que o pagamento for confirmado')
+    })
+
+    it('a espera que ve o pagamento aprovado atualiza a pagina', async () => {
+      m.pedido = aguardando()
+      m.situacao = { numero: NUMERO, estado: 'pago', pagamento: { forma: 'pix', estado: 'aprovado', recusa: null, pix: null, desafioUrl: null } }
+      m.refresh.mockClear()
+      vi.useFakeTimers()
+      render(await Pedido.default(comNumero(NUMERO)))
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(60_000)
+      })
+      expect(m.refresh).toHaveBeenCalled()
+    })
   })
 
   it('entregue: sem cancelar e sem rastreio', async () => {

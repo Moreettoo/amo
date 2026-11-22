@@ -11,6 +11,8 @@ type Props = {
   inicial: SituacaoDoPedido
   /** a situacao mudou: o codigo chegou, o pagamento foi aprovado, o codigo venceu */
   aoMudar: (s: SituacaoDoPedido) => void
+  /** o texto de quando a espera para, se a pagina que a mostra ja e a do pedido (sem o link para ela mesma) */
+  textoAoParar?: string
 }
 
 type Resposta = Awaited<ReturnType<typeof situacaoDoPedido>>
@@ -22,7 +24,7 @@ type Resposta = Awaited<ReturnType<typeof situacaoDoPedido>>
  * retoma o ritmo. Erro de rede, ou resposta de erro, nao muda o que a tela
  * mostra. Nada gira: a espera e dita em texto.
  */
-export function EsperaDoPagamento({ numero, inicial, aoMudar }: Props) {
+export function EsperaDoPagamento({ numero, inicial, aoMudar, textoAoParar }: Props) {
   // a situacao com que o ritmo acabou (30 min sem mudanca); outra inicial recomeca
   const [parouEm, setParouEm] = useState<SituacaoDoPedido | null>(null)
   const avisar = useEffectEvent((s: SituacaoDoPedido) => aoMudar(s))
@@ -86,9 +88,11 @@ export function EsperaDoPagamento({ numero, inicial, aoMudar }: Props) {
   return (
     <p className="espera" aria-live="polite">
       {parouEm === inicial ? (
-        <>
-          Paramos de conferir sozinhos. Se você já pagou, veja o pedido em <a href={`/conta/pedidos/${numero}`}>Minha conta</a>.
-        </>
+        (textoAoParar ?? (
+          <>
+            Paramos de conferir sozinhos. Se você já pagou, veja o pedido em <a href={`/conta/pedidos/${numero}`}>Minha conta</a>.
+          </>
+        ))
       ) : (
         'Assim que o pagamento for confirmado, esta página avisa sozinha.'
       )}

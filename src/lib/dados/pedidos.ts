@@ -37,6 +37,29 @@ export type PedidoCompleto = {
   }
   /** so a tentativa aprovada */
   pagamento: { forma: 'pix' | 'cartao'; parcelas: number | null; cartaoBandeira: string | null; cartaoFinal: string | null } | null
+  /** so quando o pedido aguarda e a ultima tentativa e um Pix pendente, com QR e ainda valido */
+  pixPendente: PixPendente | null
+}
+
+export type PixPendente = { copiaECola: string; qrBase64: string; expiraEm: string | null }
+
+type TentativaLida = {
+  forma: string
+  status: string
+  criado_em: string
+  pix_copia_e_cola: string | null
+  pix_qr_base64: string | null
+  pix_expira_em: string | null
+}
+
+/** O Pix que ainda espera: pedido aguardando, ultima tentativa Pix pendente, com QR e sem vencer. */
+export function pixPendenteDe(estado: string, tentativas: TentativaLida[], agora: number = Date.now()): PixPendente | null {
+  if (estado !== 'aguardando_pagamento') return null
+  const ultima = [...tentativas].sort((a, b) => Date.parse(b.criado_em) - Date.parse(a.criado_em))[0]
+  if (!ultima || ultima.forma !== 'pix' || ultima.status !== 'pendente') return null
+  if (!ultima.pix_copia_e_cola || !ultima.pix_qr_base64) return null
+  if (ultima.pix_expira_em && Date.parse(ultima.pix_expira_em) <= agora) return null
+  return { copiaECola: ultima.pix_copia_e_cola, qrBase64: ultima.pix_qr_base64, expiraEm: ultima.pix_expira_em }
 }
 
 /** O link de rastreio so passa se for https do Uber (uber.com ou um subdominio). */
@@ -80,7 +103,7 @@ export async function lerPedidos(usuarioId: string): Promise<PedidoNaLista[]> {
 
 // um texto literal so: e dele que o supabase-js tira o tipo da resposta
 const COLUNAS_DO_PEDIDO =
-  'numero, status, motivo_cancelamento, criado_em, pago_em, em_preparo_em, a_caminho_em, entregue_em, cancelado_em, subtotal_centavos, frete_centavos, total_centavos, entrega_cep, entrega_logradouro, entrega_numero, entrega_complemento, entrega_bairro, entrega_cidade, entrega_uf, entrega_minutos, rastreio_url, itens_do_pedido(produto, nome, tipo, preco_centavos, quantos, total_centavos), pagamentos(forma, parcelas, cartao_bandeira, cartao_final, aprovado_em)'
+  'numero, status, motivo_cancelamento, criado_em, pago_em, em_preparo_em, a_caminho_em, entregue_em, cancelado_em, subtotal_centavos, frete_centavos, total_centavos, entrega_cep, entrega_logradouro, entrega_numero, entrega_complemento, entrega_bairro, entrega_cidade, entrega_uf, entrega_minutos, rastreio_url, itens_do_pedido(produto, nome, tipo, preco_centavos, quantos, total_centavos), pagamentos(forma, parcelas, cartao_bandeira, cartao_final, aprovado_em, status, criado_em, pix_copia_e_cola, pix_qr_base64, pix_expira_em)'
 
 export async function lerPedido(usuarioId: string, numero: string): Promise<PedidoCompleto | null> {
   if (!conferirNumeroDoPedido(numero)) return null
@@ -137,6 +160,7 @@ export async function lerPedido(usuarioId: string, numero: string): Promise<Pedi
           cartaoFinal: aprovado.cartao_final,
         }
       : null,
+    pixPendente: pixPendenteDe(p.status, p.pagamentos),
   }
 }
 
