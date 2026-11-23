@@ -18,7 +18,7 @@ function montar(arquivos: Record<string, string>) {
 }
 
 function varrer(env: Record<string, string> = {}) {
-  const limpo = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/SUPABASE|MERCADOPAGO|TAREFAS/.test(k)))
+  const limpo = Object.fromEntries(Object.entries(process.env).filter(([k]) => !/SUPABASE|MERCADOPAGO|TAREFAS|UBER|COZINHA/.test(k)))
   const r = spawnSync(process.execPath, [SCRIPT], { cwd: pasta, env: { ...limpo, ...env } as NodeJS.ProcessEnv, encoding: 'utf8' })
   return { codigo: r.status, saida: r.stdout + r.stderr }
 }
@@ -58,6 +58,17 @@ describe('varrer-segredos', () => {
 `, '.next/static/a.js': 'APP_USR-6b0d5c4a-1f2e-4d3c-9b8a-7f6e5d4c3b2a' })
     expect(varrer().codigo).toBe(0)
   })
+  it.each(['UBER_DIRECT_CLIENT_SECRET', 'UBER_DIRECT_WEBHOOK_SECRET', 'COZINHA_ENDERECO'])(
+    'o valor de %s no que o site entrega dispara, sem imprimir o valor',
+    (nome) => {
+      const valor = nome === 'COZINHA_ENDERECO' ? '{"logradouro":"Rua do Teste"}' : 'valor-secreto-da-uber-123'
+      montar({ '.next/static/a.js': `x${valor}x` })
+      const r = varrer({ [nome]: valor })
+      expect(r.codigo).toBe(1)
+      expect(r.saida).toContain(`a.js: ${nome}`)
+      expect(r.saida).not.toContain(valor)
+    },
+  )
   it.each(['APP_USR', 'TEST'])('o token do Mercado Pago (%s) dispara, sem imprimir o valor', (prefixo) => {
     const token = `${prefixo}-1234567890123456-112118-0123456789abcdef0123456789abcdef-123456789`
     montar({ '.env.local': `SUPABASE_PORTA=${SEGREDO}
