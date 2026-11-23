@@ -109,13 +109,6 @@ async function chamar(rotulo, url, opcoes) {
     corpo = await r.json();
   } catch {}
   const chaves = corpo && typeof corpo === "object" ? Object.keys(corpo).join(",") : "-";
-  if (!r.ok && corpo) {
-    let m = String(corpo.message ?? "");
-    for (const v of Object.values(cozinha)) if (String(v).length > 2) m = m.split(String(v)).join("<x>");
-    m = m.replace(/\d{4,}/g, "<n>");
-    let dt = JSON.stringify(corpo.metadata?.details ?? null); for (const v of Object.values(cozinha)) if (String(v).length > 2) dt = dt.split(String(v)).join("<x>");
-    console.log(`[ensaio]   mensagem: ${m.slice(0, 200)} metadata=${JSON.stringify(Object.keys(corpo.metadata ?? {}))} detalhes=${dt.replace(/d{4,}/g, "<n>").slice(0, 300)}`);
-  }
   console.log(`[ensaio] ${rotulo}: HTTP ${r.status}${r.ok ? "" : ` code=${corpo?.code ?? "?"}`} chaves=[${chaves}]`);
   return { status: r.status, ok: r.ok, corpo };
 }
@@ -163,6 +156,20 @@ async function cancelar(id) {
   });
   console.log(`[ensaio]   cancelamento: status=${c.corpo?.status}`);
   return c;
+}
+
+// Tenta cancelar; erro de rede conta como falha. Devolve true so se o Uber
+// respondeu 2xx. Uma segunda tentativa se a primeira falhar.
+async function cancelarConferindo(id) {
+  if (typeof id !== "string") return false;
+  for (let i = 0; i < 2; i++) {
+    try {
+      if ((await cancelar(id)).ok) return true;
+    } catch {
+      console.log("[ensaio]   cancelamento: erro de rede");
+    }
+  }
+  return false;
 }
 
 // 1. cotacao agora (a cotacao nao traz live_mode; o portao fica na criacao)
@@ -215,11 +222,17 @@ for (const [nome, j] of Object.entries(JANELAS)) {
     if (typeof d.id === "string") idCriado = d.id;
     if (criada.ok && d.live_mode !== false) {
       // nenhuma outra chamada antes do cancelamento
-      await cancelar(idCriado);
-      idCriado = null;
-      console.log(
-        "[ensaio] A CORRIDA ERA REAL (live_mode nao e false) e foi cancelada. Credenciais de producao. Parando.",
-      );
+      const ok = await cancelarConferindo(idCriado);
+      if (ok) {
+        idCriado = null;
+        console.log(
+          "[ensaio] A CORRIDA ERA REAL (live_mode nao e false) e foi cancelada. Credenciais de producao. Parando.",
+        );
+      } else {
+        console.log(
+          "[ensaio] !!! CANCELAMENTO FALHOU: A CORRIDA E REAL (live_mode nao e false) E PODE ESTAR ATIVA. CANCELE NA MAO no painel direct.uber.com !!!",
+        );
+      }
       saida = 2;
       break;
     }
@@ -239,7 +252,10 @@ for (const [nome, j] of Object.entries(JANELAS)) {
     console.log(`[ensaio] corrida recusada na faixa ${nome} (code=${d.code ?? "?"})`);
     leaveAtDoorRecusado = true;
   } finally {
-    if (idCriado) await cancelar(idCriado);
+    if (idCriado && !(await cancelarConferindo(idCriado))) {
+      console.log("[ensaio] !!! CANCELAMENTO FALHOU: cancele a corrida de teste na mao no painel !!!");
+      saida = saida || 3;
+    }
   }
 }
 if (saida) process.exit(saida);
