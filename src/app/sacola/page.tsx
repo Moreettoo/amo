@@ -36,7 +36,7 @@ const marcaDaConta = (id: string) => createHash('sha256').update(id).digest('hex
 async function lerDadosDaSacola(): Promise<DadosDaSacola> {
   const [usuario, loja, cabecalhos] = await Promise.all([obterUsuario(), lerLoja(), headers()])
   const principal = usuario ? await lerPrincipal(usuario.id) : null
-  const situacao = situacaoDaLoja(loja.horarios, loja.pausada, new Date())
+  const situacao = situacaoDaLoja(loja, new Date())
   return {
     usuario: usuario ? { nome: usuario.nome, celular: usuario.celular, email: usuario.email } : null,
     conta: usuario ? marcaDaConta(usuario.id) : null,

@@ -25,15 +25,24 @@ describe('lerLoja', () => {
     respostas = {
       horarios: { corpo: [{ dia_da_semana: 1, abre: '09:00:00', fecha: '18:00:00' }], status: 200 },
       loja: { corpo: [{ vendas_pausadas: false }], status: 200 },
+      dias_fechados: { corpo: [{ data: '2026-12-25' }, { data: '2027-01-01' }], status: 200 },
     }
-    expect(await lerLoja()).toEqual({ horarios: [{ dia: 1, abre: '09:00:00', fecha: '18:00:00' }], pausada: false })
+    expect(await lerLoja()).toEqual({
+      horarios: [{ dia: 1, abre: '09:00:00', fecha: '18:00:00' }],
+      pausada: false,
+      diasFechados: ['2026-12-25', '2027-01-01'],
+    })
   })
   it('sem linha em loja, pausada', async () => {
-    respostas = { horarios: { corpo: [], status: 200 }, loja: { corpo: [], status: 200 } }
+    respostas = { horarios: { corpo: [], status: 200 }, loja: { corpo: [], status: 200 }, dias_fechados: { corpo: [], status: 200 } }
     expect((await lerLoja()).pausada).toBe(true)
   })
+  it('erro HTTP 503 em dias_fechados rejeita', async () => {
+    respostas = { horarios: { corpo: [], status: 200 }, loja: { corpo: [], status: 200 }, dias_fechados: { corpo: {}, status: 503 } }
+    await expect(lerLoja()).rejects.toThrow('Falha no banco (loja): HTTP 503')
+  })
   it('erro HTTP 503 rejeita', async () => {
-    respostas = { horarios: { corpo: {}, status: 503 }, loja: { corpo: [], status: 200 } }
+    respostas = { horarios: { corpo: {}, status: 503 }, loja: { corpo: [], status: 200 }, dias_fechados: { corpo: [], status: 200 } }
     await expect(lerLoja()).rejects.toThrow('Falha no banco (loja): HTTP 503')
   })
 })

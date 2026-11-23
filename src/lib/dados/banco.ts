@@ -81,6 +81,24 @@ export type Database = {
           },
         ]
       }
+      dias_fechados: {
+        Row: {
+          criado_em: string
+          data: string
+          motivo: string | null
+        }
+        Insert: {
+          criado_em?: string
+          data: string
+          motivo?: string | null
+        }
+        Update: {
+          criado_em?: string
+          data?: string
+          motivo?: string | null
+        }
+        Relationships: []
+      }
       enderecos: {
         Row: {
           apelido: string | null

@@ -11,10 +11,10 @@ create temp table _esperado (objeto text, papel text, privilegio text);
 insert into _esperado (objeto, papel, privilegio) values
   ('schema privado', 'service_role', 'USAGE');
 
--- catalogo, horario e loja: leitura publica
+-- catalogo, horario, datas fechadas e loja: leitura publica
 insert into _esperado (objeto, papel, privilegio)
 select 'public.' || tabela, papel, 'SELECT'
-from unnest(array['categorias', 'selos', 'vontades', 'linhas', 'produtos', 'horarios', 'loja']) as tabela
+from unnest(array['categorias', 'selos', 'vontades', 'linhas', 'produtos', 'horarios', 'loja', 'dias_fechados']) as tabela
 cross join unnest(array['anon', 'authenticated']) as papel;
 
 -- perfis: a cliente le o proprio e altera so nome e celular
@@ -58,7 +58,9 @@ insert into _esperado (objeto, papel, privilegio) values
   ('privado.registrar_evento_webhook(text, text, text, text)', 'service_role', 'EXECUTE'),
   ('privado.concluir_evento_webhook(bigint, text)', 'service_role', 'EXECUTE'),
   ('privado.aplicar_entrega(uuid, text, text, text)', 'service_role', 'EXECUTE'),
-  ('privado.consumir_limite(text, integer, integer)', 'service_role', 'EXECUTE');
+  ('privado.consumir_limite(text, integer, integer)', 'service_role', 'EXECUTE'),
+  ('privado.faixa_valida(timestamp with time zone, timestamp with time zone, timestamp with time zone, boolean)',
+    'service_role', 'EXECUTE');
 
 -- comentarios: o visitante le o aprovado sem saber quem escreveu
 insert into _esperado (objeto, papel, privilegio)
