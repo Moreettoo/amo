@@ -74,7 +74,7 @@ Responde o que muda o desenho (spec §5.2 e §16): se a conta aceita a faixa de 
 
 - [ ] **Step 4: Anotar o resultado** aqui embaixo e em `supabase/README.md` (seção nova "Uber Direct: o que o ensaio mostrou", data e o que passou). Se a faixa de 1 hora ou `leave_at_door` forem recusados, **parar e avisar o dono** antes da Task 3 (spec §5.2: o fallback de 4 horas é dele, já decidido; o `leave_at_door` recusado não tem decisão).
 
-  Resultado: _(preencher: constantes de faixa; `leave_at_door` aceito sim/não; host do rastreio)_
+  Resultado (2026-11-23, conta de teste, `live_mode: false`): faixa de 1 hora aceita (coleta de s-30 a s, entrega de s a s+60), então valem as constantes 60/30 e o fallback de 4 horas não é necessário; `leave_at_door` com `dropoff_verification.picture: true` aceito, sim; host do rastreio `direct-order.uber.com`. Também: a cotação não traz `live_mode` (só a corrida traz), então o portão de teste fica na resposta de `POST /deliveries`; e há um raio máximo de entrega de 3,11 milhas (5 km) a partir da cozinha, além dele a cotação volta `address_undeliverable`. Ids: cotação `dqt_`, corrida `del_`. O ensaio usou o destino fixo Rua Visconde de Parnaíba, 1316, Mooca, no lugar da Av. Paulista (a Paulista fica fora do raio).
 
 - [ ] **Step 5: Commit** (`test: ensaio da conta de teste da Uber`), com `.env.example` e o README.
 

@@ -380,3 +380,23 @@ No PowerShell as variáveis ficam na janela até ela fechar. No fim do ensaio,
   as cotações sem conta feitas no ensaio, a conta pela API do Auth e o
   servidor parado. No Windows, conferir que a porta 3000 ficou livre: o
   processo do Next pode sobrar depois de parar o `npm run dev`.
+
+## Uber Direct: o que o ensaio mostrou
+
+Ensaio de 2026-11-23 na conta de teste (`scripts/ensaio/uber-conta-de-teste.mjs`,
+rodado com `UBER_DIRECT_AMBIENTE=teste node --env-file=.env.local ...`).
+
+- A faixa de 1 hora foi aceita (coleta de s-30 a s, entrega de s a s+60): as
+  constantes são 60/30; o fallback de 4 horas não foi preciso.
+- `leave_at_door` com foto de entrega foi aceito.
+- O `tracking_url` tem host `direct-order.uber.com`.
+- A cotação não traz `live_mode`; só a corrida criada traz. O portão de teste
+  fica na resposta de `POST /deliveries`: se `live_mode` não for exatamente
+  `false`, cancelar na hora e parar.
+- Raio máximo de entrega de 3,11 milhas (5 km) a partir da cozinha: além dele a
+  cotação volta `address_undeliverable`. A Av. Paulista ficou fora; o destino
+  fixo do ensaio é a Rua Visconde de Parnaíba, 1316, Mooca.
+- Ids: cotação `dqt_`, corrida `del_`. Cancelar a corrida responde 200 com
+  `status: canceled`.
+- Atenção: um primeiro ensaio rodou com chaves de produção, mas só cotou (nenhuma
+  corrida criada). Use sempre as chaves de teste no ensaio.
