@@ -254,8 +254,9 @@ e cliente continuam sem acesso a ele. `registrar_cotacao`,
 `registrar_evento_webhook`, `concluir_evento_webhook`, `consumir_limite`,
 `faixa_valida` e as da corrida na Uber (`reservar_corridas`,
 `marcar_corrida_criada`, `marcar_corrida_falhou`, `remarcar_entrega`,
-`aplicar_entrega`, `corridas_a_cancelar`, `corrida_cancelada` e
-`corridas_a_conferir`). A chave secreta não lê nenhuma tabela.
+`aplicar_entrega`, `corridas_a_cancelar`, `corrida_cancelada`,
+`corrida_nao_cancelavel` e `corridas_a_conferir`). A chave secreta não lê
+nenhuma tabela.
 
 Os erros de regra chegam com SQLSTATE `P0001` e a mensagem igual a um
 código curto, que o servidor traduz para a tela:
@@ -523,14 +524,14 @@ Parnaíba, 1316, Mooca. Pedidos `AMO-A8XPCCR4` (agora), `AMO-CBM83U84`
   leave_at_door` com foto de entrega, `external_id`, `manifest_total_value` e o
   preço dos itens em centavos. Nenhuma criação foi recusada.
 
-Achado, corrigir antes de ligar o agendamento de verdade: a cotação **com
-janela** traz `duration` e `pickup_duration` contando o tempo até a janela
-(1237 e 1205 minutos para uma janela de amanhã às 10h), e `privado.cotacoes`
-só aceita `minutos` de 1 a 600 (`cotacoes_minutos_check`). Uma faixa a mais de
-cerca de 10 horas falha em `registrar_cotacao` (23514) e a sacola mostra "Não
-deu certo agora". Faixas mais próximas (aqui, daqui a 2 a 3 horas) passam. O
-servidor deve guardar os minutos da corrida e não os até a janela (por exemplo,
-limitando a 600 ou usando um valor fixo no agendado).
+Achado no ensaio, já corrigido (d0df8fa): a cotação **com janela** traz
+`duration` e `pickup_duration` contando o tempo até a janela (1237 e 1205
+minutos para uma janela de amanhã às 10h), e `privado.cotacoes` só aceita
+`minutos` de 1 a 600 (`cotacoes_minutos_check`). Uma faixa a mais de cerca de
+10 horas falhava em `registrar_cotacao` (23514) e a sacola mostrava "Não deu
+certo agora". Agora a cotação `agendado` guarda `minutos` igual à duração da
+faixa (`FAIXA.duracaoMin`, 60), e não o tempo até a janela; o "chega em X
+minutos" vale depois que o pedido sai.
 
 Para ensaiar o agendado com a loja fechada, sem tela de escolha da faixa:
 `delete`/`insert` em `public.horarios` do dia de hoje com abertura mais tarde,
