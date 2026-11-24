@@ -20,8 +20,11 @@ resultado. Falta do dono, no painel do Mercado Pago: as
 credenciais de teste (`MERCADOPAGO_ACCESS_TOKEN` e
 `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`), a URL do aviso, os eventos "Order
 (Mercado Pago)" e "Chargebacks" e a assinatura secreta
-(`MERCADOPAGO_WEBHOOK_SECRET`). A cotação da entrega continua de exemplo até
-o Uber Direct (etapa 4). Como rodar e manter: `supabase/README.md`.
+(`MERCADOPAGO_WEBHOOK_SECRET`). A entrega pelo Uber Direct (cotação, corrida
+criada com o pagamento, aviso e reconciliação) está desenhada em
+`2026-11-23-amo-entrega-uber-direct-design.md` e construída no servidor, com a
+Uber falsa no ensaio; sem as credenciais dele a cotação continua de exemplo.
+Como rodar e manter: `supabase/README.md`.
 **Projeto Supabase:** `yuhrtuizxuvqvvjtcemz` (conta pessoal do dono; MCP `supabase-amo`).
 É o banco de **desenvolvimento** (decisão do dono, 2026-11-18). A produção
 nasce num projeto novo, na etapa 4 (§15).

@@ -404,3 +404,129 @@ rodado com `UBER_DIRECT_AMBIENTE=teste node --env-file=.env.local ...`).
   `status: canceled`.
 - Atenção: um primeiro ensaio rodou com chaves de produção, mas só cotou (nenhuma
   corrida criada). Use sempre as chaves de teste no ensaio.
+
+## Uber Direct: variáveis, Uber falsa e operação
+
+### As variáveis (só do servidor, nunca `NEXT_PUBLIC_`)
+
+| Variável | Para quê |
+| --- | --- |
+| `UBER_DIRECT_CUSTOMER_ID`, `UBER_DIRECT_CLIENT_ID`, `UBER_DIRECT_CLIENT_SECRET` | a conta e a credencial OAuth; com as três, a cotação é a da Uber |
+| `UBER_DIRECT_WEBHOOK_SECRET` | a chave que confere a assinatura do aviso em `/api/webhooks/uber` |
+| `UBER_DIRECT_AMBIENTE` | `teste` na conta de teste; sem ela o servidor se comporta como produção |
+| `COZINHA_ENDERECO` | JSON com logradouro, número, complemento, bairro, cidade, uf, cep e telefone da cozinha |
+| `TAREFAS_SEGREDO` | a senha de `/api/tarefas/reconciliar` e de `npm run reconciliar` |
+
+O modelo é `.env.example`. A conta de teste e a de produção são credenciais
+diferentes; o ambiente do Mercado Pago e o da Uber têm de combinar (os dois em
+teste ou os dois em produção).
+
+### A Uber falsa
+
+`scripts/ensaio/uber-falsa.mjs` faz com a Uber o que o Mercado Pago falso faz com
+o Mercado Pago: troca o `fetch` só para `auth.uber.com` e `api.uber.com` e
+responde como a conta de teste. O site nunca o importa. Para rodar com as duas
+falsas, no PowerShell:
+
+```powershell
+$env:NODE_OPTIONS = '--import=./scripts/ensaio/as-duas-falsas.mjs'
+$env:MERCADOPAGO_ACCESS_TOKEN = 'APP_USR-ensaio'
+$env:MERCADOPAGO_WEBHOOK_SECRET = 'ensaio'
+npm run dev
+```
+
+No fim, `Remove-Item Env:NODE_OPTIONS, Env:MERCADOPAGO_ACCESS_TOKEN, Env:MERCADOPAGO_WEBHOOK_SECRET`.
+
+- **Um `--import` só.** `as-duas-falsas.mjs` importa o Mercado Pago falso e a
+  Uber falsa. Com dois `--import` no `NODE_OPTIONS`, o processo do Next que roda
+  o site ficou só com o último (a Uber falsa) e o Pix foi ao Mercado Pago de
+  verdade (403). Para só a Uber falsa, `--import=./scripts/ensaio/uber-falsa.mjs`.
+- **Antes de qualquer compra,** conferir no terminal a linha `[ensaio] Uber falsa
+  ligada neste processo`. O `.env.local` tem as credenciais de teste de
+  verdade: sem essa linha, o servidor falaria com a Uber de teste de verdade.
+- Só vale com `UBER_DIRECT_AMBIENTE=teste` e fora de `NODE_ENV=production`;
+  senão o terminal diz `[ensaio] Uber falsa desligada` e a chamada vai à Uber.
+- O token é fixo e dura 30 dias. A cotação traz `dqt_...`, `currency: brl` e um
+  `fee` em centavos que cresce com os dígitos do CEP, sem `live_mode` (como a
+  real). A corrida traz `del_...`, `live_mode: false` e um `tracking_url` em
+  `direct-order.uber.com`; a cada `GET` ela anda `pending`, `pickup`,
+  `pickup_complete`, `dropoff` e `delivered`, de 20 em 20 s desde a criação
+  (o id carrega a hora, como o do Mercado Pago). Cancelar devolve `canceled`;
+  de novo, ou com a corrida já entregue, 409.
+- Cada chamada respondida aparece no terminal (`[ensaio] Uber falsa: GET
+  /deliveries/<id> 200 pickup`). O teste `tests/ensaio-uber-falsa.test.ts`
+  confere o falso pelo cliente de verdade.
+- O falso não manda aviso (webhook): quem leva o pedido adiante é
+  `npm run reconciliar`, que lê a corrida pelo `GET`.
+- Limpar depois: igual ao ensaio do Mercado Pago (seção Testes, "Limpar
+  depois"), incluindo `privado.entregas` e `privado.cotacoes`.
+
+### Operação
+
+Corridas que a equipe precisa olhar (`precisa_da_equipe`), com o motivo:
+
+```sql
+select e.pedido_id, p.numero, e.estado, e.motivo, e.atualizado_em
+from privado.entregas e join public.pedidos p on p.id = e.pedido_id
+where e.estado = 'precisa_da_equipe'
+order by e.atualizado_em;
+```
+
+Fechar uma data (feriado, folga): inserir em `dias_fechados`. A faixa daquele dia
+deixa de aparecer na sacola; para reabrir, apagar a linha.
+
+```sql
+insert into public.dias_fechados (data, motivo) values ('2026-12-25', 'Natal');
+```
+
+O portão da Uber de verdade, em teste (túnel, aviso assinado, corrida com o Robo
+Courier, rastreio, cancelamento, `fee` cobrado igual ao cotado), é a Task 13 do
+plano `docs/superpowers/plans/2026-11-23-amo-entrega-uber-servidor.md`, feita
+com o dono; o resultado dela entra aqui.
+
+### O que é do dono
+
+- **Política de privacidade** (ainda não escrita, backend §18): precisa citar a
+  Uber como quem entrega e que recebe nome, celular e endereço da cliente
+  (spec da entrega, §12).
+- As credenciais do Uber Direct (de teste e, depois, de produção), a URL do
+  aviso e a chave de assinatura dele, no painel `direct.uber.com`.
+
+### O ensaio de ponta a ponta (Uber falsa e Mercado Pago falso)
+
+Ensaio de 2026-11-24, 0h, no Edge headless por CDP, com `npm run dev` e as duas
+falsas (as linhas `[ensaio] ... ligada` apareceram antes de qualquer compra),
+numa conta criada por `admin.auth.admin.createUser` e entrando com senha.
+O endereço foi a Rua Visconde de Parnaíba, 1316 (CEP 03045-000).
+
+- **Agora, com Pix** (pedido `AMO-QE88YXFG`): cotação `dqt_ensaio_...` de R$ 10,40
+  (R$ 8,00 mais 20 centavos por unidade da soma dos dígitos do CEP, 12); o Pix
+  falso passou a pago 20 s depois; o pagamento aprovado criou a corrida
+  (`POST /deliveries`, `pending`) e o pedido ficou "pago, na fila".
+- **Agendado para amanhã, das 11h às 12h** (pedido `AMO-EKX2TSSV`): janela em
+  `privado.cotacoes` de 14h a 15h UTC; mesma sequência, corrida criada.
+- **Reconciliação:** `npm run reconciliar` só pergunta à Uber as corridas
+  caladas há mais de 10 minutos (`corridas_a_conferir`). Antes disso ela
+  responde `conferidas: 0`. Aos 10 minutos, com o relógio do falso já em
+  `delivered`, cada corrida foi lida uma vez (`GET`, `delivered`) e o pedido
+  foi direto a "entregue" em `/conta/pedidos/<numero>`, com "A caminho" e
+  "Entregue" na mesma hora. Os estados do meio (`pickup`, `pickup_complete`,
+  `dropoff`) não apareceram no site, porque nada avisa o servidor (o falso não
+  manda webhook) e a reconciliação é a única leitura.
+- Limpeza feita: pedidos, itens, pagamentos, entregas, cotações e a conta;
+  horários de volta a segunda a sábado, das 9h às 18h, conferidos.
+
+O que o ensaio mostrou:
+
+- **Dois `--import` no `NODE_OPTIONS`** deixaram o processo do site só com a
+  Uber falsa, e o Pix foi ao Mercado Pago de verdade (403, nada cobrado). Daí o
+  `as-duas-falsas.mjs`.
+- **A sacola ainda não deixa comprar com a loja fechada.** O servidor cota em
+  modo `agendado` (a primeira faixa livre) e `fecharPedido` aceita, mas o botão
+  do pagamento fica desligado ("Cozinha fechada agora") e não há como escolher
+  a faixa na tela. O pedido agendado foi feito abrindo o horário de hoje depois
+  de cotar (a cotação `agendado` já estava na sacola) e pondo a abertura de
+  amanhã às 10h30, para a primeira faixa ser a das 11h. A tela de escolha da
+  faixa e a compra agendada com a loja fechada ficam para a parte da interface.
+- **Aviso (webhook):** não ensaiado aqui; é o que a Task 13 confere com a Uber
+  de verdade.

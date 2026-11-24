@@ -72,13 +72,19 @@ foi parar no que vai ao navegador.
 | `MERCADOPAGO_ACCESS_TOKEN` | só o servidor | o Access Token do Mercado Pago (no desenvolvimento, o de teste) |
 | `MERCADOPAGO_WEBHOOK_SECRET` | só o servidor | a assinatura secreta do aviso do Mercado Pago |
 | `MERCADOPAGO_AMBIENTE` | só o servidor | `teste` no desenvolvimento; sem ela, o servidor se comporta como produção e recusa a cotação de exemplo |
+| `UBER_DIRECT_CUSTOMER_ID`, `UBER_DIRECT_CLIENT_ID`, `UBER_DIRECT_CLIENT_SECRET` | só o servidor | a conta do Uber Direct; com as três, a cotação da entrega é a da Uber, sem elas é de exemplo |
+| `UBER_DIRECT_WEBHOOK_SECRET` | só o servidor | a chave que confere a assinatura do aviso da Uber |
+| `UBER_DIRECT_AMBIENTE` | só o servidor | `teste` na conta de teste; sem ela, o servidor se comporta como produção |
+| `COZINHA_ENDERECO` | só o servidor | o endereço e o telefone da cozinha (JSON), de onde a Uber retira; nunca vai ao navegador |
 
 As credenciais do Mercado Pago (de teste, no desenvolvimento) são do dono: ele
 as cria no painel do Mercado Pago, junto com a URL do aviso, os eventos e a
 assinatura secreta (`supabase/README.md`, "O que é do dono"). O cartão só foi
 testado com dublês: o ensaio dele com a chave de teste é o portão antes de
 ligar `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` (mesma seção). A cotação da
-entrega continua de exemplo até o Uber Direct.
+entrega deixa de ser de exemplo quando as credenciais do Uber Direct estão no
+ambiente; sem elas, continua de exemplo. Para percorrer a entrega sem a Uber
+de verdade, há uma Uber falsa de ensaio (`supabase/README.md`, "A Uber falsa").
 
 ## O ensaio da sacola
 

@@ -59,9 +59,10 @@ açúcar") e os selos dizem o que tem e o que não tem. Receita conhecida
   credenciais de teste do Mercado Pago, que o dono ainda precisa cadastrar
   no painel dele e pôr no ambiente (`supabase/README.md`, "O que é do dono").
   Sem elas, a sacola só é percorrida no ensaio, com o Mercado Pago falso.
-- A cotação da entrega continua de exemplo até a conta do Uber Direct
-  (etapa 4), e a página diz "(valor de exemplo)" junto do valor: a Regra do
-  Exemplo Dito (`DESIGN.md`) agora vale só para a entrega.
+- A cotação da entrega vem do Uber Direct quando as credenciais dele estão no
+  ambiente; sem elas continua de exemplo, e a página diz "(valor de exemplo)"
+  junto do valor: a Regra do Exemplo Dito (`DESIGN.md`) vale só para a
+  entrega, e só nesse caso.
 - A loja diz quando recebe pedidos: aberta, até que horas; fechada, quando
   abre e os horários; com as vendas pausadas, que volta daqui a pouco. Fechada
   ou pausada, o botão do pagamento diz "Cozinha fechada agora" e não cobra.
