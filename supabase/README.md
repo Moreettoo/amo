@@ -330,7 +330,15 @@ O mesmo ensaio confirma que o `getAdditionalData` do Brick traz o
 `paymentTypeId` (contrato, §6): sem ele, todo cartão termina em "Confira os
 dados do cartão." e nada é cobrado.
 
-Resultado: ainda não ensaiado (falta a chave de teste do dono).
+Resultado (ensaio de 2026-11-23, Chrome, `next dev` e `next start` na porta
+3001, Mercado Pago de verdade na conta de teste): o Brick aparece e o console
+fica sem violação de CSP **depois da correção da CSP** (antes, ele ficava no
+esqueleto: ver "Mercado Pago: o que o ensaio mostrou"); `APRO` aprova (no
+`next start`, direto; no `next dev`, pediu o desafio); `OTHE` mostra "O banco
+do cartão recusou" e deixa tentar de novo, com token novo; `CONT` fica
+"aguardando a confirmação do cartão"; o desafio do banco abre num iframe de
+`www.mercadopago.com.br` e fica até o resultado. O `getAdditionalData` traz
+`paymentTypeId`. A tela a 390 px não foi ensaiada nesta rodada.
 
 ### O ensaio com o Mercado Pago falso
 
@@ -459,6 +467,32 @@ Ensaio de 2026-11-23 (três rodadas):
 - **Device ID:** o cabeçalho `X-meli-session-id` é aceito.
 - **Chave de idempotência:** a mesma chave com o mesmo corpo devolve 201 e o
   mesmo pedido; com outro corpo, 409 `idempotency_key_already_used`.
+
+No navegador (2026-11-23, com túnel `cloudflared` e o aviso cadastrado no
+aplicativo do vendedor de teste):
+
+- **CSP:** o Brick busca `secure-fields.mercadopago.com` por `fetch`, e o SDK
+  identifica o aparelho em `www.mercadolibre.com` e `www.mercadolivre.com`.
+  Sem esses destinos, o Brick não saía do esqueleto. A CSP foi corrigida.
+- **Device ID:** o SDK v2 não cria `window.MP_DEVICE_SESSION_ID`; a
+  identificação fica com ele, e o cabeçalho `X-meli-session-id` não vai.
+- **Avisos:** chegam assinados pelo túnel (200), com um parâmetro a mais na URL,
+  `data.external_reference`, que a rota ignora.
+- **Pix aprovado** (com o gancho do `APRO`): o pedido fica pago, a sacola
+  esvazia e `privado.entregas` ganha uma linha só, mesmo com dois avisos e a
+  espera da tela aplicando o mesmo pagamento. O pedido no Mercado Pago leva
+  os itens (os potes e a entrega).
+- **Troca:** recomeçar o fechamento com um Pix pendente cancela esse Pix no
+  Mercado Pago (`canceled_transaction`).
+- **Estorno automático:** um pagamento aprovado para um pedido já cancelado
+  vira `a_estornar` pelo aviso e termina `estornado` no Mercado Pago, sem a
+  equipe.
+- **Desafio que falha:** volta `3ds_challenge_failed`, agora com a mensagem do
+  desafio não concluído.
+- **Reconciliação:** `POST /api/tarefas/reconciliar` com `TAREFAS_SEGREDO`
+  responde 200 com as contagens; sem ele, 401.
+- **Parcelas:** o Brick oferece de 1x a 6x com juros pagos pela cliente
+  (configuração da conta do Mercado Pago, não do código).
 
 ## Uber Direct: o que o ensaio mostrou
 
