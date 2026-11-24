@@ -351,8 +351,11 @@ export type Database = {
           entrega_cep: string
           entrega_cidade: string
           entrega_complemento: string | null
+          entrega_janela_fim: string | null
+          entrega_janela_inicio: string | null
           entrega_logradouro: string | null
           entrega_minutos: number
+          entrega_modo: string
           entrega_numero: string | null
           entrega_uf: string
           entregue_em: string | null
@@ -380,8 +383,11 @@ export type Database = {
           entrega_cep: string
           entrega_cidade: string
           entrega_complemento?: string | null
+          entrega_janela_fim?: string | null
+          entrega_janela_inicio?: string | null
           entrega_logradouro?: string | null
           entrega_minutos: number
+          entrega_modo?: string
           entrega_numero?: string | null
           entrega_uf: string
           entregue_em?: string | null
@@ -409,8 +415,11 @@ export type Database = {
           entrega_cep?: string
           entrega_cidade?: string
           entrega_complemento?: string | null
+          entrega_janela_fim?: string | null
+          entrega_janela_inicio?: string | null
           entrega_logradouro?: string | null
           entrega_minutos?: number
+          entrega_modo?: string
           entrega_numero?: string | null
           entrega_uf?: string
           entregue_em?: string | null

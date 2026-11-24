@@ -80,7 +80,7 @@ describe('campos', () => {
 })
 
 describe('codigos do banco', () => {
-  it.each(['email_nao_confirmado', 'loja_fechada', 'produto_indisponivel', 'muitos_pedidos', 'total_mudou', 'sem_sessao'])(
+  it.each(['email_nao_confirmado', 'loja_fechada', 'produto_indisponivel', 'muitos_pedidos', 'total_mudou', 'sem_sessao', 'faixa_indisponivel'])(
     '%s passa com o mesmo nome',
     async (codigo) => {
       m.rpc.mockResolvedValue(doBanco(codigo))

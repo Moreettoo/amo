@@ -167,6 +167,7 @@ describe('iniciarPagamento', () => {
     expect(await tradu('pedido_invalido')).toEqual({ ok: false, erro: 'pedido_invalido' })
     expect(await tradu('muitas_tentativas')).toEqual({ ok: false, erro: 'tentativas_esgotadas' })
     expect(await tradu('sem_sessao')).toEqual({ ok: false, erro: 'sem_sessao' })
+    expect(await tradu('faixa_indisponivel')).toEqual({ ok: false, erro: 'faixa_indisponivel' })
     expect(await tradu('qualquer')).toEqual({ ok: false, erro: 'tente_de_novo' })
     expect(await tradu('toString')).toEqual({ ok: false, erro: 'tente_de_novo' })
     expect(m.criarPedidoPix).not.toHaveBeenCalled()

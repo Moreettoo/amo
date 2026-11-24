@@ -44,7 +44,7 @@ insert into _esperado (objeto, papel, privilegio) values
   ('public.criar_pedido(jsonb, uuid, integer, boolean)', 'authenticated', 'EXECUTE'),
   ('public.iniciar_pagamento(uuid, text)', 'authenticated', 'EXECUTE'),
   ('public.cancelar_pedido(uuid)', 'authenticated', 'EXECUTE'),
-  ('privado.registrar_cotacao(uuid, text, text, text, text, text, text, text, integer, integer, text, text)',
+  ('privado.registrar_cotacao(uuid, text, text, text, text, text, text, text, integer, integer, text, text, text, timestamp with time zone, timestamp with time zone)',
     'service_role', 'EXECUTE');
 
 -- pagamento, avisos, entrega e limites: so a chave secreta

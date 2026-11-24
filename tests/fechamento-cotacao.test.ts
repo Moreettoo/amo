@@ -155,6 +155,13 @@ describe('registro', () => {
     expect(r.cotacao.endereco).toEqual({ cep: '03183002', numero: '120', complemento: 'ap 4', ...RUA })
   })
 
+  it('ate a Uber entrar: a conta de exemplo, sem id da Uber, agora e sem faixa', async () => {
+    await cotarEntrega(entrada)
+    expect(m.registrarCotacao).toHaveBeenCalledWith(
+      expect.objectContaining({ origem: 'exemplo', uberCotacaoId: null, modo: 'agora', faixa: null }),
+    )
+  })
+
   it('logada: o id dela', async () => {
     m.obterUsuario.mockResolvedValue({ id: 'usuario-1' })
     await cotarEntrega(entrada)

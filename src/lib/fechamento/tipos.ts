@@ -22,6 +22,8 @@ export type CodigoDoFechamento =
   | 'pagamento_indisponivel'
   | 'pagamento_recusado'
   | 'cartao_ilegivel'
+  | 'agora_indisponivel'
+  | 'faixa_indisponivel'
 
 export const MENSAGENS_DO_FECHAMENTO: Record<CodigoDoFechamento, string> = {
   campos_invalidos: 'Confira os campos marcados.',
@@ -43,6 +45,8 @@ export const MENSAGENS_DO_FECHAMENTO: Record<CodigoDoFechamento, string> = {
   pagamento_recusado: 'O pagamento foi recusado. Confira os dados ou use outro cartão.',
   // o Brick nao devolveu o cartao (campo faltando ou errado): ele marca os campos, e a etapa diz isto
   cartao_ilegivel: 'Confira os dados do cartão.',
+  agora_indisponivel: 'O Uber não chega antes de a cozinha fechar. Agende a entrega.',
+  faixa_indisponivel: 'Essa faixa não está mais disponível. Escolha outra.',
 }
 
 export type EnderecoDaCotacao = {

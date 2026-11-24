@@ -28,6 +28,10 @@ const cotacao = {
   usuarioId: 'usuario-1',
   valorCentavos: 880,
   minutos: 34,
+  origem: 'exemplo' as const,
+  uberCotacaoId: null,
+  modo: 'agora' as const,
+  faixa: null,
   cep: '03183002',
   logradouro: 'Rua Cuiabá',
   numero: '120',
@@ -60,6 +64,26 @@ describe('registrarCotacao', () => {
       p_minutos: 34,
       p_origem: 'exemplo',
       p_uber_cotacao_id: null,
+      p_modo: 'agora',
+      p_janela_inicio: null,
+      p_janela_fim: null,
+    })
+  })
+
+  it('agendado pela Uber: a origem, o id da Uber, o modo e a faixa', async () => {
+    await registrarCotacao({
+      ...cotacao,
+      origem: 'uber',
+      uberCotacaoId: 'dqt_abc123',
+      modo: 'agendado',
+      faixa: { inicio: '2026-11-25T17:00:00.000Z', fim: '2026-11-25T18:00:00.000Z' },
+    })
+    expect(m.rpc.mock.calls[0][1]).toMatchObject({
+      p_origem: 'uber',
+      p_uber_cotacao_id: 'dqt_abc123',
+      p_modo: 'agendado',
+      p_janela_inicio: '2026-11-25T17:00:00.000Z',
+      p_janela_fim: '2026-11-25T18:00:00.000Z',
     })
   })
 

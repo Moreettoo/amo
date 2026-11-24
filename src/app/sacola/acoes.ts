@@ -82,7 +82,16 @@ export async function cotarEntrega(entrada: unknown): Promise<RespostaDaCotacao>
       cidade: achado.cidade,
       uf: achado.uf,
     }
-    const id = await registrarCotacao({ usuarioId: usuario?.id ?? null, ...cotado, ...endereco })
+    // ate a cotacao da Uber entrar: a conta de exemplo, sempre agora
+    const id = await registrarCotacao({
+      usuarioId: usuario?.id ?? null,
+      ...cotado,
+      ...endereco,
+      origem: 'exemplo',
+      uberCotacaoId: null,
+      modo: 'agora',
+      faixa: null,
+    })
     return {
       ok: true,
       cotacao: {
@@ -113,6 +122,7 @@ const CODIGOS_DO_BANCO: Record<string, CodigoDoFechamento> = {
   cotacao_invalida: 'cotacao_vencida',
   cotacao_vencida: 'cotacao_vencida',
   itens_invalidos: 'campos_invalidos',
+  faixa_indisponivel: 'faixa_indisponivel',
 }
 
 /** O banco viu outro preco ou outro cardapio: o catalogo guardado no cache (5 min) ja nao vale. */
@@ -255,6 +265,7 @@ const CODIGOS_DE_INICIAR: Record<string, CodigoDoFechamento> = {
   pedido_invalido: 'pedido_invalido',
   muitas_tentativas: 'tentativas_esgotadas',
   sem_sessao: 'sem_sessao',
+  faixa_indisponivel: 'faixa_indisponivel',
 }
 
 /** So um 4xx de recusa (nao 409, 423 nem 429) encerra a tentativa; sem resposta, 2xx ilegivel, 5xx e esses tres a deixam pendente. */

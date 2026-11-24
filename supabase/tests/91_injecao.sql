@@ -98,6 +98,18 @@ insert into _v values ('cot_sql', privado.registrar_cotacao(null, '04567000', 'R
 select pg_temp.verificar('logradouro com SQL fica guardado ao pe da letra',
   (select logradouro = 'Rua D''Ávila''; drop table public.produtos; --' from privado.cotacoes where id = pg_temp.id('cot_sql')));
 
+select pg_temp.verificar('registrar_cotacao recusa modo hostil: ' || left(texto, 30),
+  pg_temp.como('service_role', null, format(
+    $$select privado.registrar_cotacao(null, '04567000', 'Rua X', '1', '', 'Centro', 'São Paulo', 'SP', 990, 35, 'exemplo', null, %L)$$,
+    texto)) = 'P0001 modo_invalido')
+from (select texto from _hostis
+      union all select unnest(array['Agora', 'AGENDADO', ' agora', 'agora ', 'agendado''; --', 'agora,agendado'])) m;
+
+select pg_temp.verificar('registrar_cotacao recusa modo nulo',
+  pg_temp.como('service_role', null,
+    $$select privado.registrar_cotacao(null, '04567000', 'Rua X', '1', '', 'Centro', 'São Paulo', 'SP', 990, 35, 'exemplo', null, null)$$)
+  = 'P0001 modo_invalido');
+
 select pg_temp.verificar('registrar_evento_webhook com id hostil: recusa ou guarda: ' || left(texto, 30),
   pg_temp.recusa_ou_ok(pg_temp.como('service_role', null, format(
     $$select * from privado.registrar_evento_webhook('mercadopago', %L, 'order', 'ORD1')$$, texto))))

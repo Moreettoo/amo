@@ -2,6 +2,7 @@ import 'server-only'
 import { criarClienteAdmin } from '@/lib/auth/admin'
 import { falhaDoBanco } from '@/lib/dados/erros'
 import type { EnderecoDaCotacao } from '@/lib/fechamento/tipos'
+import type { Faixa } from '@/lib/loja'
 
 /** Quanto tempo o valor da entrega vale. */
 export const VALIDADE_DA_COTACAO_MS = 15 * 60 * 1000
@@ -13,9 +14,21 @@ export function cotarDeExemplo(cep: string): { valorCentavos: number; minutos: n
   return { valorCentavos: 790 + distancia * 45, minutos: 30 + distancia * 2 }
 }
 
-/** Guarda a cotacao pela privado.registrar_cotacao e devolve o id dela. */
+/**
+ * Guarda a cotacao pela privado.registrar_cotacao e devolve o id dela. No
+ * agendado, o banco confere a faixa (faixa_valida) e recusa com
+ * faixa_indisponivel.
+ */
 export async function registrarCotacao(
-  c: { usuarioId: string | null; valorCentavos: number; minutos: number } & EnderecoDaCotacao,
+  c: {
+    usuarioId: string | null
+    valorCentavos: number
+    minutos: number
+    origem: 'uber' | 'exemplo'
+    uberCotacaoId: string | null
+    modo: 'agora' | 'agendado'
+    faixa: Faixa | null
+  } & EnderecoDaCotacao,
 ): Promise<string> {
   const { data, error, status } = await criarClienteAdmin()
     .schema('privado' as never)
@@ -32,8 +45,11 @@ export async function registrarCotacao(
         p_uf: c.uf,
         p_valor_centavos: c.valorCentavos,
         p_minutos: c.minutos,
-        p_origem: 'exemplo',
-        p_uber_cotacao_id: null,
+        p_origem: c.origem,
+        p_uber_cotacao_id: c.uberCotacaoId,
+        p_modo: c.modo,
+        p_janela_inicio: c.faixa?.inicio ?? null,
+        p_janela_fim: c.faixa?.fim ?? null,
       } as never,
     )
   if (error) throw falhaDoBanco('registrar_cotacao', error as { code?: string }, status)
