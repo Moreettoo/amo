@@ -1,6 +1,15 @@
 import { createHmac } from 'node:crypto'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { conferirAssinaturaUber } from '@/lib/uber/assinatura'
+
+describe('os modulos da Uber', () => {
+  const PASTA = resolve(import.meta.dirname, '../src/lib/uber')
+  it.each(readdirSync(PASTA).filter((f) => f.endsWith('.ts')))('%s comeca com server-only', (arquivo) => {
+    expect(readFileSync(join(PASTA, arquivo), 'utf8').split(/\r?\n/)[0]).toBe("import 'server-only'")
+  })
+})
 
 const SEGREDO = 'segredo-de-teste'
 const CORPO = '{"kind":"event.delivery_status","note":"a&b"}'

@@ -63,19 +63,18 @@ export function pixPendenteDe(estado: string, tentativas: TentativaLida[], agora
 }
 
 /**
- * O link de rastreio so passa se for https do Uber: uber.com ou um subdominio,
- * como direct-order.uber.com (o rastreio da Uber Direct). Dominio parecido
- * (uber.com.golpe.io, golpe-uber.com) nao passa.
+ * O mesmo filtro do banco (rastreio_url de public.pedidos e aplicar_entrega):
+ * https, host uber.com ou um subdominio em minusculas, como
+ * direct-order.uber.com (o rastreio da Uber Direct), sem porta, um caminho
+ * sem espaco, controle, < > " ou ', ate 500 caracteres. Dominio parecido
+ * (uber.com.golpe.io, golpe-uber.com) nao passa. O que o banco recusaria
+ * vira null aqui, para a corrida nunca se perder por causa do link.
  */
+const RASTREIO = /^https:\/\/([a-z0-9-]+\.)*uber\.com\/[^\s\p{Cc}<>"']*$/u
+
 export function rastreioSeguro(url: unknown): string | null {
-  if (typeof url !== 'string') return null
-  try {
-    const { protocol, hostname, username, password } = new URL(url)
-    if (protocol !== 'https:' || username || password) return null
-    return hostname === 'uber.com' || hostname.endsWith('.uber.com') ? url : null
-  } catch {
-    return null
-  }
+  if (typeof url !== 'string' || url.length > 500) return null
+  return RASTREIO.test(url) ? url : null
 }
 
 /** Os 50 mais recentes; potes e a soma de quantos de cada item. */

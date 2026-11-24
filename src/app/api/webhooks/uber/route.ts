@@ -5,6 +5,8 @@ import { conferirAssinaturaUber } from '@/lib/uber/assinatura'
 import { conferirCorrida } from '@/lib/uber/corridas'
 
 const ID = /^[A-Za-z0-9_.:-]{1,100}$/
+/** O aviso da Uber tem poucos KB; acima disto, 413 antes do HMAC. */
+const LIMITE_DO_CORPO = 64 * 1024
 
 const vazio = (status: number) => new Response(null, { status })
 
@@ -14,7 +16,9 @@ const vazio = (status: number) => new Response(null, { status })
  * reconciliacao cobre o resto. O log leva so codigos fixos.
  */
 export async function POST(request: Request): Promise<Response> {
+  if (Number(request.headers.get('content-length')) > LIMITE_DO_CORPO) return vazio(413)
   const corpo = await request.text()
+  if (Buffer.byteLength(corpo, 'utf8') > LIMITE_DO_CORPO) return vazio(413)
 
   let segredo: string
   try {

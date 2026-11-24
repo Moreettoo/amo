@@ -63,6 +63,48 @@ describe('aviso da Uber', () => {
     expect(m.conferirCorrida).not.toHaveBeenCalled()
   })
 
+  it('content-length acima de 64 KB: 413 vazio, sem ler o segredo nem conferir a assinatura', async () => {
+    const r = await aviso(CORPO, { 'x-uber-signature': 'sig-123', 'content-length': String(64 * 1024 + 1) })
+    expect(r.status).toBe(413)
+    expect(await r.text()).toBe('')
+    expect(m.variavel).not.toHaveBeenCalled()
+    expect(m.conferirAssinaturaUber).not.toHaveBeenCalled()
+    expect(m.registrarEventoWebhook).not.toHaveBeenCalled()
+  })
+
+  it('corpo acima de 64 KB sem content-length: 413 depois de ler, sem conferir a assinatura', async () => {
+    const grande = JSON.stringify({ ...CORPO, extra: 'x'.repeat(64 * 1024) })
+    const corpo = new ReadableStream<Uint8Array>({
+      start(c) {
+        c.enqueue(new TextEncoder().encode(grande))
+        c.close()
+      },
+    })
+    const pedido = new Request('https://amo.test/api/webhooks/uber', {
+      method: 'POST',
+      headers: { 'x-uber-signature': 'sig-123' },
+      body: corpo,
+      duplex: 'half',
+    } as RequestInit)
+    expect(pedido.headers.get('content-length')).toBeNull()
+    const r = await POST(pedido)
+    expect(r.status).toBe(413)
+    expect(m.conferirAssinaturaUber).not.toHaveBeenCalled()
+  })
+
+  it('64 KB contados em bytes: acento conta dois', async () => {
+    const r = await aviso(null, { 'x-uber-signature': 'sig-123' }, 'é'.repeat(32 * 1024 + 1))
+    expect(r.status).toBe(413)
+    expect(m.conferirAssinaturaUber).not.toHaveBeenCalled()
+  })
+
+  it('corpo de exatamente 64 KB segue para a assinatura', async () => {
+    m.conferirAssinaturaUber.mockReturnValue(false)
+    const r = await aviso(null, { 'x-uber-signature': 'sig-123' }, 'a'.repeat(64 * 1024))
+    expect(r.status).toBe(401)
+    expect(m.conferirAssinaturaUber).toHaveBeenCalledTimes(1)
+  })
+
   it('confere o corpo cru com o segredo', async () => {
     const bruto = '{"kind":"event.delivery_status","id":"e","delivery_id":"d"}'
     await aviso(null, { 'x-uber-signature': 'abc' }, bruto)

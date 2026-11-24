@@ -110,8 +110,27 @@ describe('rastreioSeguro', () => {
     ['https://user@evil.com'],
     ['nao e url'],
     [null],
+    // o banco recusa (rastreio_invalido): o mesmo filtro aqui, para a corrida nunca se perder
+    ['https://WWW.UBER.COM/t/1'],
+    ['https://Direct-Order.uber.com/orders/del_1'],
+    ['https://www.uber.com:443/t/1'],
+    ['https://direct-order.uber.com:8443/orders/del_1'],
+    ["https://www.uber.com/t/a'b"],
+    ['https://www.uber.com/t/a"b'],
+    ['https://www.uber.com/t/a<b'],
+    ['https://www.uber.com/t/a b'],
+    ['https://www.uber.com/t/a\tb'],
+    ['https://uber.com'],
+    ['https://user:senha@www.uber.com/t/1'],
+    [`https://www.uber.com/${'a'.repeat(480)}`],
   ])('%j vira null', (url) => {
     expect(rastreioSeguro(url)).toBeNull()
+  })
+
+  it('ate 500 caracteres passa, como no banco', () => {
+    const url = `https://www.uber.com/${'a'.repeat(479)}`
+    expect(url).toHaveLength(500)
+    expect(rastreioSeguro(url)).toBe(url)
   })
 })
 
