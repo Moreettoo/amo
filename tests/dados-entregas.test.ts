@@ -26,6 +26,7 @@ import { ErroDeRegra } from '@/lib/dados/erros'
 import {
   aplicarEntrega,
   corridaCancelada,
+  corridaNaoCancelavel,
   corridasACancelar,
   corridasAConferir,
   guardarTokenUber,
@@ -249,6 +250,20 @@ describe('corridaCancelada', () => {
   it('erro do banco sobe', async () => {
     responder(null, { code: '42501' }, 403)
     await expect(corridaCancelada('p1')).rejects.toThrow('Falha no banco (corrida_cancelada): 42501')
+  })
+})
+
+describe('corridaNaoCancelavel', () => {
+  it('manda o pedido', async () => {
+    await corridaNaoCancelavel('p1')
+    expect(m.chamadas).toContainEqual(['schema', 'privado'])
+    expect(rpc()).toEqual(['rpc', 'corrida_nao_cancelavel', { p_pedido: 'p1' }])
+  })
+  it('erro do banco sobe sem a mensagem crua', async () => {
+    responder(null, { code: '42501', message: 'permission denied for function corrida_nao_cancelavel' }, 403)
+    const erro = corridaNaoCancelavel('p1')
+    await expect(erro).rejects.toThrow('Falha no banco (corrida_nao_cancelavel): 42501')
+    await expect(erro).rejects.not.toThrow('permission denied')
   })
 })
 

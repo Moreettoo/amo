@@ -64,6 +64,7 @@ insert into _esperado (objeto, papel, privilegio) values
   ('privado.remarcar_entrega(uuid, timestamp with time zone, timestamp with time zone)', 'service_role', 'EXECUTE'),
   ('privado.corridas_a_cancelar()', 'service_role', 'EXECUTE'),
   ('privado.corrida_cancelada(uuid)', 'service_role', 'EXECUTE'),
+  ('privado.corrida_nao_cancelavel(uuid)', 'service_role', 'EXECUTE'),
   ('privado.corridas_a_conferir()', 'service_role', 'EXECUTE'),
   ('privado.escalar_cancelamentos_incertos()', 'service_role', 'EXECUTE'),
   ('privado.ler_token_uber()', 'service_role', 'EXECUTE'),

@@ -3,7 +3,10 @@
 -- duas vezes; a falha conta tentativas; o pedido cancelado pede o
 -- cancelamento da corrida; a remarcacao grava a faixa; o que a Uber diz anda
 -- o pedido sem voltar; a Uber cancelar cria uma segunda corrida, e so uma; a
--- data fechada chama a equipe; o rastreio so aceita https da Uber.
+-- data fechada chama a equipe; o rastreio so aceita https da Uber. A
+-- remarcacao e a Uber cancelar vencem a cotacao guardada; o pedido cancelado
+-- depois de uma tentativa de criar pede o cancelamento; a corrida que a Uber
+-- nao deixa cancelar vai a equipe.
 --
 -- O relogio nao e fixo: as faixas usadas sao amanha e depois de amanha, das
 -- 12h as 13h de Sao Paulo, com a cozinha aberta o dia todo.
@@ -130,6 +133,26 @@ returns void
 language sql
 as $$
   update public.pedidos set status = 'cancelado', motivo_cancelamento = 'loja' where id = p_pedido;
+$$;
+
+-- uma cotacao da Uber do pedido, valida ate p_expira
+create function pg_temp.cotacao_do_pedido(p_pedido uuid, p_uber text, p_expira timestamptz)
+returns void
+language sql
+as $$
+  insert into privado.cotacoes (cep, logradouro, numero, complemento, bairro, cidade, uf, valor_centavos, minutos,
+    origem, uber_cotacao_id, expira_em, pedido_id)
+  values ('04567000', 'Rua Siqueira Bueno', '120', 'ap 52', 'Belenzinho', 'São Paulo', 'SP', 990, 35, 'uber',
+    p_uber, p_expira, p_pedido);
+$$;
+
+-- a validade da cotacao do pedido (cada pedido destes testes tem uma so)
+create function pg_temp.validade(p_pedido uuid)
+returns timestamptz
+language sql
+stable
+as $$
+  select c.expira_em from privado.cotacoes c where c.pedido_id = p_pedido;
 $$;
 
 -- 1. a intencao nasce com o pagamento
@@ -348,9 +371,12 @@ select pg_temp.verificar('a corrida de a_criar guarda o id e solta a reserva',
 
 -- 5. a remarcacao
 insert into _v values ('p9', pg_temp.pedido_pago(pg_temp.id('a')));
+select pg_temp.cotacao_do_pedido(pg_temp.id('p9'), 'dqt_p9', now() + interval '15 minutes');
 select pg_temp.verificar('remarcar de agora para agendado passa',
   pg_temp.como('postgres', null, format($$select privado.remarcar_entrega(%L, %L, %L)$$,
     pg_temp.id('p9'), pg_temp.h('amanha_12'), pg_temp.h('amanha_13'))) = 'ok');
+select pg_temp.verificar('a remarcacao vence a cotacao do agora (a corrida cota de novo com a faixa)',
+  pg_temp.validade(pg_temp.id('p9')) <= now(), pg_temp.validade(pg_temp.id('p9'))::text);
 select pg_temp.verificar('o pedido mostra o modo e a faixa',
   (select entrega_modo = 'agendado' and entrega_janela_inicio = pg_temp.h('amanha_12')
      and entrega_janela_fim = pg_temp.h('amanha_13') and status = 'pago'
@@ -367,18 +393,28 @@ select pg_temp.verificar('a marca continua desligada depois da recusa',
   coalesce(current_setting('amo.remarcando', true), '') = '');
 
 insert into _v values ('p7', pg_temp.pedido_pago(pg_temp.id('a')));
+select pg_temp.cotacao_do_pedido(pg_temp.id('p7'), 'dqt_p7', now() + interval '15 minutes');
+select pg_temp.verificar('remarcacao recusada nao vence a cotacao',
+  pg_temp.como('postgres', null, format($$select privado.remarcar_entrega(%L, %L, %L)$$,
+    pg_temp.id('p7'), pg_temp.h('amanha_10_30'), pg_temp.h('amanha_11_30'))) like '%faixa_indisponivel%'
+  and pg_temp.validade(pg_temp.id('p7')) > now());
 select pg_temp.preparar('update public.loja set vendas_pausadas = true where id');
 select pg_temp.verificar('remarcar ignora a pausa das vendas',
   pg_temp.como('postgres', null, format($$select privado.remarcar_entrega(%L, %L, %L)$$,
     pg_temp.id('p7'), pg_temp.h('depois_12'), pg_temp.h('depois_13'))) = 'ok');
 select pg_temp.preparar('update public.loja set vendas_pausadas = false where id');
+select pg_temp.verificar('e a remarcacao que passa vence a cotacao',
+  pg_temp.validade(pg_temp.id('p7')) <= now(), pg_temp.validade(pg_temp.id('p7'))::text);
 
 -- 6. a data fechada
 select pg_temp.verificar('o preparo da data fechada: p9 agendado amanha criada',
   pg_temp.criar(pg_temp.id('p9'), 'del_p9') = 'criada');
 insert into _v values ('p6', pg_temp.pedido_pago(pg_temp.id('a')));
+select pg_temp.cotacao_do_pedido(pg_temp.id('p6'), 'dqt_p6', now() - interval '5 minutes');
 select pg_temp.preparar(format($$select privado.remarcar_entrega(%L, %L, %L)$$,
   pg_temp.id('p6'), pg_temp.h('amanha_12'), pg_temp.h('amanha_13')));
+select pg_temp.verificar('a remarcacao nao mexe na cotacao que ja venceu',
+  pg_temp.validade(pg_temp.id('p6')) = now() - interval '5 minutes', pg_temp.validade(pg_temp.id('p6'))::text);
 insert into _v values ('p8', pg_temp.pedido_pago(pg_temp.id('a')));
 select pg_temp.preparar(format($$insert into public.dias_fechados (data, motivo) values (%L, 'feriado')$$,
   ((now() at time zone 'America/Sao_Paulo')::date + 1)));
@@ -441,8 +477,13 @@ select pg_temp.verificar('o preparo da Uber que cancela: p12 criada', pg_temp.cr
 select pg_temp.preparar(format($$update public.pedidos set rastreio_url = 'https://direct-order.uber.com/o/a' where id = %L$$,
   pg_temp.id('p12')));
 insert into _t values ('chave_p12', (select chave::text from privado.entregas where pedido_id = pg_temp.id('p12')));
+select pg_temp.cotacao_do_pedido(pg_temp.id('p12'), 'dqt_p12', now() + interval '15 minutes');
 select pg_temp.verificar('a Uber cancelou a primeira: a_criar',
   pg_temp.uber('del_p12a', 'canceled') = 'pago/a_criar');
+select pg_temp.verificar('a segunda corrida nao reusa a cotacao da primeira: ela vence',
+  pg_temp.validade(pg_temp.id('p12')) <= now(), pg_temp.validade(pg_temp.id('p12'))::text);
+select pg_temp.verificar('a cotacao de outro pedido nao vence',
+  pg_temp.validade(pg_temp.id('p1')) > now());
 select pg_temp.verificar('a primeira cancelada pela Uber ganha chave nova e perde o id',
   (select chave::text <> (select valor from _t where nome = 'chave_p12') and uber_entrega_id is null
      and cancelamentos_uber = 1 and reservado_em is null
@@ -535,6 +576,52 @@ select pg_temp.verificar('cliente nao escala cancelamentos',
   pg_temp.como('authenticated', pg_temp.id('a'), 'select privado.escalar_cancelamentos_incertos()') like '42501%');
 select pg_temp.verificar('anonimo nao escala cancelamentos',
   pg_temp.como('anon', null, 'select privado.escalar_cancelamentos_incertos()') like '42501%');
+
+-- 8c. pedido cancelado depois de uma tentativa de criar: a Uber pode ter a
+-- corrida (falha incerta), entao vai a a_cancelar e nao a cancelada
+insert into _v values ('c1', pg_temp.pedido_pago(pg_temp.id('a')));
+insert into _v values ('c2', pg_temp.pedido_pago(pg_temp.id('a')));
+select pg_temp.reservar(97, 50);
+select pg_temp.verificar('o preparo: c1 volta a a_criar e c2 vai a equipe, cada uma com uma tentativa',
+  privado.marcar_corrida_falhou(pg_temp.id('c1'), 'sem_resposta', false) = 'a_criar'
+  and privado.marcar_corrida_falhou(pg_temp.id('c2'), 'http_500', true) = 'precisa_da_equipe');
+select pg_temp.cancelar(pg_temp.id('c1'));
+select pg_temp.cancelar(pg_temp.id('c2'));
+select pg_temp.verificar('a_criar com tentativa e sem id vai a a_cancelar',
+  (select estado = 'a_cancelar' and uber_entrega_id is null and tentativas = 1
+   from privado.entregas where pedido_id = pg_temp.id('c1')));
+select pg_temp.verificar('precisa_da_equipe com tentativa e sem id vai a a_cancelar',
+  (select estado = 'a_cancelar' and uber_entrega_id is null and tentativas = 1
+   from privado.entregas where pedido_id = pg_temp.id('c2')));
+select pg_temp.verificar('sem tentativa continua indo a cancelada (p4 e p6)',
+  pg_temp.estado(pg_temp.id('p4')) = 'cancelada' and pg_temp.estado(pg_temp.id('p6')) = 'cancelada');
+select pg_temp.preparar(format($$update privado.entregas set criado_em = now() - interval '11 minutes' where pedido_id = %L$$,
+  pg_temp.id('c1')));
+select privado.escalar_cancelamentos_incertos();
+select pg_temp.verificar('passados 10 minutos, a escalada leva a equipe',
+  (select estado = 'precisa_da_equipe' and motivo = 'cancelamento_incerto'
+   from privado.entregas where pedido_id = pg_temp.id('c1')));
+select pg_temp.verificar('antes dos 10 minutos continua a_cancelar', pg_temp.estado(pg_temp.id('c2')) = 'a_cancelar');
+
+-- 8d. a Uber recusou o cancelamento (409 e a corrida nao esta cancelada): a equipe resolve
+select pg_temp.verificar('o preparo: p5 a_cancelar com id', pg_temp.estado(pg_temp.id('p5')) = 'a_cancelar');
+select pg_temp.verificar('a chave secreta marca a corrida nao cancelavel',
+  pg_temp.como('service_role', null, format('select privado.corrida_nao_cancelavel(%L)', pg_temp.id('p5'))) = 'ok');
+select pg_temp.verificar('a_cancelar vai a equipe com o motivo nao_cancelavel e guarda o id',
+  (select estado = 'precisa_da_equipe' and motivo = 'nao_cancelavel' and uber_entrega_id = 'del_p5'
+     and atualizado_em = now()
+   from privado.entregas where pedido_id = pg_temp.id('p5')));
+select pg_temp.verificar('e sai da lista de cancelar',
+  not exists (select 1 from privado.corridas_a_cancelar() c where c.pedido = pg_temp.id('p5')));
+select privado.corrida_nao_cancelavel(pg_temp.id('p_ac'));
+select privado.corrida_nao_cancelavel(pg_temp.id('p4'));
+select pg_temp.verificar('so a_cancelar muda: criada e cancelada ficam',
+  pg_temp.estado(pg_temp.id('p_ac')) = 'criada' and pg_temp.estado(pg_temp.id('p4')) = 'cancelada');
+select pg_temp.verificar('cliente nao marca corrida nao cancelavel',
+  pg_temp.como('authenticated', pg_temp.id('a'), format('select privado.corrida_nao_cancelavel(%L)', pg_temp.id('p5')))
+  like '42501%');
+select pg_temp.verificar('anonimo nao marca corrida nao cancelavel',
+  pg_temp.como('anon', null, format('select privado.corrida_nao_cancelavel(%L)', pg_temp.id('p5'))) like '42501%');
 
 -- 9. so a chave secreta
 select pg_temp.verificar('cliente nao reserva corrida',

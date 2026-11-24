@@ -152,6 +152,10 @@ select pg_temp.verificar('marcar_corrida_falhou recusa motivo hostil: ' || left(
     $$select privado.marcar_corrida_falhou(%L, %L, false)$$, pg_temp.id('a_pago'), texto)) = 'P0001 motivo_invalido')
 from _hostis;
 
+select pg_temp.verificar('corrida_nao_cancelavel recusa id hostil: ' || left(texto, 30),
+  pg_temp.como('service_role', null, format('select privado.corrida_nao_cancelavel(%L)', texto)) like '22P02%')
+from _hostis;
+
 select pg_temp.verificar('a corrida continua inteira',
   (select estado = 'criada' and uber_entrega_id = 'del_ok' and tentativas = 0
    from privado.entregas where pedido_id = pg_temp.id('a_pago')));

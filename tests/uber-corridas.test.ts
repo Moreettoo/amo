@@ -16,6 +16,7 @@ const m = vi.hoisted(() => ({
   aplicarEntrega: vi.fn(),
   corridasACancelar: vi.fn(),
   corridaCancelada: vi.fn(),
+  corridaNaoCancelavel: vi.fn(),
   lerCorridaNaUber: vi.fn(),
   cotarNaUber: vi.fn(),
   criarCorridaNaUber: vi.fn(),
@@ -37,6 +38,7 @@ vi.mock('@/lib/dados/entregas', () => ({
   aplicarEntrega: m.aplicarEntrega,
   corridasACancelar: m.corridasACancelar,
   corridaCancelada: m.corridaCancelada,
+  corridaNaoCancelavel: m.corridaNaoCancelavel,
 }))
 vi.mock('@/lib/uber/cliente', () => ({
   cotarNaUber: m.cotarNaUber,
@@ -66,6 +68,12 @@ import { cancelarCorridasPedidas, conferirCorrida, criarCorridasPendentes, pedir
 const TERCA_13H = new Date('2026-11-24T16:00:00Z')
 const TERCA_13H45 = new Date('2026-11-24T16:45:00Z')
 const TERCA_18H15 = new Date('2026-11-24T21:15:00Z')
+const TERCA_14H = new Date('2026-11-24T17:00:00Z')
+const TERCA_17H = new Date('2026-11-24T20:00:00Z')
+const TERCA_17H30 = new Date('2026-11-24T20:30:00Z')
+const TERCA_17H52 = new Date('2026-11-24T20:52:00Z')
+/** A primeira faixa livre depois das 15h30 de terca: quarta, das 10h as 11h de Sao Paulo. */
+const QUARTA_10H = { inicio: '2026-11-25T13:00:00.000Z', fim: '2026-11-25T14:00:00.000Z' }
 
 const COZINHA = {
   nome: 'AMO Sabores Saudáveis' as const,
@@ -117,6 +125,11 @@ function reservada(extra: Partial<CorridaReservada> = {}): CorridaReservada {
 const cotacao = (id: string, valorCentavos: number) => ({
   ok: true,
   dados: { id, valorCentavos, minutos: 30, retiradaEmMinutos: 10, aoVivo: null },
+})
+/** Cotacao com o tempo ate a retirada (pickup_duration) e o total (duration) dados. */
+const cotacaoComRetirada = (id: string, retiradaEmMinutos: number | null, minutos = 30) => ({
+  ok: true,
+  dados: { id, valorCentavos: 1250, minutos, retiradaEmMinutos, aoVivo: null },
 })
 const corrida = (extra: Record<string, unknown> = {}) => ({
   ok: true,
@@ -235,6 +248,99 @@ describe('criarCorridasPendentes', () => {
       expect.objectContaining({ cotacaoId: 'dqt_nova', janelas: janelasDaFaixa(faixa) }),
     )
     expect(m.remarcarEntrega.mock.invocationCallOrder[0]).toBeLessThan(m.cotarNaUber.mock.invocationCallOrder[0])
+  })
+
+  it('"Agora" pago as 17h52 com a loja fechando as 18h: cota de novo, a retirada passa das 18h, remarca e cota com as janelas', async () => {
+    relogio(TERCA_17H52)
+    m.reservarCorridas.mockResolvedValue([reservada()])
+    m.cotarNaUber
+      .mockResolvedValueOnce(cotacaoComRetirada('dqt_agora', 10))
+      .mockResolvedValueOnce(cotacao('dqt_faixa', 1300))
+    const r = await criarCorridasPendentes()
+    expect(r).toEqual({ criadas: 1, falhas: 0 })
+    expect(m.cotarNaUber).toHaveBeenCalledTimes(2)
+    expect(m.cotarNaUber).toHaveBeenNthCalledWith(1, expect.objectContaining({ janelas: null }))
+    expect(m.remarcarEntrega).toHaveBeenCalledWith('ped-1', QUARTA_10H)
+    expect(m.cotarNaUber).toHaveBeenNthCalledWith(2, expect.objectContaining({ janelas: janelasDaFaixa(QUARTA_10H) }))
+    expect(m.criarCorridaNaUber).toHaveBeenCalledTimes(1)
+    expect(m.criarCorridaNaUber).toHaveBeenCalledWith(
+      expect.objectContaining({ cotacaoId: 'dqt_faixa', janelas: janelasDaFaixa(QUARTA_10H) }),
+    )
+  })
+
+  it('"Agora" as 17h30 com retirada em 15 min: cota de novo e cria agora com a cotacao nova', async () => {
+    relogio(TERCA_17H30)
+    m.reservarCorridas.mockResolvedValue([reservada()])
+    m.cotarNaUber.mockResolvedValue(cotacaoComRetirada('dqt_agora', 15))
+    const r = await criarCorridasPendentes()
+    expect(r).toEqual({ criadas: 1, falhas: 0 })
+    expect(m.cotarNaUber).toHaveBeenCalledTimes(1)
+    expect(m.cotarNaUber).toHaveBeenCalledWith(expect.objectContaining({ janelas: null }))
+    expect(m.remarcarEntrega).not.toHaveBeenCalled()
+    expect(m.criarCorridaNaUber).toHaveBeenCalledWith(expect.objectContaining({ cotacaoId: 'dqt_agora', janelas: null }))
+  })
+
+  it('"Agora" as 17h30 com retirada em 40 min: remarca para a primeira faixa livre e cota com as janelas', async () => {
+    relogio(TERCA_17H30)
+    m.reservarCorridas.mockResolvedValue([reservada()])
+    m.cotarNaUber
+      .mockResolvedValueOnce(cotacaoComRetirada('dqt_agora', 40))
+      .mockResolvedValueOnce(cotacao('dqt_faixa', 1300))
+    await criarCorridasPendentes()
+    expect(m.remarcarEntrega).toHaveBeenCalledWith('ped-1', QUARTA_10H)
+    expect(m.criarCorridaNaUber).toHaveBeenCalledTimes(1)
+    expect(m.criarCorridaNaUber).toHaveBeenCalledWith(
+      expect.objectContaining({ cotacaoId: 'dqt_faixa', janelas: janelasDaFaixa(QUARTA_10H) }),
+    )
+  })
+
+  it('"Agora" as 17h30 sem o tempo da retirada: vale a duracao da cotacao (25 min cabem)', async () => {
+    relogio(TERCA_17H30)
+    m.reservarCorridas.mockResolvedValue([reservada()])
+    m.cotarNaUber.mockResolvedValueOnce(cotacaoComRetirada('dqt_agora', null, 25))
+    await criarCorridasPendentes()
+    expect(m.remarcarEntrega).not.toHaveBeenCalled()
+    expect(m.criarCorridaNaUber).toHaveBeenCalledWith(expect.objectContaining({ cotacaoId: 'dqt_agora', janelas: null }))
+  })
+
+  it('"Agora" as 17h30 sem o tempo da retirada: vale a duracao da cotacao (35 min nao cabem)', async () => {
+    relogio(TERCA_17H30)
+    m.reservarCorridas.mockResolvedValue([reservada()])
+    m.cotarNaUber
+      .mockResolvedValueOnce(cotacaoComRetirada('dqt_agora', null, 35))
+      .mockResolvedValueOnce(cotacao('dqt_faixa', 1300))
+    await criarCorridasPendentes()
+    expect(m.remarcarEntrega).toHaveBeenCalledWith('ped-1', QUARTA_10H)
+    expect(m.criarCorridaNaUber).toHaveBeenCalledWith(expect.objectContaining({ cotacaoId: 'dqt_faixa' }))
+  })
+
+  it('"Agora" as 17h, com a loja fechando em 60 min, ja cota de novo', async () => {
+    relogio(TERCA_17H)
+    m.reservarCorridas.mockResolvedValue([reservada()])
+    m.cotarNaUber.mockResolvedValue(cotacaoComRetirada('dqt_agora', 15))
+    await criarCorridasPendentes()
+    expect(m.cotarNaUber).toHaveBeenCalledTimes(1)
+    expect(m.criarCorridaNaUber).toHaveBeenCalledWith(expect.objectContaining({ cotacaoId: 'dqt_agora', janelas: null }))
+  })
+
+  it('"Agora" as 14h com a cotacao guardada valida: nao cota de novo', async () => {
+    relogio(TERCA_14H)
+    m.reservarCorridas.mockResolvedValue([reservada()])
+    await criarCorridasPendentes()
+    expect(m.cotarNaUber).not.toHaveBeenCalled()
+    expect(m.remarcarEntrega).not.toHaveBeenCalled()
+    expect(m.criarCorridaNaUber).toHaveBeenCalledWith(expect.objectContaining({ cotacaoId: 'dqt_velha', janelas: null }))
+  })
+
+  it('"Agora" perto de fechar e a cotacao refeita falha: falha pelo status da Uber, sem remarcar nem criar', async () => {
+    relogio(TERCA_17H30)
+    m.reservarCorridas.mockResolvedValue([reservada()])
+    m.cotarNaUber.mockResolvedValue(falhaDaUber(500, null))
+    const r = await criarCorridasPendentes()
+    expect(r).toEqual({ criadas: 0, falhas: 1 })
+    expect(m.marcarCorridaFalhou).toHaveBeenCalledWith('ped-1', 'http_500', false)
+    expect(m.remarcarEntrega).not.toHaveBeenCalled()
+    expect(m.criarCorridaNaUber).not.toHaveBeenCalled()
   })
 
   it('"Agora" com as vendas pausadas ainda serve (a pausa so impede pedido novo)', async () => {
@@ -544,11 +650,35 @@ describe('cancelarCorridasPedidas', () => {
     expect(m.corridaCancelada).toHaveBeenCalledWith('p1')
   })
 
-  it.each([404, 409])('%s conta como cancelada', async (status) => {
+  it('404 conta como cancelada, sem perguntar a Uber', async () => {
     m.corridasACancelar.mockResolvedValue([{ pedido: 'p1', uberEntregaId: 'del_1' }])
-    m.cancelarCorridaNaUber.mockResolvedValue({ ok: false, status, codigo: null })
+    m.cancelarCorridaNaUber.mockResolvedValue({ ok: false, status: 404, codigo: null })
     expect(await cancelarCorridasPedidas()).toEqual({ canceladas: 1, falhas: 0 })
     expect(m.corridaCancelada).toHaveBeenCalledWith('p1')
+    expect(m.lerCorridaNaUber).not.toHaveBeenCalled()
+  })
+
+  it('409 com a corrida canceled na Uber: grava cancelada', async () => {
+    m.corridasACancelar.mockResolvedValue([{ pedido: 'p1', uberEntregaId: 'del_1' }])
+    m.cancelarCorridaNaUber.mockResolvedValue({ ok: false, status: 409, codigo: null })
+    m.lerCorridaNaUber.mockResolvedValue(corrida({ status: 'canceled' }))
+    expect(await cancelarCorridasPedidas()).toEqual({ canceladas: 1, falhas: 0 })
+    expect(m.lerCorridaNaUber).toHaveBeenCalledWith('del_1')
+    expect(m.corridaCancelada).toHaveBeenCalledWith('p1')
+    expect(m.corridaNaoCancelavel).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['a corrida ainda anda', corrida({ status: 'pickup' })],
+    ['a leitura falha', { ok: false, status: 0, codigo: null }],
+  ])('409 e %s: vai a equipe como nao_cancelavel, nunca cancelada', async (_nome, lida) => {
+    m.corridasACancelar.mockResolvedValue([{ pedido: 'p1', uberEntregaId: 'del_1' }])
+    m.cancelarCorridaNaUber.mockResolvedValue({ ok: false, status: 409, codigo: null })
+    m.lerCorridaNaUber.mockResolvedValue(lida)
+    expect(await cancelarCorridasPedidas()).toEqual({ canceladas: 0, falhas: 1 })
+    expect(m.corridaNaoCancelavel).toHaveBeenCalledWith('p1')
+    expect(m.corridaCancelada).not.toHaveBeenCalled()
+    expect(m.registrarFalha).toHaveBeenCalledWith('uber.cancelar_pedidas', { code: 'nao_cancelavel' })
   })
 
   it.each([0, 400, 429, 500])('%s e falha e nao grava', async (status) => {

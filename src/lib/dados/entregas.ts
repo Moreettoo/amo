@@ -178,6 +178,11 @@ export async function corridaCancelada(pedido: string): Promise<void> {
   await chamar('corrida_cancelada', { p_pedido: pedido })
 }
 
+/** A Uber recusou o cancelamento (409) e a corrida nao esta cancelada: vai a equipe (nao_cancelavel). */
+export async function corridaNaoCancelavel(pedido: string): Promise<void> {
+  await chamar('corrida_nao_cancelavel', { p_pedido: pedido })
+}
+
 /** Os ids das corridas criadas sem noticia ha mais de 10 minutos, para perguntar a Uber. */
 export async function corridasAConferir(): Promise<string[]> {
   const { data, status } = await chamar('corridas_a_conferir', {})

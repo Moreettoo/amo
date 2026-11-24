@@ -5,6 +5,7 @@ import {
   aplicarEntrega,
   corridaCancelada,
   corridasACancelar,
+  corridaNaoCancelavel,
   marcarCorridaCriada,
   marcarCorridaFalhou,
   remarcarEntrega,
@@ -14,20 +15,40 @@ import {
 import { registrarFalha } from '@/lib/dados/erros'
 import { lerLoja } from '@/lib/dados/loja'
 import { rastreioSeguro } from '@/lib/dados/pedidos'
-import { FAIXA, faixasLivres, hojeEmSaoPaulo, janelasDaFaixa, situacaoDaLoja, type Faixa, type Loja } from '@/lib/loja'
-import { cancelarCorridaNaUber, cotarNaUber, criarCorridaNaUber, lerCorridaNaUber } from '@/lib/uber/cliente'
+import {
+  FAIXA,
+  faixasLivres,
+  fechamentoDeHoje,
+  hojeEmSaoPaulo,
+  janelasDaFaixa,
+  situacaoDaLoja,
+  type Faixa,
+  type Loja,
+} from '@/lib/loja'
+import {
+  cancelarCorridaNaUber,
+  cotarNaUber,
+  criarCorridaNaUber,
+  lerCorridaNaUber,
+  type CotacaoUber,
+  type Janelas,
+} from '@/lib/uber/cliente'
 import type { EnderecoUber } from '@/lib/uber/endereco'
 
 /**
  * A corrida sai quando o pagamento e confirmado (spec 8.2). Reserva as
  * corridas a criar, confere o horario (remarca para a primeira faixa livre
- * quando ele nao serve mais), cota de novo quando precisa e cria na Uber. A
- * cliente nunca paga a diferenca: cotacao mais cara cria assim mesmo, e acima
- * de R$ 3,00 vai ao log. Nunca lanca. O log leva so codigos fixos.
+ * quando ele nao serve mais), cota de novo quando precisa e cria na Uber. O
+ * "agora" com a loja fechando em ate 60 min cota de novo e so sai se a
+ * retirada chega antes de fechar; senao, remarca. A cliente nunca paga a
+ * diferenca: cotacao mais cara cria assim mesmo, e acima de R$ 3,00 vai ao
+ * log. Nunca lanca. O log leva so codigos fixos.
  */
 
 /** A retirada da faixa precisa estar ao menos 20 min a frente (a folga que a Uber exige). */
 const FOLGA_DA_RETIRADA_MIN = 20
+/** Com a loja fechando em ate 60 min, o "agora" cota de novo: o tempo ate a retirada fica fresco. */
+const FOLGA_DO_FECHAMENTO_MIN = 60
 /** A cotacao guardada so serve com mais de 1 min de validade. */
 const FOLGA_DA_COTACAO_MS = 60_000
 /** Diferenca acima disto (em centavos) vai ao log como aviso. */
@@ -58,6 +79,21 @@ async function falhou(pedido: string, motivo: string, def: boolean): Promise<Des
   return 'falhou'
 }
 
+/** Cota na Uber de novo. null quando nao deu: a falha ja fica marcada. */
+async function cotarDeNovo(pedido: string, p: Parameters<typeof cotarNaUber>[0]): Promise<CotacaoUber | null> {
+  const cotada = await cotarNaUber(p)
+  if (!cotada.ok) {
+    await falhou(pedido, motivoDaUber(cotada), definitiva(cotada.status))
+    return null
+  }
+  if (cotada.dados.aoVivo !== null && cotada.dados.aoVivo !== !uberEmTeste()) {
+    registrarFalha('uber.ao_vivo_trocado', { code: 'ao_vivo_trocado' })
+    await falhou(pedido, 'ao_vivo_trocado', true)
+    return null
+  }
+  return cotada.dados
+}
+
 /** Uma corrida reservada, do horario ate a Uber. Lanca so por erro do banco (quem chama trata). */
 async function criarUma(c: CorridaReservada, loja: Loja, coz: Cozinha): Promise<Desfecho> {
   if (c.origem !== 'uber') return falhou(c.pedido, 'cotacao_de_exemplo', true)
@@ -75,10 +111,23 @@ async function criarUma(c: CorridaReservada, loja: Loja, coz: Cozinha): Promise<
     cep: c.cep,
   }
 
+  const cotar = (janelas: Janelas | null) =>
+    cotarDeNovo(c.pedido, { retirada: coz.endereco, telefoneRetirada: coz.telefone, entrega, janelas })
+
   const agora = new Date()
   let faixa: Faixa | null = c.modo === 'agendado' && c.janelaInicio && c.janelaFim ? { inicio: c.janelaInicio, fim: c.janelaFim } : null
+  let serve = horarioServe(c, loja, agora)
+  // agora com a loja fechando em ate 60 min: cota de novo e so sai se a retirada chega antes de fechar
+  let cotada: CotacaoUber | null = null
+  const fecha = serve && c.modo === 'agora' ? fechamentoDeHoje(loja, agora) : null
+  if (fecha && fecha.getTime() - agora.getTime() <= FOLGA_DO_FECHAMENTO_MIN * 60_000) {
+    const q = await cotar(null)
+    if (!q) return 'falhou'
+    if (agora.getTime() + (q.retiradaEmMinutos ?? q.minutos) * 60_000 <= fecha.getTime()) cotada = q
+    else serve = false
+  }
   let remarcou = false
-  if (!horarioServe(c, loja, agora)) {
+  if (!serve) {
     const nova = faixasLivres(loja, agora, false)[0]
     if (!nova) return falhou(c.pedido, 'sem_faixa', true)
     await remarcarEntrega(c.pedido, nova)
@@ -87,19 +136,16 @@ async function criarUma(c: CorridaReservada, loja: Loja, coz: Cozinha): Promise<
   }
   const janelas = faixa ? janelasDaFaixa(faixa) : null
 
-  let cotacaoId = c.uberCotacaoId
-  let valorCotado: number | null = null
+  // a cotacao guardada so serve sem remarcacao e com mais de 1 min de validade
+  let cotacaoId = cotada?.id ?? null
   const expira = c.cotacaoExpiraEm ? Date.parse(c.cotacaoExpiraEm) : NaN
-  if (remarcou || !cotacaoId || !(expira - agora.getTime() > FOLGA_DA_COTACAO_MS)) {
-    const cotada = await cotarNaUber({ retirada: coz.endereco, telefoneRetirada: coz.telefone, entrega, janelas })
-    if (!cotada.ok) return falhou(c.pedido, motivoDaUber(cotada), definitiva(cotada.status))
-    if (cotada.dados.aoVivo !== null && cotada.dados.aoVivo !== !uberEmTeste()) {
-      registrarFalha('uber.ao_vivo_trocado', { code: 'ao_vivo_trocado' })
-      return falhou(c.pedido, 'ao_vivo_trocado', true)
-    }
-    cotacaoId = cotada.dados.id
-    valorCotado = cotada.dados.valorCentavos
+  if (!cotacaoId && !remarcou && expira - agora.getTime() > FOLGA_DA_COTACAO_MS) cotacaoId = c.uberCotacaoId
+  if (!cotacaoId) {
+    cotada = await cotar(janelas)
+    if (!cotada) return 'falhou'
+    cotacaoId = cotada.id
   }
+  const valorCotado = cotada?.valorCentavos ?? null
 
   const criada = await criarCorridaNaUber({
     cotacaoId,
@@ -203,10 +249,18 @@ export async function conferirCorrida(uberEntregaId: string): Promise<boolean> {
   }
 }
 
+/** O 409 so vale como cancelada se o GET disser canceled; a corrida ja em andamento tambem da 409. */
+async function canceladaNaUber(id: string): Promise<boolean> {
+  const lida = await lerCorridaNaUber(id)
+  return lida.ok && lida.dados.status === 'canceled'
+}
+
 /**
- * Cancela na Uber as corridas dos pedidos cancelados. 200, e 404 ou 409 (ja
- * cancelada ou nao existe mais), valem como cancelada; o resto e falha e a
- * corrida fica para a proxima passada. Nunca lanca.
+ * Cancela na Uber as corridas dos pedidos cancelados. 200 e 404 (nao existe
+ * mais) valem como cancelada. 409 vale como cancelada so se a Uber disser
+ * canceled; senao (ou sem resposta) a corrida segue viva e vai a equipe
+ * (nao_cancelavel). O resto e falha e a corrida fica para a proxima passada.
+ * Nunca lanca.
  */
 export async function cancelarCorridasPedidas(): Promise<{ canceladas: number; falhas: number }> {
   let canceladas = 0
@@ -221,6 +275,12 @@ export async function cancelarCorridasPedidas(): Promise<{ canceladas: number; f
   for (const { pedido, uberEntregaId } of lista) {
     try {
       const r = await cancelarCorridaNaUber(uberEntregaId)
+      if (!r.ok && r.status === 409 && !(await canceladaNaUber(uberEntregaId))) {
+        await corridaNaoCancelavel(pedido)
+        registrarFalha('uber.cancelar_pedidas', { code: 'nao_cancelavel' })
+        falhas++
+        continue
+      }
       if (!r.ok && r.status !== 404 && r.status !== 409) {
         registrarFalha('uber.cancelar_pedidas', { code: motivoDaUber(r) })
         falhas++
