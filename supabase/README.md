@@ -494,6 +494,39 @@ aplicativo do vendedor de teste):
 - **Parcelas:** o Brick oferece de 1x a 6x com juros pagos pela cliente
   (configuração da conta do Mercado Pago, não do código).
 
+### Mercado Pago: a produção
+
+A lista para o dia em que o site for ao ar (spec do pagamento de verdade, §10).
+Itens do dono marcados com **(dono)**.
+
+1. **(dono)** Conta de produção: MFA ligado, **chave Pix cadastrada**, nome na
+   fatura do cartão, conta liberada para cartão.
+2. **Prova sem dinheiro**:
+   `MP_PROVA_EMAIL=<pagador> node --env-file=.env.producao.local scripts/producao/mercadopago-prova-sem-dinheiro.mjs --confirmo-producao`
+   (exige conta real por `GET /users/me`; cria um Pix de R$ 1,00 e cancela na
+   hora, sem imprimir o código). Use um pagador que não seja a própria conta
+   vendedora (`prova-sem-dinheiro@example.com` serve).
+3. **(dono)** Aplicativo de produção: a URL `https://<domínio>/api/webhooks/mercadopago`,
+   os eventos "Order (Mercado Pago)" e "Chargebacks", a assinatura secreta igual
+   a `MERCADOPAGO_WEBHOOK_SECRET`, e o "Simular" chegando com 200.
+4. Variáveis na hospedagem: em produção, a chave pública, o access token e a
+   assinatura de `.env.producao.local`, **sem** `MERCADOPAGO_AMBIENTE=teste`, e
+   um `TAREFAS_SEGREDO` novo; `MERCADOPAGO_CLIENT_ID` e `MERCADOPAGO_CLIENT_SECRET`
+   não sobem.
+5. O agendador da reconciliação a cada 5 minutos (`pg_cron` com `pg_net`, a URL e
+   o segredo por configuração do ambiente, não por migration).
+6. A varredura de segredo do build de produção limpa.
+7. **(dono)** O primeiro pedido de verdade: uma compra real, entregue de
+   verdade (não há pedido de produção sem corrida), e depois um estorno pelo
+   painel.
+
+Prova sem dinheiro de 2026-11-23, com o OK do dono: a conta é real, ativa e
+pode vender (`site_status` `active`, `sell.allow` verdadeiro, tipo `personal`),
+mas o Pix **nasce recusado**: 402, pedido `failed`/`failed`, pagamento
+`failed`/`processing_error`. Nenhum dinheiro se moveu (pedido recusado não
+pode ser pago). Causa mais provável: a conta sem chave Pix (item 1). Depois de
+o dono cadastrar a chave, rodar a prova de novo.
+
 ## Uber Direct: o que o ensaio mostrou
 
 Ensaio de 2026-11-23 na conta de teste (`scripts/ensaio/uber-conta-de-teste.mjs`,

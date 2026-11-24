@@ -1,6 +1,10 @@
 # AMO · Back-end no Supabase · Design Spec
 
 **Data:** 2026-11-18
+**Status do pagamento (2026-11-23):** ensaiado com o Mercado Pago de verdade,
+na conta de teste (`supabase/README.md`, "Mercado Pago: o que o ensaio
+mostrou"), pela spec `2026-11-23-amo-pagamento-de-verdade-design.md`; a
+produção do pagamento está em "Mercado Pago: a produção", no mesmo README.
 **Status:** aprovada pelo dono; etapa 1 (o banco) construída e testada em
 2026-11-18; etapa 2 (o site lê do banco e Minha conta) construída e testada em
 2026-11-20; etapa 3 (a sacola fecha o pedido no servidor e o pagamento é de
