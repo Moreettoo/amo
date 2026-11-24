@@ -337,8 +337,11 @@ esqueleto: ver "Mercado Pago: o que o ensaio mostrou"); `APRO` aprova (no
 `next start`, direto; no `next dev`, pediu o desafio); `OTHE` mostra "O banco
 do cartão recusou" e deixa tentar de novo, com token novo; `CONT` fica
 "aguardando a confirmação do cartão"; o desafio do banco abre num iframe de
-`www.mercadopago.com.br` e fica até o resultado. O `getAdditionalData` traz
-`paymentTypeId`. A tela a 390 px não foi ensaiada nesta rodada.
+`www.mercadopago.com.br` e fica até o resultado, **visto só no `next dev`**
+(no `next start`, o `APRO` aprovou direto e o desafio não apareceu). O
+`getAdditionalData` traz `paymentTypeId`. Não foram ensaiados nesta rodada: a
+tela a 390 px e o desafio sob `next start` (o `frame-src` é o mesmo nos dois
+modos). Os dois estão na lista "Mercado Pago: a produção".
 
 ### O ensaio com o Mercado Pago falso
 
@@ -519,6 +522,15 @@ Itens do dono marcados com **(dono)**.
 7. **(dono)** O primeiro pedido de verdade: uma compra real, entregue de
    verdade (não há pedido de produção sem corrida), e depois um estorno pelo
    painel.
+8. **(dono, a decidir)** Device ID: o SDK v2 faz a identificação do aparelho
+   sozinho e não cria `MP_DEVICE_SESSION_ID`, então o cabeçalho
+   `X-meli-session-id` não vai. Manter assim (recomendado) ou carregar o
+   `security.js` na sacola (script novo, CSP nova). Spec §8.
+9. **(dono, a decidir)** Parcelas: o Brick oferece de 1x a 6x com juros pagos
+   pela cliente; "parcelas com juros" ficou fora da spec (§3). Decidir no
+   painel do Mercado Pago (parcelas sem juros, ou só à vista).
+10. Ver, sob `next start` com a credencial de teste, o desafio do banco
+    (cartão `APRO-CHOK`) e a sacola a 390 px.
 
 Prova sem dinheiro de 2026-11-23, com o OK do dono: a conta é real, ativa e
 pode vender (`site_status` `active`, `sell.allow` verdadeiro, tipo `personal`),
