@@ -492,20 +492,23 @@ Parnaíba, 1316, Mooca. Pedidos `AMO-A8XPCCR4` (agora), `AMO-CBM83U84`
 - **Corrida criada com o pagamento: confere.** Os três pedidos pagos criaram
   a corrida (`del_`, `live_mode` falso, senão o código cancelaria), com o Robo
   Courier. O agendado levou a faixa na criação.
-- **Avisos assinados: NÃO conferiu, duas vezes.** No primeiro ensaio, em
-  cerca de 20 minutos (primeiro pedido) e 13 minutos (terceiro), nenhum
-  `POST /api/webhooks/uber` chegou ao servidor. Depois de o dono rever o aviso
-  no painel `direct.uber.com`, um pedido novo (agora, Pix) foi observado por 20
-  minutos sem reconciliar: de novo nenhum aviso (`privado.eventos_webhook` sem
-  linha de origem `uber`), e o pedido ficou "pago, na fila" até a reconciliação,
-  que leu `delivered` e o levou a "entregue". A Uber, porém, levou as corridas
-  até `delivered`. O endpoint estava no ar (a chamada assinada de teste dava
-  200, a errada 401). Então a Uber não mandou: ou o aviso do painel não está
-  ligado à URL do túnel e ao evento `event.delivery_status`, ou a conta de teste
-  não manda aviso para corrida do Robo Courier. Até isso mudar, quem leva o
-  pedido adiante é a reconciliação (a cada 10 minutos de silêncio), e "a caminho"
-  e "entregue" aparecem com a mesma hora. Por isso não se confirmou quais campos
-  o corpo do aviso traz no topo (`kind`, `id`, `delivery_id`, `status`).
+- **Avisos assinados: confere, depois de corrigir o painel.** Nos dois
+  primeiros ensaios (cerca de 20 minutos cada, sem reconciliar) nenhum aviso
+  chegou, porque o webhook tinha sido criado no ambiente de **produção** da
+  Uber e as chaves do `.env.local` são de **teste**. Com o webhook criado no
+  ambiente de teste, na mesma URL, os avisos passaram a chegar, mas primeiro
+  com 401: **cada ambiente tem a própria chave de assinatura**, e o
+  `UBER_DIRECT_WEBHOOK_SECRET` ainda era o da outra. Trocada a chave, a Uber
+  reenviou os avisos retidos e eles deram 200. Pedido `AMO-FZZKBYYE` (agora, Pix),
+  sem reconciliar: 7 avisos, todos 200; `a_caminho_em` às 18:14:10 UTC e
+  `entregue_em` às 18:15:09 UTC, o pedido "entregue" 3 minutos e meio depois de
+  pago, só por aviso. `privado.eventos_webhook` (origem `uber`, tipo
+  `event.delivery_status`): todos concluídos, nenhum com erro, 1 tentativa. O pedido
+  mover-se prova que o corpo traz no topo `kind`, `id`, `delivery_id` e `status`,
+  os campos que a rota exige (o corpo não é guardado). **Lição:** o webhook tem
+  de ser criado no mesmo ambiente das chaves (teste ou produção), e a chave de
+  assinatura é de cada ambiente; ao passar para produção, criar o webhook lá e
+  trocar `UBER_DIRECT_WEBHOOK_SECRET`.
 - **Link de rastreio: confere.** `https://direct-order.uber.com/br/orders/<uuid>?tenancyOverride=...`
   responde 200 com HTML (a página é aplicativo de página única; o conteúdo
   não foi lido num navegador).
