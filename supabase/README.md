@@ -331,7 +331,18 @@ O mesmo ensaio confirma que o `getAdditionalData` do Brick traz o
 `paymentTypeId` (contrato, §6): sem ele, todo cartão termina em "Confira os
 dados do cartão." e nada é cobrado.
 
-Resultado: ainda não ensaiado (falta a chave de teste do dono).
+Resultado (ensaio de 2026-11-23, Chrome, `next dev` e `next start` na porta
+3001, Mercado Pago de verdade na conta de teste): o Brick aparece e o console
+fica sem violação de CSP **depois da correção da CSP** (antes, ele ficava no
+esqueleto: ver "Mercado Pago: o que o ensaio mostrou"); `APRO` aprova (no
+`next start`, direto; no `next dev`, pediu o desafio); `OTHE` mostra "O banco
+do cartão recusou" e deixa tentar de novo, com token novo; `CONT` fica
+"aguardando a confirmação do cartão"; o desafio do banco abre num iframe de
+`www.mercadopago.com.br` e fica até o resultado, **visto só no `next dev`**
+(no `next start`, o `APRO` aprovou direto e o desafio não apareceu). O
+`getAdditionalData` traz `paymentTypeId`. Não foram ensaiados nesta rodada: a
+tela a 390 px e o desafio sob `next start` (o `frame-src` é o mesmo nos dois
+modos). Os dois estão na lista "Mercado Pago: a produção".
 
 ### O ensaio com o Mercado Pago falso
 
@@ -385,6 +396,152 @@ No PowerShell as variáveis ficam na janela até ela fechar. No fim do ensaio,
   as cotações sem conta feitas no ensaio, a conta pela API do Auth e o
   servidor parado. No Windows, conferir que a porta 3000 ficou livre: o
   processo do Next pode sobrar depois de parar o `npm run dev`.
+
+### O ensaio com o Mercado Pago de verdade (conta de teste)
+
+No navegador, com o Mercado Pago de verdade na conta de teste, o servidor de
+ensaio roda com as credenciais de teste do `.env.local`
+(`MERCADOPAGO_AMBIENTE=teste`). Quando o Pix tem de ser aprovado, ele roda
+também com o gancho `scripts/ensaio/mercadopago-pix-aprova.mjs`, que só
+acrescenta `payer.first_name: "APRO"` à criação do Pix (é o que aprova um Pix
+de teste, contrato §5) e passa todo o resto intacto. Fora de
+`MERCADOPAGO_AMBIENTE=teste`, ou com `NODE_ENV=production`, ele não muda nada.
+Nunca carregar junto com o Mercado Pago falso.
+
+```bash
+NODE_OPTIONS=--import=./scripts/ensaio/mercadopago-pix-aprova.mjs npx next dev -p 3001
+```
+
+No PowerShell:
+
+```powershell
+$env:NODE_OPTIONS = '--import=./scripts/ensaio/mercadopago-pix-aprova.mjs'
+npx next dev -p 3001
+```
+
+- O terminal diz `[ensaio] Pix que aprova ligado neste processo` e, a cada
+  Pix criado, `[ensaio] Pix com APRO`. Sem essas linhas, o gancho não entrou.
+- Para o Pix que fica esperando, o mesmo servidor sem `NODE_OPTIONS`.
+- Porta 3001: a 3000 é do servidor do dono e da outra sessão.
+- No fim, `Remove-Item Env:NODE_OPTIONS` e a porta 3001 livre.
+
+### Mercado Pago: o que o ensaio mostrou
+
+O roteiro `scripts/ensaio/mercadopago-conta-de-teste.mjs` fala com o Mercado
+Pago de verdade, na conta de teste. Antes de criar qualquer coisa, ele exige
+`MERCADOPAGO_AMBIENTE=teste` e confere por `GET /users/me` que a credencial é
+de usuário de teste no Brasil (sem isso, sai com 2 e nada é criado). Ele não
+imprime token, e-mail, QR nem corpo de resposta, e no fim cancela ou estorna
+tudo o que criou.
+
+```bash
+MP_TESTE_COMPRADOR_EMAIL="$(sed -n 's/^# MP_TESTE_COMPRADOR_EMAIL=\([^ ]*\).*/\1/p' .env.local)" node --env-file=.env.local scripts/ensaio/mercadopago-conta-de-teste.mjs
+```
+
+Ensaio de 2026-11-23 (três rodadas):
+
+- **Pix:** nasce `action_required`/`waiting_transfer`, com QR, copia e cola e
+  validade, todos no formato que o cliente lê. Cancelar dá `canceled`/`canceled`
+  (o pagamento, `canceled_transaction`); de novo, 409 `order_already_canceled`.
+  O vendedor de teste não precisou de chave Pix.
+- **Pix com `payer.first_name: "APRO"`:** aprovado sozinho em menos de 60 s
+  (`processed`/`accredited`).
+- **Estorno:** responde **201** com só `id`, `status`, `status_detail` e
+  `transactions.refunds` (sem `payments`, `external_reference` nem
+  `total_amount`); o pedido fica `refunded`/`refunded`. De novo, 409
+  `order_already_refunded`. O servidor lê o estado do pedido e aplica
+  `estornado`.
+- **Cartão** (token por `POST /v1/card_tokens?public_key=...`, fora do
+  navegador, com os cartões de teste):
+  - `APRO` aprovou na primeira rodada; nas outras, o Mercado Pago viu risco e
+    pediu o desafio (`action_required`/`pending_challenge`), como o
+    `on_fraud_risk` permite;
+  - `OTHE` responde **402 com o pedido dentro de `data`** (`errors[0].code`
+    `failed`; pedido `failed`/`failed`; pagamento `failed`/`rejected_by_issuer`).
+    O cliente lia o pedido na raiz e tratava a recusa como falha da criação:
+    corrigido depois deste ensaio (plano do pagamento de verdade, Task 2);
+  - `CONT` fica `processing`/`in_process`;
+  - `APRO-CHOK` volta `pending_challenge` com a URL do desafio em
+    `www.mercadopago.com.br`, aceita por `urlDoDesafio` e pela CSP.
+- **Cancelar** um pedido em `pending_challenge` ou em `in_process` dá 409
+  `cannot_cancel_order`.
+- **Itens:** a API confere a soma. Itens que não somam `total_amount` dão 400
+  `order_items_total_amount_mismatch`; com a entrega como item, somando o total,
+  o pedido nasce e guarda os itens. `unit_price` vai em texto com duas casas.
+- **Device ID:** o cabeçalho `X-meli-session-id` é aceito.
+- **Chave de idempotência:** a mesma chave com o mesmo corpo devolve 201 e o
+  mesmo pedido; com outro corpo, 409 `idempotency_key_already_used`.
+
+No navegador (2026-11-23, com túnel `cloudflared` e o aviso cadastrado no
+aplicativo do vendedor de teste):
+
+- **CSP:** o Brick busca `secure-fields.mercadopago.com` por `fetch`, e o SDK
+  identifica o aparelho em `www.mercadolibre.com` e `www.mercadolivre.com`.
+  Sem esses destinos, o Brick não saía do esqueleto. A CSP foi corrigida.
+- **Device ID:** o SDK v2 não cria `window.MP_DEVICE_SESSION_ID`; a
+  identificação fica com ele, e o cabeçalho `X-meli-session-id` não vai.
+- **Avisos:** chegam assinados pelo túnel (200), com um parâmetro a mais na URL,
+  `data.external_reference`, que a rota ignora.
+- **Pix aprovado** (com o gancho do `APRO`): o pedido fica pago, a sacola
+  esvazia e `privado.entregas` ganha uma linha só, mesmo com dois avisos e a
+  espera da tela aplicando o mesmo pagamento. O pedido no Mercado Pago leva
+  os itens (os potes e a entrega).
+- **Troca:** recomeçar o fechamento com um Pix pendente cancela esse Pix no
+  Mercado Pago (`canceled_transaction`).
+- **Estorno automático:** um pagamento aprovado para um pedido já cancelado
+  vira `a_estornar` pelo aviso e termina `estornado` no Mercado Pago, sem a
+  equipe.
+- **Desafio que falha:** volta `3ds_challenge_failed`, agora com a mensagem do
+  desafio não concluído.
+- **Reconciliação:** `POST /api/tarefas/reconciliar` com `TAREFAS_SEGREDO`
+  responde 200 com as contagens; sem ele, 401.
+- **Parcelas:** o Brick oferece de 1x a 6x com juros pagos pela cliente
+  (configuração da conta do Mercado Pago, não do código).
+
+### Mercado Pago: a produção
+
+A lista para o dia em que o site for ao ar (spec do pagamento de verdade, §10).
+Itens do dono marcados com **(dono)**.
+
+1. **(dono)** Conta de produção: MFA ligado, **chave Pix cadastrada**, nome na
+   fatura do cartão, conta liberada para cartão.
+2. **Prova sem dinheiro**:
+   `MP_PROVA_EMAIL=<pagador> node --env-file=.env.producao.local scripts/producao/mercadopago-prova-sem-dinheiro.mjs --confirmo-producao`
+   (exige conta real por `GET /users/me`; cria um Pix de R$ 1,00 e cancela na
+   hora, sem imprimir o código). Use um pagador que não seja a própria conta
+   vendedora (`prova-sem-dinheiro@example.com` serve).
+3. **(dono)** Aplicativo de produção: a URL `https://<domínio>/api/webhooks/mercadopago`,
+   os eventos "Order (Mercado Pago)" e "Chargebacks", a assinatura secreta igual
+   a `MERCADOPAGO_WEBHOOK_SECRET`, e o "Simular" chegando com 200.
+4. Variáveis na hospedagem: em produção, a chave pública, o access token e a
+   assinatura de `.env.producao.local`, **sem** `MERCADOPAGO_AMBIENTE=teste`, e
+   um `TAREFAS_SEGREDO` novo; `MERCADOPAGO_CLIENT_ID` e `MERCADOPAGO_CLIENT_SECRET`
+   não sobem.
+5. O agendador da reconciliação a cada 5 minutos (`pg_cron` com `pg_net`, a URL e
+   o segredo por configuração do ambiente, não por migration).
+6. A varredura de segredo do build de produção limpa.
+7. **(dono)** O primeiro pedido de verdade: uma compra real, entregue de
+   verdade (não há pedido de produção sem corrida), e depois um estorno pelo
+   painel.
+8. **(dono, a decidir)** Device ID: o SDK v2 faz a identificação do aparelho
+   sozinho e não cria `MP_DEVICE_SESSION_ID`, então o cabeçalho
+   `X-meli-session-id` não vai. Manter assim (recomendado) ou carregar o
+   `security.js` na sacola (script novo, CSP nova). Spec §8.
+9. **(dono, a decidir)** Parcelas: o Brick oferece de 1x a 6x com juros pagos
+   pela cliente; "parcelas com juros" ficou fora da spec (§3). Decidir no
+   painel do Mercado Pago (parcelas sem juros, ou só à vista).
+10. Ver, sob `next start` com a credencial de teste, o desafio do banco
+    (cartão `APRO-CHOK`) e a sacola a 390 px.
+
+Prova sem dinheiro de 2026-11-23, com o OK do dono: a conta é real, ativa e
+pode vender (`site_status` `active`, `sell.allow` verdadeiro, tipo `personal`),
+mas o Pix **nasce recusado**: 402, pedido `failed`/`failed`, pagamento
+`failed`/`processing_error`. Nenhum dinheiro se moveu (pedido recusado não
+pode ser pago). A causa era a conta sem chave Pix (item 1): o dono cadastrou
+uma chave aleatória e, na mesma noite, a prova passou. O Pix nasceu
+`action_required`/`waiting_transfer`, com QR, e foi cancelado na hora
+(`canceled`/`canceled`, conferido por `GET`). O item 1 fica pendente só no
+MFA, no nome da fatura e na liberação do cartão.
 
 ## Uber Direct: o que o ensaio mostrou
 

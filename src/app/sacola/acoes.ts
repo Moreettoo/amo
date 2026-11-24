@@ -12,9 +12,9 @@ import { cotarNaUber } from '@/lib/uber/cliente'
 import { FAIXA, faixasLivres, faixaValida, fechamentoDeHoje, janelasDaFaixa, situacaoDaLoja, type Faixa } from '@/lib/loja'
 import { ErroDeRegra, registrarFalha } from '@/lib/dados/erros'
 import { conferirNumeroDoPedido } from '@/lib/conta/regras'
-import { criarPedido, iniciarPagamento, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
+import { criarPedido, iniciarPagamento, lerItensParaPagar, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
 import { aplicarPagamento, mpPedidoDaTentativa, tentativasACancelarDaCliente } from '@/lib/dados/pagamentos'
-import { criarPedidoCartao, criarPedidoPix, type PedidoMp } from '@/lib/mercadopago/cliente'
+import { criarPedidoCartao, criarPedidoPix, dispositivoValido, itensParaOMp, type ItemMp, type PedidoMp } from '@/lib/mercadopago/cliente'
 import { traduzir } from '@/lib/mercadopago/traducao'
 import { aplicarRespostaDoMp, cancelarNoMp, guardarIdsDoMp, sincronizarTentativa } from '@/lib/mercadopago/sincronizar'
 import { consumirLimite } from '@/lib/dados/limites'
@@ -320,15 +320,19 @@ const FINAL = /^\d{4}$/
 
 type Cartao = { token: string; bandeira: string; tipo: 'credit_card' | 'debit_card'; parcelas: number }
 type Documento = { tipo: 'CPF'; numero: string }
-type DadosDoCartao = { cartao: Cartao; final: string; documento: Documento | null }
+type DadosDoCartao = { cartao: Cartao; final: string; documento: Documento | null; dispositivo: string | null }
 
 const objeto = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const soAs = (o: object, obrigatorias: string[], opcionais: string[] = []) =>
   Object.keys(o).every((k) => obrigatorias.includes(k) || opcionais.includes(k)) && obrigatorias.every((k) => k in o)
 
-/** Os campos do cartao (com o numero do pedido ja conferido a parte), ou null se algum estiver fora da regra. O CPF so passa como 11 digitos. */
+/**
+ * Os campos do cartao (com o numero do pedido ja conferido a parte), ou null se
+ * algum estiver fora da regra. O CPF so passa como 11 digitos. O Device ID fora
+ * do formato e descartado, nunca recusado: ele so ajuda o antifraude.
+ */
 function conferirCartao(e: Record<string, unknown>): DadosDoCartao | null {
-  if (!soAs(e, ['numero', 'token', 'bandeira', 'tipo', 'parcelas', 'final'], ['documento'])) return null
+  if (!soAs(e, ['numero', 'token', 'bandeira', 'tipo', 'parcelas', 'final'], ['documento', 'dispositivo'])) return null
   const { token, bandeira, tipo, parcelas, final, documento } = e
   if (typeof token !== 'string' || !TOKEN_DO_CARTAO.test(token)) return null
   if (typeof bandeira !== 'string' || !BANDEIRA.test(bandeira)) return null
@@ -343,7 +347,7 @@ function conferirCartao(e: Record<string, unknown>): DadosDoCartao | null {
     if (numero.length !== 11) return null
     doc = { tipo: 'CPF', numero }
   }
-  return { cartao: { token, bandeira, tipo, parcelas }, final, documento: doc }
+  return { cartao: { token, bandeira, tipo, parcelas }, final, documento: doc, dispositivo: dispositivoValido(e.dispositivo) }
 }
 
 const CODIGOS_DE_INICIAR: Record<string, CodigoDoFechamento> = {
@@ -455,8 +459,19 @@ async function pagar(forma: 'pix' | 'cartao', entrada: unknown): Promise<Respost
       return situacaoLida(numero, pedido.id)
     }
 
-    const base = { tentativa, totalCentavos: pedido.totalCentavos, email: usuario.email }
-    const criado = dados ? await criarPedidoCartao({ ...base, cartao: dados.cartao, documento: dados.documento }) : await criarPedidoPix(base)
+    // Os potes e a entrega vao ao Mercado Pago (ajudam o antifraude dele); a leitura que falha nunca barra o pagamento.
+    let itens: ItemMp[] = []
+    try {
+      const lidos = await lerItensParaPagar(pedido.id)
+      itens = itensParaOMp(lidos.itens, lidos.freteCentavos)
+    } catch (erro) {
+      registrarFalha('pagar.itens', erro)
+    }
+
+    const base = { tentativa, totalCentavos: pedido.totalCentavos, email: usuario.email, itens }
+    const criado = dados
+      ? await criarPedidoCartao({ ...base, cartao: dados.cartao, documento: dados.documento, dispositivo: dados.dispositivo })
+      : await criarPedidoPix(base)
 
     if (!criado.ok) {
       if (criacaoRecusada(criado.status)) {

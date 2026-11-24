@@ -133,12 +133,14 @@ async function chamar(
   caminho: string,
   chave: string | null,
   corpo: unknown,
+  extras: Record<string, string> = {},
 ): Promise<ResultadoMp> {
   let temporizador: ReturnType<typeof setTimeout> | undefined
   try {
     const cabecalhos: Record<string, string> = { Authorization: `Bearer ${variavel('MERCADOPAGO_ACCESS_TOKEN')}` }
     if (chave) cabecalhos['X-Idempotency-Key'] = chave
     if (metodo === 'POST') cabecalhos['Content-Type'] = 'application/json'
+    Object.assign(cabecalhos, extras)
 
     const limite = new Promise<never>((_, rejeitar) => {
       temporizador = setTimeout(() => rejeitar(new Error('prazo')), PRAZO_MS)
@@ -162,9 +164,11 @@ async function chamar(
     lida.catch(() => {})
     const { r: resposta, json } = await Promise.race([lida, limite])
 
-    // 402: o pedido foi criado e a transacao falhou; o corpo traz o pedido
+    // 402: o pedido foi criado e a transacao falhou. A API o devolve dentro de
+    // data (ensaio de 2026-11-23); sem data, vale o corpo inteiro.
     if (resposta.ok || resposta.status === 402) {
-      const pedido = lerPedido(json)
+      const dentro = resposta.status === 402 ? obj(obj(json)?.data) : null
+      const pedido = lerPedido(dentro ?? json)
       if (pedido) return { ok: true, pedido }
     }
     const codigo = codigoDoErro(json)
@@ -178,7 +182,46 @@ async function chamar(
   }
 }
 
-export function criarPedidoPix(p: { tentativa: string; totalCentavos: number; email: string }): Promise<ResultadoMp> {
+const DISPOSITIVO = /^[A-Za-z0-9._:-]{8,200}$/
+
+/**
+ * O Device ID no formato que pode virar cabecalho (sem espaco, controle ou
+ * quebra de linha), ou null. Fora do formato ele e descartado, nunca recusado:
+ * o pagamento segue sem ele (spec do pagamento de verdade, 8).
+ */
+export function dispositivoValido(v: unknown): string | null {
+  return typeof v === 'string' && DISPOSITIVO.test(v) ? v : null
+}
+
+/** Um item do pedido no Mercado Pago, em centavos. */
+export type ItemMp = { titulo: string; quantidade: number; precoCentavos: number }
+
+/**
+ * Os potes do pedido e, com frete, a entrega como mais um item: a API confere
+ * que os itens somam o total do pedido (contrato, 1.3).
+ */
+export function itensParaOMp(itens: { nome: string; quantos: number; precoCentavos: number }[], freteCentavos: number): ItemMp[] {
+  const potes = itens.map((i) => ({ titulo: i.nome, quantidade: i.quantos, precoCentavos: i.precoCentavos }))
+  return freteCentavos > 0 ? [...potes, { titulo: 'Entrega', quantidade: 1, precoCentavos: freteCentavos }] : potes
+}
+
+/**
+ * O campo items do corpo, so quando os itens somam o total: a API recusaria o
+ * pedido inteiro (order_items_total_amount_mismatch), e item e informacao a
+ * mais, que nunca barra o pagamento.
+ */
+function itensDoCorpo(itens: ItemMp[], totalCentavos: number): Obj {
+  if (itens.length === 0) return {}
+  const legiveis = itens.every((i) => Number.isSafeInteger(i.precoCentavos) && i.precoCentavos >= 0 && Number.isSafeInteger(i.quantidade) && i.quantidade > 0)
+  const soma = legiveis ? itens.reduce((total, i) => total + i.precoCentavos * i.quantidade, 0) : -1
+  if (soma !== totalCentavos) {
+    registrarFalha('mercadopago.itens', { code: 'itens_nao_somam' })
+    return {}
+  }
+  return { items: itens.map((i) => ({ title: i.titulo, unit_price: valorEmReais(i.precoCentavos), quantity: i.quantidade })) }
+}
+
+export function criarPedidoPix(p: { tentativa: string; totalCentavos: number; email: string; itens: ItemMp[] }): Promise<ResultadoMp> {
   if (!totalValido(p.totalCentavos)) return FALHA_LOCAL
   const valor = valorEmReais(p.totalCentavos)
   return chamar('criar_pix', 'POST', '', p.tentativa, {
@@ -187,6 +230,7 @@ export function criarPedidoPix(p: { tentativa: string; totalCentavos: number; em
     total_amount: valor,
     external_reference: p.tentativa,
     payer: { email: p.email },
+    ...itensDoCorpo(p.itens, p.totalCentavos),
     transactions: {
       payments: [{ amount: valor, payment_method: { id: 'pix', type: 'bank_transfer' }, expiration_time: 'PT30M' }],
     },
@@ -199,6 +243,8 @@ export function criarPedidoCartao(p: {
   email: string
   cartao: { token: string; bandeira: string; tipo: 'credit_card' | 'debit_card'; parcelas: number }
   documento: { tipo: 'CPF'; numero: string } | null
+  itens: ItemMp[]
+  dispositivo: string | null
 }): Promise<ResultadoMp> {
   if (!totalValido(p.totalCentavos)) return FALHA_LOCAL
   const valor = valorEmReais(p.totalCentavos)
@@ -210,6 +256,7 @@ export function criarPedidoCartao(p: {
     total_amount: valor,
     external_reference: p.tentativa,
     payer,
+    ...itensDoCorpo(p.itens, p.totalCentavos),
     transactions: {
       payments: [
         {
@@ -219,7 +266,13 @@ export function criarPedidoCartao(p: {
       ],
     },
     config: { online: { transaction_security: { validation: 'on_fraud_risk', liability_shift: 'required' } } },
-  })
+  }, dispositivoDoCabecalho(p.dispositivo))
+}
+
+/** O cabecalho do Device ID (contrato, 1.3), conferido de novo aqui: so vai o que pode ser cabecalho. */
+function dispositivoDoCabecalho(dispositivo: string | null): Record<string, string> {
+  const valido = dispositivoValido(dispositivo)
+  return valido ? { 'X-meli-session-id': valido } : {}
 }
 
 export function lerPedidoMp(id: string): Promise<ResultadoMp> {

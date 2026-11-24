@@ -37,7 +37,7 @@ vi.mock('@/lib/dados/erros', async (original) => ({
 }))
 
 import { ErroDeRegra } from '@/lib/dados/erros'
-import { iniciarPagamento, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
+import { iniciarPagamento, lerItensParaPagar, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
 import {
   aplicarPagamento,
   concluirEventoWebhook,
@@ -76,6 +76,33 @@ describe('lerPedidoParaPagar', () => {
   it('erro do banco sobe', async () => {
     responder(null, { code: '42501' }, 403)
     await expect(lerPedidoParaPagar('AMO-ABCDEFGH')).rejects.toThrow('Falha no banco (pedidos): 42501')
+  })
+})
+
+describe('lerItensParaPagar', () => {
+  it('le o frete e os potes do pedido pelo id, em centavos', async () => {
+    responder({ frete_centavos: 1810, itens_do_pedido: [{ nome: 'Granola', quantos: 2, preco_centavos: 2000 }] })
+    expect(await lerItensParaPagar('p1')).toEqual({ itens: [{ nome: 'Granola', quantos: 2, precoCentavos: 2000 }], freteCentavos: 1810 })
+    expect(m.chamadas).toContainEqual(['from', 'pedidos'])
+    expect(m.chamadas).toContainEqual(['select', 'frete_centavos, itens_do_pedido(nome, quantos, preco_centavos)'])
+    expect(m.chamadas).toContainEqual(['eq', 'id', 'p1'])
+  })
+  it('sem linha ou com forma torta lanca falhaDoBanco', async () => {
+    for (const data of [
+      null,
+      { frete_centavos: 1810, itens_do_pedido: null },
+      { frete_centavos: '1810', itens_do_pedido: [] },
+      { frete_centavos: 1810, itens_do_pedido: [{ nome: 'Granola', quantos: 2, preco_centavos: 20.5 }] },
+      { frete_centavos: 1810, itens_do_pedido: [{ nome: 7, quantos: 2, preco_centavos: 2000 }] },
+      { frete_centavos: 1810, itens_do_pedido: [{ nome: 'Granola', quantos: '2', preco_centavos: 2000 }] },
+    ]) {
+      responder(data)
+      await expect(lerItensParaPagar('p1')).rejects.toThrow('Falha no banco (pedidos)')
+    }
+  })
+  it('erro do banco sobe', async () => {
+    responder(null, { code: '42501' }, 403)
+    await expect(lerItensParaPagar('p1')).rejects.toThrow('Falha no banco (pedidos): 42501')
   })
 })
 

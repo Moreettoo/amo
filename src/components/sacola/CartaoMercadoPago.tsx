@@ -17,8 +17,11 @@ export type FormDataDoBrick = {
 /** O que o getAdditionalData devolve, so depois do getFormData; o tipo do cartao vem do paymentTypeId (contrato, 6). */
 export type AdicionaisDoBrick = { bin?: string; lastFourDigits?: string; cardholderName?: string; paymentTypeId?: string }
 
-/** O cartao lido no Brick: o formData e os dados adicionais, cada um da sua chamada. */
-export type DadosDoBrick = { formData: FormDataDoBrick; additionalData: AdicionaisDoBrick | null }
+/**
+ * O cartao lido no Brick: o formData e os dados adicionais, cada um da sua
+ * chamada, e o Device ID que o SDK do Mercado Pago deixa no window (null sem ele).
+ */
+export type DadosDoBrick = { formData: FormDataDoBrick; additionalData: AdicionaisDoBrick | null; dispositivo: string | null }
 
 /** O que o pai usa do Brick montado: le o cartao (null enquanto nao ha Brick ou sem dados validos nele). */
 export type ControleDoCartao = { lerCartao: () => Promise<DadosDoBrick | null> }
@@ -42,6 +45,8 @@ declare global {
     MercadoPago?: new (chave: string, opcoes: { locale: string }) => {
       bricks: () => { create: (tipo: 'cardPayment', lugar: string, opcoes: OpcoesDoBrick) => Promise<ControleDoBrick> }
     }
+    /** o Device ID que o SDK do Mercado Pago cria; vem de um script de fora: pode faltar ou vir torto */
+    MP_DEVICE_SESSION_ID?: unknown
   }
 }
 
@@ -87,6 +92,8 @@ export type CartaoDoBrick = {
   parcelas: number
   final: string
   documento?: { tipo: 'CPF'; numero: string }
+  /** o Device ID, so quando o SDK o deu; o servidor confere o formato */
+  dispositivo?: string
 }
 
 /**
@@ -95,7 +102,7 @@ export type CartaoDoBrick = {
  * tipo que seja credito ou debito, ou sem os 4 ultimos digitos, null: nada
  * sai, e nunca um campo vazio no lugar.
  */
-export function cartaoDoBrick({ formData, additionalData }: DadosDoBrick): CartaoDoBrick | null {
+export function cartaoDoBrick({ formData, additionalData, dispositivo }: DadosDoBrick): CartaoDoBrick | null {
   const token = formData.token
   const tipo = additionalData?.paymentTypeId
   const final = additionalData?.lastFourDigits
@@ -110,6 +117,7 @@ export function cartaoDoBrick({ formData, additionalData }: DadosDoBrick): Carta
     parcelas: Number(formData.installments),
     final,
     ...(id?.type === 'CPF' && id.number ? { documento: { tipo: 'CPF' as const, numero: id.number } } : {}),
+    ...(dispositivo ? { dispositivo } : {}),
   }
 }
 
@@ -169,7 +177,8 @@ export function CartaoMercadoPago({ chave, nonce, valorCentavos, aoPronto, aoFal
         const formData = await b.getFormData()
         if (!formData) return null
         const additionalData = (await b.getAdditionalData()) ?? null
-        return { formData, additionalData }
+        const lido = window.MP_DEVICE_SESSION_ID
+        return { formData, additionalData, dispositivo: typeof lido === 'string' && lido !== '' ? lido : null }
       },
     }),
     [],

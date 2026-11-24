@@ -19,7 +19,7 @@ let n = 0
 const tentativa = () => `0b9d1c0e-5a1f-4d2e-8a53-6f3f6c1d2a${String(++n).padStart(2, '0')}`
 
 async function pixCriado(totalCentavos = 9280) {
-  const r = await criarPedidoPix({ tentativa: tentativa(), totalCentavos, email: 'ensaio@exemplo.com' })
+  const r = await criarPedidoPix({ tentativa: tentativa(), totalCentavos, email: 'ensaio@exemplo.com', itens: [] })
   if (!r.ok) throw new Error(`criar falhou: ${r.status}`)
   return r.pedido
 }
@@ -84,6 +84,8 @@ describe('o Mercado Pago falso do ensaio, lido pelo cliente de verdade', () => {
       email: 'ensaio@exemplo.com',
       cartao: { token: 'a'.repeat(32), bandeira: 'master', tipo: 'credit_card', parcelas: 1 },
       documento: null,
+      itens: [],
+      dispositivo: null,
     })
     expect(r.ok && traduzir(r.pedido)?.status).toBe('aprovado')
     expect(r.ok && r.pedido.pagamento?.bandeira).toBe('master')

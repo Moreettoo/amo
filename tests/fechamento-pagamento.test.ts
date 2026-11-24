@@ -9,6 +9,7 @@ const m = vi.hoisted(() => ({
   obterUsuario: vi.fn(),
   consumirLimite: vi.fn(),
   lerPedidoParaPagar: vi.fn(),
+  lerItensParaPagar: vi.fn(),
   iniciarPagamento: vi.fn(),
   lerUltimaTentativa: vi.fn(),
   aplicarPagamento: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock('@/lib/dados/limites', () => ({ consumirLimite: m.consumirLimite }))
 vi.mock('@/lib/dados/fechamento', () => ({
   criarPedido: m.criarPedido,
   lerPedidoParaPagar: m.lerPedidoParaPagar,
+  lerItensParaPagar: m.lerItensParaPagar,
   iniciarPagamento: m.iniciarPagamento,
   lerUltimaTentativa: m.lerUltimaTentativa,
 }))
@@ -41,7 +43,8 @@ vi.mock('@/lib/mercadopago/sincronizar', () => ({
   cancelarNoMp: m.cancelarNoMp,
   guardarIdsDoMp: m.guardarIdsDoMp,
 }))
-vi.mock('@/lib/mercadopago/cliente', () => ({
+vi.mock('@/lib/mercadopago/cliente', async (original) => ({
+  ...(await original<typeof import('@/lib/mercadopago/cliente')>()),
   criarPedidoPix: m.criarPedidoPix,
   criarPedidoCartao: m.criarPedidoCartao,
 }))
@@ -70,6 +73,7 @@ beforeEach(() => {
   m.consumirLimite.mockResolvedValue(true)
   m.lerPedidoParaPagar.mockResolvedValue({ id: 'ped-1', totalCentavos: 9280, estado: 'aguardando_pagamento' })
   m.iniciarPagamento.mockResolvedValue('tent-1')
+  m.lerItensParaPagar.mockResolvedValue({ itens: [], freteCentavos: 0 })
   m.tentativasACancelarNoMp.mockResolvedValue([])
   m.tentativasACancelarDaCliente.mockResolvedValue([])
   m.cancelarNoMp.mockResolvedValue(null)
@@ -216,7 +220,7 @@ describe('criar no Mercado Pago', () => {
   })
   it('Pix: valor do banco, e-mail da sessao, QR devolvido', async () => {
     const r = await pagarComPix({ numero: NUMERO })
-    expect(m.criarPedidoPix).toHaveBeenCalledWith({ tentativa: 'tent-1', totalCentavos: 9280, email: 'ana@exemplo.com' })
+    expect(m.criarPedidoPix).toHaveBeenCalledWith({ tentativa: 'tent-1', totalCentavos: 9280, email: 'ana@exemplo.com', itens: [] })
     expect(r).toEqual({
       ok: true,
       situacao: { numero: NUMERO, estado: 'aguardando_pagamento', pagamento: { forma: 'pix', estado: 'pendente', recusa: null, pix, desafioUrl: null } },
@@ -236,9 +240,51 @@ describe('criar no Mercado Pago', () => {
       email: 'ana@exemplo.com',
       cartao: { token: TOKEN, bandeira: 'visa', tipo: 'credit_card', parcelas: 1 },
       documento: { tipo: 'CPF', numero: '12345678909' },
+      itens: [],
+      dispositivo: null,
     })
     expect(m.aplicarRespostaDoMp).toHaveBeenCalledWith('tent-1', expect.anything(), '4242')
     expect(r.ok && r.situacao.estado).toBe('pago')
+  })
+  it('pagar le os itens do pedido e manda ao Mercado Pago com a entrega', async () => {
+    m.lerItensParaPagar.mockResolvedValue({ itens: [{ nome: 'Granola', quantos: 2, precoCentavos: 2000 }], freteCentavos: 1810 })
+    const esperado = [
+      { titulo: 'Granola', quantidade: 2, precoCentavos: 2000 },
+      { titulo: 'Entrega', quantidade: 1, precoCentavos: 1810 },
+    ]
+    await pagarComPix({ numero: NUMERO })
+    expect(m.lerItensParaPagar).toHaveBeenCalledWith('ped-1')
+    expect(m.criarPedidoPix.mock.calls[0][0].itens).toEqual(esperado)
+    await pagarComCartao(cartao)
+    expect(m.criarPedidoCartao.mock.calls[0][0].itens).toEqual(esperado)
+  })
+  it('a leitura dos itens que falha nao barra: o pedido sai com itens vazios', async () => {
+    m.lerItensParaPagar.mockRejectedValue(new Error('falhou'))
+    const r = await pagarComPix({ numero: NUMERO })
+    expect(r.ok).toBe(true)
+    expect(m.criarPedidoPix.mock.calls[0][0].itens).toEqual([])
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).toContain('pagar.itens')
+  })
+  it('o dispositivo no formato vai a criarPedidoCartao', async () => {
+    await pagarComCartao({ ...cartao, dispositivo: 'armor.abc123def456' })
+    expect(m.criarPedidoCartao).toHaveBeenCalledWith(expect.objectContaining({ dispositivo: 'armor.abc123def456' }))
+  })
+  it('sem dispositivo, criarPedidoCartao recebe null', async () => {
+    await pagarComCartao(cartao)
+    expect(m.criarPedidoCartao).toHaveBeenCalledWith(expect.objectContaining({ dispositivo: null }))
+  })
+  it('dispositivo hostil e descartado e o cartao paga mesmo assim', async () => {
+    const DISPOSITIVO = /^[A-Za-z0-9._:-]{8,200}$/
+    const hostis: unknown[] = ['a\r\nX-Outro: 1', 'x'.repeat(10_000), 'com espaco', 'curto', '', { a: 1 }, 12345678, ...HOSTIS.filter((h) => !DISPOSITIVO.test(h))]
+    for (const d of hostis) {
+      m.criarPedidoCartao.mockClear()
+      const r = await pagarComCartao({ ...cartao, dispositivo: d })
+      expect(r.ok).toBe(true)
+      expect(m.criarPedidoCartao).toHaveBeenCalledWith(expect.objectContaining({ dispositivo: null }))
+    }
+  })
+  it('campo desconhecido continua campos_invalidos', async () => {
+    expect(await pagarComCartao({ ...cartao, outro: 'x' })).toEqual({ ok: false, erro: 'campos_invalidos' })
   })
   it('cartao sem documento manda null', async () => {
     await pagarComCartao(cartao)
@@ -462,6 +508,8 @@ describe('mensagemDaRecusa', () => {
     ['high_risk', 'O pagamento foi recusado por segurança. Tente outro cartão.'],
     ['cc_rejected_3ds_challenge', 'A confirmação do banco não foi concluída. Tente de novo.'],
     ['3ds_challenge_expired', 'A confirmação do banco não foi concluída. Tente de novo.'],
+    // ensaio de 2026-11-23: o desafio do banco que falha volta failed/3ds_challenge_failed
+    ['3ds_challenge_failed', 'A confirmação do banco não foi concluída. Tente de novo.'],
     ['max_attempts_exceeded', 'Foram muitas tentativas com este cartão. Use outro.'],
     ['card_disabled', 'Este cartão está desativado. Use outro.'],
     ['invalid_installments', 'Escolha outro número de parcelas.'],
