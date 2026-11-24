@@ -492,18 +492,20 @@ Parnaíba, 1316, Mooca. Pedidos `AMO-A8XPCCR4` (agora), `AMO-CBM83U84`
 - **Corrida criada com o pagamento: confere.** Os três pedidos pagos criaram
   a corrida (`del_`, `live_mode` falso, senão o código cancelaria), com o Robo
   Courier. O agendado levou a faixa na criação.
-- **Avisos assinados: NÃO conferiu.** Em cerca de 20 minutos (primeiro
-  pedido) e 13 minutos (terceiro) nenhum `POST /api/webhooks/uber` chegou ao
-  servidor, e a Uber levou as corridas até `delivered` nesse tempo (a
-  reconciliação leu `delivered`). O endpoint estava no ar (a chamada assinada de
-  teste dava 200, a errada 401). Então: a Uber não mandou, ou o aviso do painel
-  não está ligado ao evento certo ou à URL do túnel, ou a conta de teste não
-  manda aviso para corrida do Robo Courier. Sem aviso, o pedido só chegou a
-  "entregue" pela reconciliação, 10 minutos depois do último sinal (e "a
-  caminho" e "entregue" ficaram com a mesma hora). Pendente: conferir no painel
-  `direct.uber.com` o evento e a URL, e o painel de entregas do webhook, e
-  repetir. Por isso também não se confirmou quais campos o corpo do aviso traz
-  no topo (`kind`, `id`, `delivery_id`, `status`).
+- **Avisos assinados: NÃO conferiu, duas vezes.** No primeiro ensaio, em
+  cerca de 20 minutos (primeiro pedido) e 13 minutos (terceiro), nenhum
+  `POST /api/webhooks/uber` chegou ao servidor. Depois de o dono rever o aviso
+  no painel `direct.uber.com`, um pedido novo (agora, Pix) foi observado por 20
+  minutos sem reconciliar: de novo nenhum aviso (`privado.eventos_webhook` sem
+  linha de origem `uber`), e o pedido ficou "pago, na fila" até a reconciliação,
+  que leu `delivered` e o levou a "entregue". A Uber, porém, levou as corridas
+  até `delivered`. O endpoint estava no ar (a chamada assinada de teste dava
+  200, a errada 401). Então a Uber não mandou: ou o aviso do painel não está
+  ligado à URL do túnel e ao evento `event.delivery_status`, ou a conta de teste
+  não manda aviso para corrida do Robo Courier. Até isso mudar, quem leva o
+  pedido adiante é a reconciliação (a cada 10 minutos de silêncio), e "a caminho"
+  e "entregue" aparecem com a mesma hora. Por isso não se confirmou quais campos
+  o corpo do aviso traz no topo (`kind`, `id`, `delivery_id`, `status`).
 - **Link de rastreio: confere.** `https://direct-order.uber.com/br/orders/<uuid>?tenancyOverride=...`
   responde 200 com HTML (a página é aplicativo de página única; o conteúdo
   não foi lido num navegador).
