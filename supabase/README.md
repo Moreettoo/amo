@@ -524,8 +524,11 @@ Prova sem dinheiro de 2026-11-23, com o OK do dono: a conta é real, ativa e
 pode vender (`site_status` `active`, `sell.allow` verdadeiro, tipo `personal`),
 mas o Pix **nasce recusado**: 402, pedido `failed`/`failed`, pagamento
 `failed`/`processing_error`. Nenhum dinheiro se moveu (pedido recusado não
-pode ser pago). Causa mais provável: a conta sem chave Pix (item 1). Depois de
-o dono cadastrar a chave, rodar a prova de novo.
+pode ser pago). A causa era a conta sem chave Pix (item 1): o dono cadastrou
+uma chave aleatória e, na mesma noite, a prova passou. O Pix nasceu
+`action_required`/`waiting_transfer`, com QR, e foi cancelado na hora
+(`canceled`/`canceled`, conferido por `GET`). O item 1 fica pendente só no
+MFA, no nome da fatura e na liberação do cartão.
 
 ## Uber Direct: o que o ensaio mostrou
 
