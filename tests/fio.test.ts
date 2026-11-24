@@ -162,20 +162,36 @@ describe('tracarFio', () => {
     expect(Math.max(...ultimo.map((p) => p.y))).toBeLessThan(5200)
   })
 
-  it('em colunas, a virada do sublinhado para a descida tem folga e não faz quina', () => {
-    // "pelo sabor": o sublinhado termina em x 144, a 34 px da margem (110)
-    const caminho = tracarFio(paginaLarga(), 1440, true)[0]
+  it('em colunas, a virada do sublinhado para a descida é redonda, sem quina', () => {
+    // "pelo sabor" numa tela de 1920: o sublinhado termina em x 374, a 24 px da margem (350)
+    const blocos: Bloco[] = [
+      {
+        tipo: 'pagina',
+        ancoras: [
+          ancora('inicio', 0, caixa(386, 250, 660, 190)),
+          ancora('atras', 0, caixa(916, 140, 380, 570)),
+          ancora('sub', 1, caixa(380, 930, 270, 80)),
+        ],
+      },
+    ]
+    const caminho = tracarFio(blocos, 1920, true)[0]
     const nos = pontos(caminho)
-    const i = nos.findIndex((p) => Math.abs(p.x - 144) < 0.1)
+    const i = nos.findIndex((p) => Math.abs(p.x - 374) < 0.1)
     expect(i).toBeGreaterThan(0)
-    const fimDoSublinhado = nos[i]
-    const descida = nos[i + 1]
-    expect(fimDoSublinhado.x - descida.x).toBeGreaterThanOrEqual(80)
-    expect(descida.y - fimDoSublinhado.y).toBeGreaterThanOrEqual(160)
-    // a ponta do sublinhado ja aponta para baixo: a curva que sai dela comeca descendo
+    const a = nos[i]
+    const b = nos[i + 1]
+    const largura = a.x - b.x
+    const queda = b.y - a.y
+    expect(largura).toBeGreaterThanOrEqual(120)
+    expect(queda).toBeGreaterThanOrEqual(200)
+    // um quarto de elipse: as alcas vao so ate pouco mais da metade de cada raio
+    // (alcas longas empurram a curva toda para o canto, e ali ela vira quina)
     const [, tipo, numeros] = [...caminho.matchAll(/([MLC])([^MLC]+)/g)][i + 1]
     expect(tipo).toBe('C')
-    expect(Number(numeros.trim().split(/\s+/)[1])).toBeGreaterThan(fimDoSublinhado.y)
+    const [c1x, , , c2y] = numeros.trim().split(/\s+/).map(Number)
+    expect(a.x - c1x).toBeLessThanOrEqual(largura * 0.6)
+    expect(b.y - c2y).toBeLessThanOrEqual(queda * 0.6)
+    expect(b.y - c2y).toBeGreaterThanOrEqual(queda * 0.5)
   })
 
   it('sem âncoras não há fio', () => {

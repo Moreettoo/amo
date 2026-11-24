@@ -37,13 +37,25 @@ export type Bloco =
       respiro: number
     }
 
-type No = { x: number; y: number; tx: number | null; ty: number }
+type No = {
+  x: number
+  y: number
+  tx: number | null
+  ty: number
+  /** tamanho da alca que sai do no (no lugar do padrao, que vem da distancia) */
+  sai?: number
+  /** tamanho da alca que chega ao no */
+  chega?: number
+}
 type Lado = 'e' | 'd'
 
 /** em tela estreita: quanto o fio se afasta da tela quando sai pela lateral */
 const FORA = 70
-/** na pagina em colunas: o raio da virada do sublinhado para a descida */
-const CURVA = 80
+/** na pagina em colunas: os raios da virada do sublinhado para a descida */
+const CURVA_X = 140
+const CURVA_Y = 260
+/** alca de um quarto de elipse: com ela a virada e redonda, sem quina */
+const QUARTO = 0.55
 const n = (v: number) => v.toFixed(1)
 const limite = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 const meio = (c: Caixa) => (c.l + c.r) / 2
@@ -105,11 +117,11 @@ function desenhar(
       d += ` L${n(b.x)} ${n(b.y)}`
       continue
     }
-    const h = Math.hypot(b.x - a.x, b.y - a.y) * 0.38
-    const cabe = (x: number, t: number) =>
+    const padrao = Math.hypot(b.x - a.x, b.y - a.y) * 0.38
+    const cabe = (x: number, t: number, h: number) =>
       t < 0 ? Math.min(h, Math.max(8, (x - de) / -t)) : t > 0 ? Math.min(h, Math.max(8, (ate - x) / t)) : h
-    const ha = cabe(a.x, ax)
-    const hb = cabe(b.x, -bx)
+    const ha = cabe(a.x, ax, a.sai ?? padrao)
+    const hb = cabe(b.x, -bx, b.chega ?? padrao)
     d += ` C${n(a.x + ax * ha)} ${n(a.y + a.ty * ha)} ${n(b.x - bx * hb)} ${n(b.y - b.ty * hb)} ${n(b.x)} ${n(b.y)}`
   }
   if (coracao) {
@@ -186,19 +198,29 @@ export function tracarFio(blocos: readonly Bloco[], largura: number, largo: bool
         // embaixo do titulo vem o texto da secao, e ele nao risca texto.
         const desce = largo && !(naSecao && seguinte.caixa.t < c.b)
         const naMargem = dir < 0 ? margem : largura - margem
-        // Com a margem colada no fim do sublinhado, a virada faria quina: o
-        // fio se afasta CURVA px (sem colar na beira), a ponta do sublinhado
-        // ja comeca a cair e a queda e longa. Com a margem longe, a curva ja
-        // e aberta e passa por cima do texto da secao.
-        const apertado = desce && Math.abs(naMargem - ate) < CURVA * 2
-        nos.push({ x: de, y: b + 5, tx: dir, ty: 0.07 }, { x: ate, y: b + 5, tx: dir, ty: apertado ? 0.18 : -0.07 })
+        // Com a margem perto do fim do sublinhado, a virada faria quina. Ali
+        // ela vira um quarto de elipse largo: o fio se afasta ate CURVA_X px
+        // para o lado (sem colar na beira da tela), cai CURVA_Y px e as alcas
+        // sao as de uma elipse. Com a margem longe, a curva ja e aberta e
+        // passa por cima do texto da secao.
+        const virada = desce && Math.abs(naMargem - ate) < CURVA_X * 2
+        const xVirada =
+          dir < 0
+            ? Math.max(12, Math.min(naMargem, ate - CURVA_X))
+            : Math.min(largura - 12, Math.max(naMargem, ate + CURVA_X))
+        const rx = Math.abs(xVirada - ate)
+        const ry = Math.max(CURVA_Y, rx * 1.6)
+        nos.push(
+          { x: de, y: b + 5, tx: dir, ty: 0.07 },
+          virada ? { x: ate, y: b + 5, tx: dir, ty: 0, sai: rx * QUARTO } : { x: ate, y: b + 5, tx: dir, ty: -0.07 },
+        )
         cx = ate
         yUlt = b + 5
         if (largo) {
-          if (apertado) {
-            const x = dir < 0 ? Math.max(12, Math.min(naMargem, ate - CURVA)) : Math.min(largura - 12, Math.max(naMargem, ate + CURVA))
-            nos.push({ x, y: b + 5 + CURVA * 2.1, tx: dir * 0.12, ty: 1 })
-            cx = x
+          if (virada) {
+            // a descida ainda abre um pouco para fora, como a pena solta
+            nos.push({ x: xVirada, y: b + 5 + ry, tx: dir * 0.06, ty: 1, chega: ry * QUARTO })
+            cx = xVirada
           } else if (desce) {
             // a pena chega a margem ainda abrindo para fora: a descida ganha barriga
             nos.push({ x: naMargem, y: b + 5 + Math.max(90, Math.abs(naMargem - ate) * 0.35), tx: dir * 0.2, ty: 1 })
