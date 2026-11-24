@@ -304,6 +304,19 @@ select pg_temp.reservar(9, 50);
 select pg_temp.cancelar(pg_temp.id('p5'));
 select pg_temp.verificar('a_cancelar que falha ao criar vira cancelada',
   privado.marcar_corrida_falhou(pg_temp.id('p5'), 'erro_uber', false) = 'cancelada');
+select pg_temp.verificar('a Uber criar depois da cancelada a devolve a a_cancelar',
+  privado.marcar_corrida_criada(pg_temp.id('p5'), 'del_p5', 990, null, 'pending') = 'a_cancelar');
+select pg_temp.verificar('e a corrida viva entra na lista de cancelar com o id',
+  exists (select 1 from privado.corridas_a_cancelar() c where c.pedido = pg_temp.id('p5') and c.uber_entrega_id = 'del_p5'));
+
+insert into _v values ('p_ac', pg_temp.pedido_pago(pg_temp.id('a')));
+select pg_temp.verificar('o preparo do a_criar: a corrida ainda nao foi reservada',
+  pg_temp.estado(pg_temp.id('p_ac')) = 'a_criar');
+select pg_temp.verificar('marcar criada direto de a_criar vira criada',
+  privado.marcar_corrida_criada(pg_temp.id('p_ac'), 'del_p_ac', 990, null, 'pending') = 'criada');
+select pg_temp.verificar('a corrida de a_criar guarda o id e solta a reserva',
+  (select estado = 'criada' and uber_entrega_id = 'del_p_ac' and reservado_em is null
+   from privado.entregas where pedido_id = pg_temp.id('p_ac')));
 
 -- 5. a remarcacao
 insert into _v values ('p9', pg_temp.pedido_pago(pg_temp.id('a')));
