@@ -28,10 +28,13 @@ import {
   corridaCancelada,
   corridasACancelar,
   corridasAConferir,
+  guardarTokenUber,
+  lerTokenUber,
   marcarCorridaCriada,
   marcarCorridaFalhou,
   remarcarEntrega,
   reservarCorridas,
+  reservarRenovacaoToken,
 } from '@/lib/dados/entregas'
 
 const rpc = () => m.chamadas.find((c) => c[0] === 'rpc')
@@ -258,5 +261,43 @@ describe('corridasAConferir', () => {
   it.each([[null], [[{ uber_entrega_id: 3 }]]])('resposta torta (%j) e falha', async (data) => {
     responder(data)
     await expect(corridasAConferir()).rejects.toThrow('Falha no banco (corridas_a_conferir)')
+  })
+})
+
+describe('o token da Uber', () => {
+  it('lerTokenUber devolve token e validade em ISO', async () => {
+    responder([{ token: 'abc', expira_em: '2026-12-24T10:00:00+00:00' }])
+    expect(await lerTokenUber()).toEqual({ token: 'abc', expiraEm: '2026-12-24T10:00:00.000Z' })
+    expect(rpc()).toEqual(['rpc', 'ler_token_uber', {}])
+  })
+  it('lerTokenUber sem linha devolve null', async () => {
+    responder([])
+    expect(await lerTokenUber()).toBeNull()
+  })
+  it.each([[null], [[{ token: '', expira_em: '2026-12-24T10:00:00Z' }]], [[{ token: 'a', expira_em: 'ontem' }]]])(
+    'lerTokenUber com resposta torta (%j) e falha',
+    async (data) => {
+      responder(data)
+      await expect(lerTokenUber()).rejects.toThrow('Falha no banco (ler_token_uber)')
+    },
+  )
+  it('guardarTokenUber manda o token e a validade', async () => {
+    await guardarTokenUber('abc', '2026-12-24T10:00:00.000Z')
+    expect(rpc()).toEqual(['rpc', 'guardar_token_uber', { p_token: 'abc', p_expira_em: '2026-12-24T10:00:00.000Z' }])
+  })
+  it('guardarTokenUber com erro do banco falha sem a mensagem crua', async () => {
+    responder(null, { code: '42501', message: 'permission denied for table secreta' }, 403)
+    await expect(guardarTokenUber('abc', '2026-12-24T10:00:00.000Z')).rejects.toThrow('Falha no banco (guardar_token_uber)')
+  })
+  it('reservarRenovacaoToken devolve o booleano', async () => {
+    responder(true)
+    expect(await reservarRenovacaoToken()).toBe(true)
+    responder(false)
+    expect(await reservarRenovacaoToken()).toBe(false)
+    expect(rpc()).toEqual(['rpc', 'reservar_renovacao_token', {}])
+  })
+  it('reservarRenovacaoToken com resposta torta e falha', async () => {
+    responder('sim')
+    await expect(reservarRenovacaoToken()).rejects.toThrow('Falha no banco (reservar_renovacao_token)')
   })
 })

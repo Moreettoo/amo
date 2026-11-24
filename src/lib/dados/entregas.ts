@@ -183,3 +183,25 @@ export async function corridasAConferir(): Promise<string[]> {
   const { data, status } = await chamar('corridas_a_conferir', {})
   return ler('corridas_a_conferir', status, () => lista(data).map((l) => texto(l.uber_entrega_id)))
 }
+
+/** O token da Uber do site inteiro (privado.ler_token_uber); null quando ainda nao ha token guardado. */
+export async function lerTokenUber(): Promise<{ token: string; expiraEm: string } | null> {
+  const { data, status } = await chamar('ler_token_uber', {})
+  return ler('ler_token_uber', status, () => {
+    const linhas = lista(data)
+    if (linhas.length === 0) return null
+    const expiraEm = dataOuNula(linhas[0].expira_em)
+    return { token: texto(linhas[0].token), expiraEm: expiraEm ?? torta() }
+  })
+}
+
+/** Guarda o token novo no cofre (cria o segredo na primeira vez, troca depois). */
+export async function guardarTokenUber(token: string, expiraEm: string): Promise<void> {
+  await chamar('guardar_token_uber', { p_token: token, p_expira_em: expiraEm })
+}
+
+/** Verdadeiro para um so chamador a cada 60 s: quem renova o token. */
+export async function reservarRenovacaoToken(): Promise<boolean> {
+  const { data, status } = await chamar('reservar_renovacao_token', {})
+  return ler('reservar_renovacao_token', status, () => (typeof data === 'boolean' ? data : torta()))
+}
