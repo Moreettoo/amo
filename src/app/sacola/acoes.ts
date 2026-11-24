@@ -151,6 +151,9 @@ export async function cotarEntrega(entrada: unknown): Promise<RespostaDaCotacao>
       }
       ;({ valorCentavos, minutos, id: uberCotacaoId } = q)
     }
+    // no agendado a duration da Uber conta a espera ate a faixa (passa de 600 e o banco recusa);
+    // "chega em X minutos" vale depois que o pedido sai, entao fica a duracao da faixa
+    if (modo === 'agendado') minutos = FAIXA.duracaoMin
 
     const usuario = await obterUsuario()
     const endereco = {

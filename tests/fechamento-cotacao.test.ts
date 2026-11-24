@@ -41,7 +41,7 @@ vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-forwarded
 
 import { cotarEntrega } from '@/app/sacola/acoes'
 import { cotarDeExemplo } from '@/lib/dados/cotacao'
-import { faixasLivres, janelasDaFaixa, type Loja } from '@/lib/loja'
+import { FAIXA, faixasLivres, janelasDaFaixa, type Loja } from '@/lib/loja'
 
 const RUA = { logradouro: 'Rua Cuiabá', bairro: 'Alto da Mooca', cidade: 'São Paulo', uf: 'SP' }
 const entrada = { cep: '03183-002', numero: '120', complemento: 'ap 4' }
@@ -239,6 +239,12 @@ describe('modos', () => {
     expect(r.ok && r.cotacao).toMatchObject({ modo: 'agendado', faixa: faixaDe(FAIXA_BOA) })
   })
 
+  it('agendado no exemplo: os minutos tambem sao a duracao da faixa', async () => {
+    const r = await cotarEntrega({ ...entrada, modo: 'agendado', faixa: FAIXA_BOA })
+    expect(r.ok && r.cotacao).toMatchObject({ exemplo: true, modo: 'agendado', minutos: FAIXA.duracaoMin })
+    expect(m.registrarCotacao).toHaveBeenCalledWith(expect.objectContaining({ origem: 'exemplo', minutos: FAIXA.duracaoMin }))
+  })
+
   it('modo ou faixa fora da regra: campos_invalidos sem gastar limite', async () => {
     const ruins = [
       { modo: 'agendado' },
@@ -338,6 +344,28 @@ describe('Uber', () => {
     expect((await cotarEntrega(entrada)).ok).toBe(true)
     m.cotarNaUber.mockResolvedValue({ ok: true, dados: { ...UBER, retiradaEmMinutos: null, minutos: null } })
     expect(await cotarEntrega(entrada)).toEqual({ ok: false, erro: 'agora_indisponivel' })
+  })
+
+  it('agendado: os minutos sao a duracao da faixa, nao a espera ate ela', async () => {
+    m.cotarNaUber.mockResolvedValue({ ok: true, dados: { ...UBER, minutos: 1237 } })
+    const r = await cotarEntrega({ ...entrada, modo: 'agendado', faixa: FAIXA_BOA })
+    expect(r.ok && r.cotacao.minutos).toBe(FAIXA.duracaoMin)
+    expect(m.registrarCotacao).toHaveBeenCalledWith(expect.objectContaining({ modo: 'agendado', minutos: FAIXA.duracaoMin }))
+  })
+
+  it('agendado automatico (loja fechada): os minutos tambem sao a duracao da faixa', async () => {
+    vi.setSystemTime(new Date('2026-11-25T01:00:00.000Z'))
+    m.cotarNaUber.mockResolvedValue({ ok: true, dados: { ...UBER, minutos: 1237 } })
+    const r = await cotarEntrega(entrada)
+    expect(r.ok && r.cotacao).toMatchObject({ modo: 'agendado', minutos: FAIXA.duracaoMin })
+    expect(m.registrarCotacao).toHaveBeenCalledWith(expect.objectContaining({ modo: 'agendado', minutos: FAIXA.duracaoMin }))
+  })
+
+  it('agora: os minutos da Uber passam sem mudar', async () => {
+    m.cotarNaUber.mockResolvedValue({ ok: true, dados: { ...UBER, minutos: 37 } })
+    const r = await cotarEntrega({ ...entrada, modo: 'agora' })
+    expect(r.ok && r.cotacao.minutos).toBe(37)
+    expect(m.registrarCotacao).toHaveBeenCalledWith(expect.objectContaining({ modo: 'agora', minutos: 37 }))
   })
 
   it('o agendado nao confere o fechamento', async () => {
