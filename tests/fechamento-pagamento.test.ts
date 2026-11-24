@@ -508,6 +508,8 @@ describe('mensagemDaRecusa', () => {
     ['high_risk', 'O pagamento foi recusado por segurança. Tente outro cartão.'],
     ['cc_rejected_3ds_challenge', 'A confirmação do banco não foi concluída. Tente de novo.'],
     ['3ds_challenge_expired', 'A confirmação do banco não foi concluída. Tente de novo.'],
+    // ensaio de 2026-11-23: o desafio do banco que falha volta failed/3ds_challenge_failed
+    ['3ds_challenge_failed', 'A confirmação do banco não foi concluída. Tente de novo.'],
     ['max_attempts_exceeded', 'Foram muitas tentativas com este cartão. Use outro.'],
     ['card_disabled', 'Este cartão está desativado. Use outro.'],
     ['invalid_installments', 'Escolha outro número de parcelas.'],

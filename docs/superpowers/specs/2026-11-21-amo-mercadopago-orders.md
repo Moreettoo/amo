@@ -139,6 +139,10 @@ O servidor lê `status` e `status_detail` do primeiro pagamento
 | `processed` + `partially_refunded` | `aprovado` (a AMO não faz estorno parcial; fica registrado no detalhe) | |
 | qualquer outro | erro de tradução: o servidor não aplica nada e registra a falha | |
 
+O desafio do banco que falha volta `failed`/`3ds_challenge_failed` (ensaio no
+navegador de 2026-11-23): a tentativa fica `recusado`, com a mensagem do
+desafio não concluído.
+
 O desfecho de uma contestação (`settled`, `reimbursed`) é contraditório na
 documentação; o pagamento fica `contestado` e a equipe resolve no painel.
 
@@ -237,6 +241,14 @@ documentação; o pagamento fica `contestado` e a equipe resolve no painel.
   `cartao_ilegivel` ("Confira os dados do cartão.") e nada sai: o pedido não
   fecha e nada é cobrado. Nunca um `tipo` ou um `final` vazio.
 - Ao sair da etapa, `controller.unmount()`.
+- Ensaio no navegador de 2026-11-23 (js/v2 2.83.7, Brick 3.18.7): os campos do
+  cartão buscam `https://secure-fields.mercadopago.com` também por `fetch`
+  (`connect-src`, além do `frame-src`); sem isso, o Brick fica no esqueleto.
+  O SDK faz a identificação do aparelho sozinho, chamando
+  `https://www.mercadolibre.com` e `https://www.mercadolivre.com` (`connect-src`
+  e `img-src`), mas **não cria `window.MP_DEVICE_SESSION_ID`**: o cabeçalho
+  `X-meli-session-id` só iria com o `security.js`, que não está na página. O
+  desafio do banco (3DS) de teste vem de `www.mercadopago.com.br`.
 - **CSP**: não há lista oficial. Observada no `js/v2` (v2.83.7):
   `script-src https://sdk.mercadopago.com https://http2.mlstatic.com`;
   `connect-src https://api.mercadopago.com https://api-static.mercadopago.com https://api.mercadolibre.com https://http2.mlstatic.com`;
