@@ -385,6 +385,53 @@ No PowerShell as variáveis ficam na janela até ela fechar. No fim do ensaio,
   servidor parado. No Windows, conferir que a porta 3000 ficou livre: o
   processo do Next pode sobrar depois de parar o `npm run dev`.
 
+### Mercado Pago: o que o ensaio mostrou
+
+O roteiro `scripts/ensaio/mercadopago-conta-de-teste.mjs` fala com o Mercado
+Pago de verdade, na conta de teste. Antes de criar qualquer coisa, ele exige
+`MERCADOPAGO_AMBIENTE=teste` e confere por `GET /users/me` que a credencial é
+de usuário de teste no Brasil (sem isso, sai com 2 e nada é criado). Ele não
+imprime token, e-mail, QR nem corpo de resposta, e no fim cancela ou estorna
+tudo o que criou.
+
+```bash
+MP_TESTE_COMPRADOR_EMAIL="$(sed -n 's/^# MP_TESTE_COMPRADOR_EMAIL=\([^ ]*\).*/\1/p' .env.local)" node --env-file=.env.local scripts/ensaio/mercadopago-conta-de-teste.mjs
+```
+
+Ensaio de 2026-11-23 (três rodadas):
+
+- **Pix:** nasce `action_required`/`waiting_transfer`, com QR, copia e cola e
+  validade, todos no formato que o cliente lê. Cancelar dá `canceled`/`canceled`
+  (o pagamento, `canceled_transaction`); de novo, 409 `order_already_canceled`.
+  O vendedor de teste não precisou de chave Pix.
+- **Pix com `payer.first_name: "APRO"`:** aprovado sozinho em menos de 60 s
+  (`processed`/`accredited`).
+- **Estorno:** responde **201** com só `id`, `status`, `status_detail` e
+  `transactions.refunds` (sem `payments`, `external_reference` nem
+  `total_amount`); o pedido fica `refunded`/`refunded`. De novo, 409
+  `order_already_refunded`. O servidor lê o estado do pedido e aplica
+  `estornado`.
+- **Cartão** (token por `POST /v1/card_tokens?public_key=...`, fora do
+  navegador, com os cartões de teste):
+  - `APRO` aprovou na primeira rodada; nas outras, o Mercado Pago viu risco e
+    pediu o desafio (`action_required`/`pending_challenge`), como o
+    `on_fraud_risk` permite;
+  - `OTHE` responde **402 com o pedido dentro de `data`** (`errors[0].code`
+    `failed`; pedido `failed`/`failed`; pagamento `failed`/`rejected_by_issuer`).
+    O cliente lia o pedido na raiz e tratava a recusa como falha da criação:
+    corrigido depois deste ensaio (plano do pagamento de verdade, Task 2);
+  - `CONT` fica `processing`/`in_process`;
+  - `APRO-CHOK` volta `pending_challenge` com a URL do desafio em
+    `www.mercadopago.com.br`, aceita por `urlDoDesafio` e pela CSP.
+- **Cancelar** um pedido em `pending_challenge` ou em `in_process` dá 409
+  `cannot_cancel_order`.
+- **Itens:** a API confere a soma. Itens que não somam `total_amount` dão 400
+  `order_items_total_amount_mismatch`; com a entrega como item, somando o total,
+  o pedido nasce e guarda os itens. `unit_price` vai em texto com duas casas.
+- **Device ID:** o cabeçalho `X-meli-session-id` é aceito.
+- **Chave de idempotência:** a mesma chave com o mesmo corpo devolve 201 e o
+  mesmo pedido; com outro corpo, 409 `idempotency_key_already_used`.
+
 ## Uber Direct: o que o ensaio mostrou
 
 Ensaio de 2026-11-23 na conta de teste (`scripts/ensaio/uber-conta-de-teste.mjs`,

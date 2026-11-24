@@ -93,7 +93,13 @@ Base `https://api.mercadopago.com`. Todo `POST` leva `Authorization: Bearer
 - O Mercado Pago **não devolve os 4 últimos dígitos**. Eles vêm do Brick
   (`additionalData.lastFourDigits`, do `getAdditionalData()`), conferidos
   como 4 dígitos.
-- HTTP 402: o pedido foi criado e a transação falhou; o corpo traz o pedido.
+- HTTP 402: o pedido foi criado e a transação falhou; o corpo traz o pedido
+  **dentro de `data`**, não na raiz: `{ "errors": [{ "code": "failed", ... }],
+  "data": <o pedido> }`. Visto no ensaio de 2026-11-23 com o titular `OTHE`:
+  pedido `failed`/`failed`, pagamento `failed`/`rejected_by_issuer`.
+- Com `on_fraud_risk`, até um cartão que aprovaria pode cair no desafio
+  (`action_required`/`pending_challenge`): no ensaio de 2026-11-23, o `APRO`
+  aprovou direto na primeira rodada e pediu o desafio nas seguintes.
 - **3DS** (com o `config` acima, pedido só quando há risco): o pedido volta
   `action_required` / `pending_challenge`, com a URL do desafio em
   `transactions.payments[0].payment_method.transaction_security.url`. A página
@@ -106,6 +112,15 @@ Base `https://api.mercadopago.com`. Todo `POST` leva `Authorization: Bearer
   memória e mantém o `iframe` até o resultado (aprovado, a tentativa acabada
   ou o pedido cancelado); a resposta ainda pendente não o tira. A espera do
   desafio pergunta por até 40 min; a do Pix, 30.
+
+### 1.3 Itens e Device ID (ensaio de 2026-11-23)
+
+- `items` na raiz do pedido: `[{ "title": "...", "unit_price": "20.00",
+  "quantity": 2 }]`, com `unit_price` em texto de duas casas. A API confere a
+  soma: itens que não somam `total_amount` dão 400
+  `order_items_total_amount_mismatch`. Por isso a entrega vai como mais um
+  item. O pedido criado guarda os itens.
+- O cabeçalho `X-meli-session-id` (o Device ID) é aceito na criação.
 
 ## 2. Estados e a tradução para os da AMO (backend §10.3)
 
@@ -139,9 +154,17 @@ documentação; o pagamento fica `contestado` e a equipe resolve no painel.
   `external_reference` e vale a §10.3.
 - Cancelar: 409 `order_already_canceled` vale como cancelado; 409
   `cannot_cancel_order` quer dizer que ela andou (pode ter sido paga): o
-  servidor lê o pedido e aplica.
+  servidor lê o pedido e aplica. No ensaio de 2026-11-23, o 409
+  `cannot_cancel_order` também veio para o pedido em `pending_challenge` e em
+  `in_process`, que não podem ser cancelados.
 - Estornar: 409 `order_already_refunded` vale como estornado;
-  `order_refund_already_in_process` fica `a_estornar` para a próxima rodada.
+  `order_refund_already_in_process` fica `a_estornar` para a próxima rodada. O
+  estorno que dá certo responde **201**, só com `id`, `status`,
+  `status_detail` e `transactions.refunds` (sem `payments`,
+  `external_reference` nem `total_amount`), e o pedido fica
+  `refunded`/`refunded` (ensaio de 2026-11-23).
+- Mesma chave com o mesmo corpo (ensaio de 2026-11-23): 201 e o mesmo pedido
+  da primeira chamada. A AMO continua sem reenviar a criação.
 - 401 `invalid_credentials`: credencial errada (ou de teste antiga, `TEST-`,
   que a API de Orders não aceita).
 - O corpo de erro não tem formato documentado: o servidor guarda no log só o
@@ -180,6 +203,13 @@ documentação; o pagamento fica `contestado` e a equipe resolve no painel.
   mostra o desafio.
 - Pix de teste: `payer.first_name: "APRO"` aprova sozinho depois de criado.
   Não há como simular a expiração.
+- Ensaio de 2026-11-23, na conta de teste (`supabase/README.md`, "Mercado Pago:
+  o que o ensaio mostrou"):
+  - o Pix com `APRO` foi aprovado em menos de 60 s;
+  - o vendedor de teste criou Pix sem ter chave Pix;
+  - o token do cartão sai de `POST /v1/card_tokens?public_key=...` também
+    fora do navegador, com os cartões de teste;
+  - `CONT` fica `processing`/`in_process`.
 
 ## 6. O formulário do cartão (Card Payment Brick)
 
