@@ -184,6 +184,22 @@ describe('criarPedidoCartao', () => {
     const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null })
     expect(r.ok && r.pedido.pagamento?.detalhe).toBe('insufficient_amount')
   })
+
+  it('HTTP 402 com o pedido dentro de data, como a API devolve (ensaio de 2026-11-23), dá ok com a recusa', async () => {
+    const pedido = { ...pedidoCartao('failed', 'rejected_by_issuer'), status_detail: 'failed' }
+    fetchFalso.mockResolvedValue(resposta(402, { errors: [{ code: 'failed', message: 'x', details: ['y'] }], data: pedido }))
+    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null })
+    expect(r.ok).toBe(true)
+    expect(r.ok && r.pedido).toMatchObject({ id: 'ORD02', status: 'failed', detalhe: 'failed', referencia: TENTATIVA, valorCentavos: 9280 })
+    expect(r.ok && r.pedido.pagamento).toMatchObject({ id: 'PAY02', status: 'failed', detalhe: 'rejected_by_issuer', bandeira: 'master' })
+    expect(erro).not.toHaveBeenCalled()
+  })
+
+  it('data so vale no 402: um 201 com o pedido dentro de data nao vira pedido', async () => {
+    fetchFalso.mockResolvedValue(resposta(201, { data: pedidoCartao('processed', 'accredited') }))
+    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null })
+    expect(r).toEqual({ ok: false, status: 201, codigo: null })
+  })
 })
 
 describe('ler, cancelar e estornar', () => {

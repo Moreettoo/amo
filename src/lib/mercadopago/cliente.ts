@@ -162,9 +162,11 @@ async function chamar(
     lida.catch(() => {})
     const { r: resposta, json } = await Promise.race([lida, limite])
 
-    // 402: o pedido foi criado e a transacao falhou; o corpo traz o pedido
+    // 402: o pedido foi criado e a transacao falhou. A API o devolve dentro de
+    // data (ensaio de 2026-11-23); sem data, vale o corpo inteiro.
     if (resposta.ok || resposta.status === 402) {
-      const pedido = lerPedido(json)
+      const dentro = resposta.status === 402 ? obj(obj(json)?.data) : null
+      const pedido = lerPedido(dentro ?? json)
       if (pedido) return { ok: true, pedido }
     }
     const codigo = codigoDoErro(json)
