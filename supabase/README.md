@@ -385,6 +385,34 @@ No PowerShell as variáveis ficam na janela até ela fechar. No fim do ensaio,
   servidor parado. No Windows, conferir que a porta 3000 ficou livre: o
   processo do Next pode sobrar depois de parar o `npm run dev`.
 
+### O ensaio com o Mercado Pago de verdade (conta de teste)
+
+No navegador, com o Mercado Pago de verdade na conta de teste, o servidor de
+ensaio roda com as credenciais de teste do `.env.local`
+(`MERCADOPAGO_AMBIENTE=teste`). Quando o Pix tem de ser aprovado, ele roda
+também com o gancho `scripts/ensaio/mercadopago-pix-aprova.mjs`, que só
+acrescenta `payer.first_name: "APRO"` à criação do Pix (é o que aprova um Pix
+de teste, contrato §5) e passa todo o resto intacto. Fora de
+`MERCADOPAGO_AMBIENTE=teste`, ou com `NODE_ENV=production`, ele não muda nada.
+Nunca carregar junto com o Mercado Pago falso.
+
+```bash
+NODE_OPTIONS=--import=./scripts/ensaio/mercadopago-pix-aprova.mjs npx next dev -p 3001
+```
+
+No PowerShell:
+
+```powershell
+$env:NODE_OPTIONS = '--import=./scripts/ensaio/mercadopago-pix-aprova.mjs'
+npx next dev -p 3001
+```
+
+- O terminal diz `[ensaio] Pix que aprova ligado neste processo` e, a cada
+  Pix criado, `[ensaio] Pix com APRO`. Sem essas linhas, o gancho não entrou.
+- Para o Pix que fica esperando, o mesmo servidor sem `NODE_OPTIONS`.
+- Porta 3001: a 3000 é do servidor do dono e da outra sessão.
+- No fim, `Remove-Item Env:NODE_OPTIONS` e a porta 3001 livre.
+
 ### Mercado Pago: o que o ensaio mostrou
 
 O roteiro `scripts/ensaio/mercadopago-conta-de-teste.mjs` fala com o Mercado
