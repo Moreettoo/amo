@@ -9,6 +9,7 @@ const m = vi.hoisted(() => ({
   obterUsuario: vi.fn(),
   consumirLimite: vi.fn(),
   lerPedidoParaPagar: vi.fn(),
+  lerItensParaPagar: vi.fn(),
   iniciarPagamento: vi.fn(),
   lerUltimaTentativa: vi.fn(),
   aplicarPagamento: vi.fn(),
@@ -28,6 +29,7 @@ vi.mock('@/lib/dados/limites', () => ({ consumirLimite: m.consumirLimite }))
 vi.mock('@/lib/dados/fechamento', () => ({
   criarPedido: m.criarPedido,
   lerPedidoParaPagar: m.lerPedidoParaPagar,
+  lerItensParaPagar: m.lerItensParaPagar,
   iniciarPagamento: m.iniciarPagamento,
   lerUltimaTentativa: m.lerUltimaTentativa,
 }))
@@ -41,7 +43,8 @@ vi.mock('@/lib/mercadopago/sincronizar', () => ({
   cancelarNoMp: m.cancelarNoMp,
   guardarIdsDoMp: m.guardarIdsDoMp,
 }))
-vi.mock('@/lib/mercadopago/cliente', () => ({
+vi.mock('@/lib/mercadopago/cliente', async (original) => ({
+  ...(await original<typeof import('@/lib/mercadopago/cliente')>()),
   criarPedidoPix: m.criarPedidoPix,
   criarPedidoCartao: m.criarPedidoCartao,
 }))
@@ -70,6 +73,7 @@ beforeEach(() => {
   m.consumirLimite.mockResolvedValue(true)
   m.lerPedidoParaPagar.mockResolvedValue({ id: 'ped-1', totalCentavos: 9280, estado: 'aguardando_pagamento' })
   m.iniciarPagamento.mockResolvedValue('tent-1')
+  m.lerItensParaPagar.mockResolvedValue({ itens: [], freteCentavos: 0 })
   m.tentativasACancelarNoMp.mockResolvedValue([])
   m.tentativasACancelarDaCliente.mockResolvedValue([])
   m.cancelarNoMp.mockResolvedValue(null)
@@ -216,7 +220,7 @@ describe('criar no Mercado Pago', () => {
   })
   it('Pix: valor do banco, e-mail da sessao, QR devolvido', async () => {
     const r = await pagarComPix({ numero: NUMERO })
-    expect(m.criarPedidoPix).toHaveBeenCalledWith({ tentativa: 'tent-1', totalCentavos: 9280, email: 'ana@exemplo.com' })
+    expect(m.criarPedidoPix).toHaveBeenCalledWith({ tentativa: 'tent-1', totalCentavos: 9280, email: 'ana@exemplo.com', itens: [] })
     expect(r).toEqual({
       ok: true,
       situacao: { numero: NUMERO, estado: 'aguardando_pagamento', pagamento: { forma: 'pix', estado: 'pendente', recusa: null, pix, desafioUrl: null } },
@@ -236,9 +240,29 @@ describe('criar no Mercado Pago', () => {
       email: 'ana@exemplo.com',
       cartao: { token: TOKEN, bandeira: 'visa', tipo: 'credit_card', parcelas: 1 },
       documento: { tipo: 'CPF', numero: '12345678909' },
+      itens: [],
     })
     expect(m.aplicarRespostaDoMp).toHaveBeenCalledWith('tent-1', expect.anything(), '4242')
     expect(r.ok && r.situacao.estado).toBe('pago')
+  })
+  it('pagar le os itens do pedido e manda ao Mercado Pago com a entrega', async () => {
+    m.lerItensParaPagar.mockResolvedValue({ itens: [{ nome: 'Granola', quantos: 2, precoCentavos: 2000 }], freteCentavos: 1810 })
+    const esperado = [
+      { titulo: 'Granola', quantidade: 2, precoCentavos: 2000 },
+      { titulo: 'Entrega', quantidade: 1, precoCentavos: 1810 },
+    ]
+    await pagarComPix({ numero: NUMERO })
+    expect(m.lerItensParaPagar).toHaveBeenCalledWith('ped-1')
+    expect(m.criarPedidoPix.mock.calls[0][0].itens).toEqual(esperado)
+    await pagarComCartao(cartao)
+    expect(m.criarPedidoCartao.mock.calls[0][0].itens).toEqual(esperado)
+  })
+  it('a leitura dos itens que falha nao barra: o pedido sai com itens vazios', async () => {
+    m.lerItensParaPagar.mockRejectedValue(new Error('falhou'))
+    const r = await pagarComPix({ numero: NUMERO })
+    expect(r.ok).toBe(true)
+    expect(m.criarPedidoPix.mock.calls[0][0].itens).toEqual([])
+    expect(JSON.stringify(vi.mocked(console.error).mock.calls)).toContain('pagar.itens')
   })
   it('cartao sem documento manda null', async () => {
     await pagarComCartao(cartao)

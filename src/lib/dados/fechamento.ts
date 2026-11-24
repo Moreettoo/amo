@@ -44,6 +44,32 @@ export async function lerPedidoParaPagar(numero: string): Promise<{ id: string; 
   return { id: data.id, totalCentavos: data.total_centavos, estado: data.status }
 }
 
+type ItemParaPagar = { nome: string; quantos: number; precoCentavos: number }
+
+/**
+ * O frete e os potes do pedido (a RLS limita aos dela), para irem ao Mercado
+ * Pago. Sem linha ou com forma torta, falha do banco: quem chama decide.
+ */
+export async function lerItensParaPagar(pedidoId: string): Promise<{ itens: ItemParaPagar[]; freteCentavos: number }> {
+  const banco = await criarClienteServidor()
+  const { data, error, status } = await banco
+    .from('pedidos')
+    .select('frete_centavos, itens_do_pedido(nome, quantos, preco_centavos)')
+    .eq('id', pedidoId)
+    .maybeSingle()
+  if (error) throw erroDoBanco('pedidos', error, status)
+  const inteiro = (v: unknown): v is number => Number.isSafeInteger(v)
+  const linhas: unknown = data?.itens_do_pedido
+  if (!data || !inteiro(data.frete_centavos) || !Array.isArray(linhas)) throw falhaDoBanco('pedidos', null, status)
+  const itens: ItemParaPagar[] = []
+  for (const linha of linhas as unknown[]) {
+    const { nome, quantos, preco_centavos } = (linha ?? {}) as Record<string, unknown>
+    if (typeof nome !== 'string' || !inteiro(quantos) || !inteiro(preco_centavos)) throw falhaDoBanco('pedidos', null, status)
+    itens.push({ nome, quantos, precoCentavos: preco_centavos })
+  }
+  return { itens, freteCentavos: data.frete_centavos }
+}
+
 /** Abre a tentativa de pagamento (public.iniciar_pagamento) e devolve o id dela. */
 export async function iniciarPagamento(pedidoId: string, forma: 'pix' | 'cartao'): Promise<string> {
   const banco = await criarClienteServidor()

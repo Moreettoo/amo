@@ -4,6 +4,7 @@ import {
   criarPedidoCartao,
   criarPedidoPix,
   estornarPedidoMp,
+  itensParaOMp,
   lerPedidoMp,
   valorEmReais,
 } from '@/lib/mercadopago/cliente'
@@ -82,7 +83,7 @@ describe('valorEmReais', () => {
 describe('criarPedidoPix', () => {
   it('manda o corpo do contrato e le o pedido', async () => {
     fetchFalso.mockResolvedValue(resposta(201, pedidoPix()))
-    const r = await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'maria@exemplo.com' })
+    const r = await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'maria@exemplo.com', itens: [] })
 
     const [url, init] = fetchFalso.mock.calls[0]
     expect(url).toBe('https://api.mercadopago.com/v1/orders')
@@ -129,7 +130,7 @@ describe('criarPedidoPix', () => {
   it('processing sem QR dá pix null', async () => {
     const corpo = pedidoPix({ status: 'processing', status_detail: 'in_process', payment_method: { id: 'pix' } })
     fetchFalso.mockResolvedValue(resposta(201, corpo))
-    const r = await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co' })
+    const r = await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co', itens: [] })
     expect(r.ok && r.pedido.pagamento?.pix).toBeNull()
     expect(r.ok && r.pedido.pagamento?.status).toBe('processing')
   })
@@ -138,7 +139,7 @@ describe('criarPedidoPix', () => {
 describe('criarPedidoCartao', () => {
   it('manda o corpo do contrato, sem identification quando não há documento', async () => {
     fetchFalso.mockResolvedValue(resposta(201, pedidoCartao('processed', 'accredited')))
-    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co', cartao: CARTAO, documento: null })
+    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })
     const init = fetchFalso.mock.calls[0][1]
     expect(fetchFalso.mock.calls[0][0]).toBe('https://api.mercadopago.com/v1/orders')
     expect(init.method).toBe('POST')
@@ -159,14 +160,14 @@ describe('criarPedidoCartao', () => {
 
   it('manda o CPF quando há documento', async () => {
     fetchFalso.mockResolvedValue(resposta(201, pedidoCartao('processed', 'accredited')))
-    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: { tipo: 'CPF', numero: '12345678909' } })
+    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: { tipo: 'CPF', numero: '12345678909' }, itens: [] })
     expect(JSON.parse(fetchFalso.mock.calls[0][1].body).payer.identification).toEqual({ type: 'CPF', number: '12345678909' })
   })
 
   it('desafio 3DS dá a URL, só se for https do Mercado Pago', async () => {
     const com = (url: string) =>
       resposta(201, pedidoCartao('action_required', 'pending_challenge', { transaction_security: { url } }))
-    const chamar = () => criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null })
+    const chamar = () => criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })
 
     fetchFalso.mockResolvedValueOnce(com('https://www.mercadopago.com.br/3ds/x'))
     const boa = await chamar()
@@ -181,14 +182,14 @@ describe('criarPedidoCartao', () => {
 
   it('HTTP 402 com corpo de pedido failed dá ok', async () => {
     fetchFalso.mockResolvedValue(resposta(402, pedidoCartao('failed', 'insufficient_amount')))
-    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null })
+    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })
     expect(r.ok && r.pedido.pagamento?.detalhe).toBe('insufficient_amount')
   })
 
   it('HTTP 402 com o pedido dentro de data, como a API devolve (ensaio de 2026-11-23), dá ok com a recusa', async () => {
     const pedido = { ...pedidoCartao('failed', 'rejected_by_issuer'), status_detail: 'failed' }
     fetchFalso.mockResolvedValue(resposta(402, { errors: [{ code: 'failed', message: 'x', details: ['y'] }], data: pedido }))
-    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null })
+    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })
     expect(r.ok).toBe(true)
     expect(r.ok && r.pedido).toMatchObject({ id: 'ORD02', status: 'failed', detalhe: 'failed', referencia: TENTATIVA, valorCentavos: 9280 })
     expect(r.ok && r.pedido.pagamento).toMatchObject({ id: 'PAY02', status: 'failed', detalhe: 'rejected_by_issuer', bandeira: 'master' })
@@ -197,8 +198,50 @@ describe('criarPedidoCartao', () => {
 
   it('data so vale no 402: um 201 com o pedido dentro de data nao vira pedido', async () => {
     fetchFalso.mockResolvedValue(resposta(201, { data: pedidoCartao('processed', 'accredited') }))
-    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null })
+    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })
     expect(r).toEqual({ ok: false, status: 201, codigo: null })
+  })
+})
+
+describe('os itens do pedido', () => {
+  const POTES = [{ nome: 'Granola', quantos: 2, precoCentavos: 2000 }]
+
+  it('itensParaOMp poe a entrega como item, so com frete', () => {
+    expect(itensParaOMp(POTES, 1810)).toEqual([
+      { titulo: 'Granola', quantidade: 2, precoCentavos: 2000 },
+      { titulo: 'Entrega', quantidade: 1, precoCentavos: 1810 },
+    ])
+    expect(itensParaOMp([{ nome: 'Granola', quantos: 1, precoCentavos: 2000 }], 0)).toEqual([{ titulo: 'Granola', quantidade: 1, precoCentavos: 2000 }])
+  })
+
+  it('o Pix e o cartao levam items quando somam o total', async () => {
+    fetchFalso.mockImplementation(async () => resposta(201, pedidoPix()))
+    const itens = itensParaOMp(POTES, 1810)
+    await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 5810, email: 'a@b.co', itens })
+    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 5810, email: 'a@b.co', cartao: CARTAO, documento: null, itens })
+    const esperado = [
+      { title: 'Granola', unit_price: '20.00', quantity: 2 },
+      { title: 'Entrega', unit_price: '18.10', quantity: 1 },
+    ]
+    expect(JSON.parse(fetchFalso.mock.calls[0][1].body).items).toEqual(esperado)
+    expect(JSON.parse(fetchFalso.mock.calls[1][1].body).items).toEqual(esperado)
+  })
+
+  it('itens que nao somam o total: sem items, com o log itens_nao_somam, e o pedido sai', async () => {
+    fetchFalso.mockResolvedValue(resposta(201, pedidoPix()))
+    const r = await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 5810, email: 'a@b.co', itens: itensParaOMp(POTES, 0) })
+    expect(r.ok).toBe(true)
+    expect(JSON.parse(fetchFalso.mock.calls[0][1].body)).not.toHaveProperty('items')
+    const tudo = JSON.stringify(erro.mock.calls)
+    expect(tudo).toContain('mercadopago.itens')
+    expect(tudo).toContain('itens_nao_somam')
+  })
+
+  it('itens vazios: sem items e sem log', async () => {
+    fetchFalso.mockResolvedValue(resposta(201, pedidoPix()))
+    await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co', itens: [] })
+    expect(JSON.parse(fetchFalso.mock.calls[0][1].body)).not.toHaveProperty('items')
+    expect(erro).not.toHaveBeenCalled()
   })
 })
 
@@ -266,7 +309,7 @@ describe('ler, cancelar e estornar', () => {
     expect(fetchFalso).toHaveBeenCalledTimes(1)
     fetchFalso.mockReset()
     fetchFalso.mockImplementation(async () => resposta(500, { errors: [{ code: 'idempotency_validation_failed' }] }))
-    await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co' })
+    await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co', itens: [] })
     expect(fetchFalso).toHaveBeenCalledTimes(1)
   })
 
@@ -281,8 +324,8 @@ describe('ler, cancelar e estornar', () => {
 
   it('total invalido nao chama o fetch', async () => {
     for (const total of [NaN, -1, 1.5, Infinity]) {
-      expect(await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: total, email: 'a@b.co' })).toEqual({ ok: false, status: 0, codigo: null })
-      expect(await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: total, email: 'a@b.co', cartao: CARTAO, documento: null })).toEqual({ ok: false, status: 0, codigo: null })
+      expect(await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: total, email: 'a@b.co', itens: [] })).toEqual({ ok: false, status: 0, codigo: null })
+      expect(await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: total, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })).toEqual({ ok: false, status: 0, codigo: null })
     }
     expect(fetchFalso).not.toHaveBeenCalled()
   })
@@ -368,7 +411,7 @@ describe('resposta hostil', () => {
 describe('log', () => {
   it('nunca leva o token, o corpo nem o QR', async () => {
     fetchFalso.mockResolvedValueOnce(resposta(400, { errors: [{ code: 'invalid_total_amount', message: `${QR} ${TOKEN}` }] }))
-    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'maria@exemplo.com', cartao: CARTAO, documento: { tipo: 'CPF', numero: '12345678909' } })
+    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'maria@exemplo.com', cartao: CARTAO, documento: { tipo: 'CPF', numero: '12345678909' }, itens: [] })
     fetchFalso.mockRejectedValueOnce(new Error(`${TOKEN} ${QR}`))
     await lerPedidoMp('ORD1')
     expect(erro).toHaveBeenCalled()

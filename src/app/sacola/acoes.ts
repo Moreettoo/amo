@@ -9,9 +9,9 @@ import { cotarDeExemplo, registrarCotacao, VALIDADE_DA_COTACAO_MS } from '@/lib/
 import { mercadoPagoEmTeste } from '@/lib/dados/ambiente'
 import { ErroDeRegra, registrarFalha } from '@/lib/dados/erros'
 import { conferirNumeroDoPedido } from '@/lib/conta/regras'
-import { criarPedido, iniciarPagamento, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
+import { criarPedido, iniciarPagamento, lerItensParaPagar, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
 import { aplicarPagamento, mpPedidoDaTentativa, tentativasACancelarDaCliente } from '@/lib/dados/pagamentos'
-import { criarPedidoCartao, criarPedidoPix, type PedidoMp } from '@/lib/mercadopago/cliente'
+import { criarPedidoCartao, criarPedidoPix, itensParaOMp, type ItemMp, type PedidoMp } from '@/lib/mercadopago/cliente'
 import { traduzir } from '@/lib/mercadopago/traducao'
 import { aplicarRespostaDoMp, cancelarNoMp, guardarIdsDoMp, sincronizarTentativa } from '@/lib/mercadopago/sincronizar'
 import { consumirLimite } from '@/lib/dados/limites'
@@ -370,7 +370,16 @@ async function pagar(forma: 'pix' | 'cartao', entrada: unknown): Promise<Respost
       return situacaoLida(numero, pedido.id)
     }
 
-    const base = { tentativa, totalCentavos: pedido.totalCentavos, email: usuario.email }
+    // Os potes e a entrega vao ao Mercado Pago (ajudam o antifraude dele); a leitura que falha nunca barra o pagamento.
+    let itens: ItemMp[] = []
+    try {
+      const lidos = await lerItensParaPagar(pedido.id)
+      itens = itensParaOMp(lidos.itens, lidos.freteCentavos)
+    } catch (erro) {
+      registrarFalha('pagar.itens', erro)
+    }
+
+    const base = { tentativa, totalCentavos: pedido.totalCentavos, email: usuario.email, itens }
     const criado = dados ? await criarPedidoCartao({ ...base, cartao: dados.cartao, documento: dados.documento }) : await criarPedidoPix(base)
 
     if (!criado.ok) {

@@ -180,7 +180,35 @@ async function chamar(
   }
 }
 
-export function criarPedidoPix(p: { tentativa: string; totalCentavos: number; email: string }): Promise<ResultadoMp> {
+/** Um item do pedido no Mercado Pago, em centavos. */
+export type ItemMp = { titulo: string; quantidade: number; precoCentavos: number }
+
+/**
+ * Os potes do pedido e, com frete, a entrega como mais um item: a API confere
+ * que os itens somam o total do pedido (contrato, 1.3).
+ */
+export function itensParaOMp(itens: { nome: string; quantos: number; precoCentavos: number }[], freteCentavos: number): ItemMp[] {
+  const potes = itens.map((i) => ({ titulo: i.nome, quantidade: i.quantos, precoCentavos: i.precoCentavos }))
+  return freteCentavos > 0 ? [...potes, { titulo: 'Entrega', quantidade: 1, precoCentavos: freteCentavos }] : potes
+}
+
+/**
+ * O campo items do corpo, so quando os itens somam o total: a API recusaria o
+ * pedido inteiro (order_items_total_amount_mismatch), e item e informacao a
+ * mais, que nunca barra o pagamento.
+ */
+function itensDoCorpo(itens: ItemMp[], totalCentavos: number): Obj {
+  if (itens.length === 0) return {}
+  const legiveis = itens.every((i) => Number.isSafeInteger(i.precoCentavos) && i.precoCentavos >= 0 && Number.isSafeInteger(i.quantidade) && i.quantidade > 0)
+  const soma = legiveis ? itens.reduce((total, i) => total + i.precoCentavos * i.quantidade, 0) : -1
+  if (soma !== totalCentavos) {
+    registrarFalha('mercadopago.itens', { code: 'itens_nao_somam' })
+    return {}
+  }
+  return { items: itens.map((i) => ({ title: i.titulo, unit_price: valorEmReais(i.precoCentavos), quantity: i.quantidade })) }
+}
+
+export function criarPedidoPix(p: { tentativa: string; totalCentavos: number; email: string; itens: ItemMp[] }): Promise<ResultadoMp> {
   if (!totalValido(p.totalCentavos)) return FALHA_LOCAL
   const valor = valorEmReais(p.totalCentavos)
   return chamar('criar_pix', 'POST', '', p.tentativa, {
@@ -189,6 +217,7 @@ export function criarPedidoPix(p: { tentativa: string; totalCentavos: number; em
     total_amount: valor,
     external_reference: p.tentativa,
     payer: { email: p.email },
+    ...itensDoCorpo(p.itens, p.totalCentavos),
     transactions: {
       payments: [{ amount: valor, payment_method: { id: 'pix', type: 'bank_transfer' }, expiration_time: 'PT30M' }],
     },
@@ -201,6 +230,7 @@ export function criarPedidoCartao(p: {
   email: string
   cartao: { token: string; bandeira: string; tipo: 'credit_card' | 'debit_card'; parcelas: number }
   documento: { tipo: 'CPF'; numero: string } | null
+  itens: ItemMp[]
 }): Promise<ResultadoMp> {
   if (!totalValido(p.totalCentavos)) return FALHA_LOCAL
   const valor = valorEmReais(p.totalCentavos)
@@ -212,6 +242,7 @@ export function criarPedidoCartao(p: {
     total_amount: valor,
     external_reference: p.tentativa,
     payer,
+    ...itensDoCorpo(p.itens, p.totalCentavos),
     transactions: {
       payments: [
         {
