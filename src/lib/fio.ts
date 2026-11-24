@@ -42,6 +42,8 @@ type Lado = 'e' | 'd'
 
 /** em tela estreita: quanto o fio se afasta da tela quando sai pela lateral */
 const FORA = 70
+/** na pagina em colunas: o raio da virada do sublinhado para a descida */
+const CURVA = 80
 const n = (v: number) => v.toFixed(1)
 const limite = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v))
 const meio = (c: Caixa) => (c.l + c.r) / 2
@@ -179,18 +181,28 @@ export function tracarFio(blocos: readonly Bloco[], largura: number, largo: bool
         }
         const de = dir > 0 ? c.l + 4 : c.r + 12
         const ate = dir > 0 ? c.r + 14 : c.l - 6
-        nos.push({ x: de, y: b + 5, tx: dir, ty: 0.07 }, { x: ate, y: b + 5, tx: dir, ty: -0.07 })
+        const naSecao = seguinte !== undefined && seguinte.secao === secao
+        // Depois de sublinhar, o fio segue ate a margem e desce por ela:
+        // embaixo do titulo vem o texto da secao, e ele nao risca texto.
+        const desce = largo && !(naSecao && seguinte.caixa.t < c.b)
+        const naMargem = dir < 0 ? margem : largura - margem
+        // Com a margem colada no fim do sublinhado, a virada faria quina: o
+        // fio se afasta CURVA px (sem colar na beira), a ponta do sublinhado
+        // ja comeca a cair e a queda e longa. Com a margem longe, a curva ja
+        // e aberta e passa por cima do texto da secao.
+        const apertado = desce && Math.abs(naMargem - ate) < CURVA * 2
+        nos.push({ x: de, y: b + 5, tx: dir, ty: 0.07 }, { x: ate, y: b + 5, tx: dir, ty: apertado ? 0.18 : -0.07 })
         cx = ate
         yUlt = b + 5
-        const naSecao = seguinte !== undefined && seguinte.secao === secao
         if (largo) {
-          if (!(naSecao && seguinte.caixa.t < c.b)) {
-            // Depois de sublinhar, o fio segue ate a margem e desce por ela:
-            // embaixo do titulo vem o texto da secao, e ele nao risca texto.
-            const x = dir < 0 ? margem : largura - margem
-            // a pena chega a margem ainda abrindo para fora: a descida ganha barriga
-            nos.push({ x, y: b + 5 + Math.max(90, Math.abs(x - ate) * 0.35), tx: dir * 0.2, ty: 1 })
+          if (apertado) {
+            const x = dir < 0 ? Math.max(12, Math.min(naMargem, ate - CURVA)) : Math.min(largura - 12, Math.max(naMargem, ate + CURVA))
+            nos.push({ x, y: b + 5 + CURVA * 2.1, tx: dir * 0.12, ty: 1 })
             cx = x
+          } else if (desce) {
+            // a pena chega a margem ainda abrindo para fora: a descida ganha barriga
+            nos.push({ x: naMargem, y: b + 5 + Math.max(90, Math.abs(naMargem - ate) * 0.35), tx: dir * 0.2, ty: 1 })
+            cx = naMargem
           }
         } else if (naSecao && seguinte.tipo === 'atras' && seguinte.caixa.t - c.b < 160) {
           // o cartao vem logo abaixo do titulo: o fio enrola direto para tras dele

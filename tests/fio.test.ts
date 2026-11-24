@@ -162,6 +162,22 @@ describe('tracarFio', () => {
     expect(Math.max(...ultimo.map((p) => p.y))).toBeLessThan(5200)
   })
 
+  it('em colunas, a virada do sublinhado para a descida tem folga e não faz quina', () => {
+    // "pelo sabor": o sublinhado termina em x 144, a 34 px da margem (110)
+    const caminho = tracarFio(paginaLarga(), 1440, true)[0]
+    const nos = pontos(caminho)
+    const i = nos.findIndex((p) => Math.abs(p.x - 144) < 0.1)
+    expect(i).toBeGreaterThan(0)
+    const fimDoSublinhado = nos[i]
+    const descida = nos[i + 1]
+    expect(fimDoSublinhado.x - descida.x).toBeGreaterThanOrEqual(80)
+    expect(descida.y - fimDoSublinhado.y).toBeGreaterThanOrEqual(160)
+    // a ponta do sublinhado ja aponta para baixo: a curva que sai dela comeca descendo
+    const [, tipo, numeros] = [...caminho.matchAll(/([MLC])([^MLC]+)/g)][i + 1]
+    expect(tipo).toBe('C')
+    expect(Number(numeros.trim().split(/\s+/)[1])).toBeGreaterThan(fimDoSublinhado.y)
+  })
+
   it('sem âncoras não há fio', () => {
     expect(tracarFio([], 1440, true)).toEqual([])
     expect(tracarFio([{ tipo: 'pagina', ancoras: [] }], 1440, true)).toEqual([''])
