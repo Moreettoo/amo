@@ -7,7 +7,16 @@ const m = vi.hoisted(() => ({
   lerPedidoMp: vi.fn(),
   cancelarPedidoMp: vi.fn(),
   estornarPedidoMp: vi.fn(),
+  after: vi.fn(),
 }))
+// A corrida sai depois da resposta (after); aqui so se ve que foi pedida.
+vi.mock('next/server', async (original) => ({
+  ...(await original<typeof import('next/server')>()),
+  after: m.after,
+}))
+vi.mock('@/lib/dados/entregas', () => ({ reservarCorridas: vi.fn() }))
+vi.mock('@/lib/uber/cliente', () => ({}))
+vi.mock('@/lib/dados/loja', () => ({ lerLoja: vi.fn() }))
 vi.mock('@/lib/dados/pagamentos', () => ({ aplicarPagamento: m.aplicarPagamento }))
 vi.mock('@/lib/dados/erros', () => ({ registrarFalha: m.registrarFalha }))
 vi.mock('@/lib/mercadopago/cliente', () => ({
@@ -103,6 +112,31 @@ describe('aplicarRespostaDoMp', () => {
   it('erro do banco sobe a quem chamou', async () => {
     m.aplicarPagamento.mockRejectedValue(new Error('banco'))
     await expect(aplicarRespostaDoMp('T1', pedido('processed', 'accredited'))).rejects.toThrow('banco')
+    expect(m.after).not.toHaveBeenCalled()
+  })
+
+  it('o pedido indo a pago pede a corrida: after uma vez', async () => {
+    m.aplicarPagamento.mockResolvedValue(banco('aprovado', 'pago'))
+    const r = await aplicarRespostaDoMp('T1', pedido('processed', 'accredited'))
+    expect(r).toEqual(banco('aprovado', 'pago'))
+    expect(m.after).toHaveBeenCalledTimes(1)
+    expect(m.after).toHaveBeenCalledWith(expect.any(Function))
+  })
+
+  it('aguardando_pagamento nao pede corrida', async () => {
+    m.aplicarPagamento.mockResolvedValue(banco('pendente', 'aguardando_pagamento'))
+    await aplicarRespostaDoMp('T1', pedido('action_required', 'waiting_transfer'))
+    expect(m.after).not.toHaveBeenCalled()
+  })
+
+  it('after fora de uma requisicao: aplica e devolve o mesmo, sem lancar', async () => {
+    m.after.mockImplementation(() => {
+      throw new Error('fora da requisicao')
+    })
+    m.aplicarPagamento.mockResolvedValue(banco('aprovado', 'pago'))
+    const r = await aplicarRespostaDoMp('T1', pedido('processed', 'accredited'))
+    expect(r).toEqual(banco('aprovado', 'pago'))
+    expect(m.registrarFalha).toHaveBeenCalledWith('uber.after', { code: 'fora_da_requisicao' })
   })
 })
 

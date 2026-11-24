@@ -302,12 +302,40 @@ select pg_temp.verificar('pedido cancelado com a corrida a_criar vai direto a ca
 insert into _v values ('p5', pg_temp.pedido_pago(pg_temp.id('a')));
 select pg_temp.reservar(9, 50);
 select pg_temp.cancelar(pg_temp.id('p5'));
-select pg_temp.verificar('a_cancelar que falha ao criar vira cancelada',
-  privado.marcar_corrida_falhou(pg_temp.id('p5'), 'erro_uber', false) = 'cancelada');
-select pg_temp.verificar('a Uber criar depois da cancelada a devolve a a_cancelar',
+-- falha incerta (rede, 408, 429, 5xx): a Uber pode ter criado com a chave, entao continua a_cancelar
+select pg_temp.verificar('a_cancelar que falha sem ser definitiva continua a_cancelar',
+  privado.marcar_corrida_falhou(pg_temp.id('p5'), 'sem_resposta', false) = 'a_cancelar');
+select pg_temp.verificar('a falha incerta conta a tentativa, grava o motivo e solta a reserva',
+  (select estado = 'a_cancelar' and tentativas = 1 and motivo = 'sem_resposta' and reservado_em is null
+   from privado.entregas where pedido_id = pg_temp.id('p5')));
+select pg_temp.verificar('falha incerta 2: a_cancelar', privado.marcar_corrida_falhou(pg_temp.id('p5'), 'http_500', false) = 'a_cancelar');
+select pg_temp.verificar('falha incerta 3: a_cancelar', privado.marcar_corrida_falhou(pg_temp.id('p5'), 'http_500', false) = 'a_cancelar');
+select pg_temp.verificar('falha incerta 4: a_cancelar', privado.marcar_corrida_falhou(pg_temp.id('p5'), 'http_500', false) = 'a_cancelar');
+select pg_temp.verificar('a quinta falha incerta tambem continua a_cancelar (nunca chama a equipe sozinha)',
+  privado.marcar_corrida_falhou(pg_temp.id('p5'), 'http_500', false) = 'a_cancelar');
+select pg_temp.verificar('cinco tentativas incertas contadas, com o ultimo motivo',
+  (select tentativas = 5 and motivo = 'http_500' from privado.entregas where pedido_id = pg_temp.id('p5')));
+select pg_temp.verificar('a_cancelar sem id nao entra na lista de cancelar',
+  not exists (select 1 from privado.corridas_a_cancelar() c where c.pedido = pg_temp.id('p5')));
+select pg_temp.verificar('a Uber criar depois da falha incerta deixa a_cancelar',
   privado.marcar_corrida_criada(pg_temp.id('p5'), 'del_p5', 990, null, 'pending') = 'a_cancelar');
 select pg_temp.verificar('e a corrida viva entra na lista de cancelar com o id',
   exists (select 1 from privado.corridas_a_cancelar() c where c.pedido = pg_temp.id('p5') and c.uber_entrega_id = 'del_p5'));
+
+-- falha definitiva (4xx de parametro): a Uber nao criou, entao vira cancelada
+insert into _v values ('p5d', pg_temp.pedido_pago(pg_temp.id('a')));
+select pg_temp.reservar(20, 50);
+select pg_temp.cancelar(pg_temp.id('p5d'));
+select pg_temp.verificar('o preparo da falha definitiva: p5d a_cancelar', pg_temp.estado(pg_temp.id('p5d')) = 'a_cancelar');
+select pg_temp.verificar('a_cancelar que falha de forma definitiva vira cancelada',
+  privado.marcar_corrida_falhou(pg_temp.id('p5d'), 'invalid_params', true) = 'cancelada');
+select pg_temp.verificar('a falha definitiva conta a tentativa e grava o motivo',
+  (select estado = 'cancelada' and tentativas = 1 and motivo = 'invalid_params'
+   from privado.entregas where pedido_id = pg_temp.id('p5d')));
+select pg_temp.verificar('a Uber criar depois da cancelada a devolve a a_cancelar',
+  privado.marcar_corrida_criada(pg_temp.id('p5d'), 'del_p5d', 990, null, 'pending') = 'a_cancelar');
+select pg_temp.verificar('a falha nula conta como incerta: a_cancelar continua a_cancelar',
+  privado.marcar_corrida_falhou(pg_temp.id('p5d'), 'erro_uber', null) = 'a_cancelar');
 
 insert into _v values ('p_ac', pg_temp.pedido_pago(pg_temp.id('a')));
 select pg_temp.verificar('o preparo do a_criar: a corrida ainda nao foi reservada',

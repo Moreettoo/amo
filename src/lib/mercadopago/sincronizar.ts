@@ -1,6 +1,7 @@
 import 'server-only'
 import { aplicarPagamento } from '@/lib/dados/pagamentos'
 import { registrarFalha } from '@/lib/dados/erros'
+import { pedirCorridas } from '@/lib/uber/corridas'
 import { cancelarPedidoMp, estornarPedidoMp, lerPedidoMp, type PedidoMp } from './cliente'
 import { detalheDoMp, traduzir } from './traducao'
 
@@ -47,6 +48,7 @@ export async function aplicarRespostaDoMp(
     recusa: t.recusa,
     final: final ?? null,
   })
+  if (aplicado.pedido === 'pago') pedirCorridas()
   if (aplicado.tentativa === 'a_estornar') return estornarNoMp(tentativa, pedido.id)
   return aplicado
 }
