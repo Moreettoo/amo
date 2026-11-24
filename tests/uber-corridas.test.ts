@@ -13,6 +13,8 @@ const m = vi.hoisted(() => ({
   marcarCorridaCriada: vi.fn(),
   marcarCorridaFalhou: vi.fn(),
   remarcarEntrega: vi.fn(),
+  aplicarEntrega: vi.fn(),
+  lerCorridaNaUber: vi.fn(),
   cotarNaUber: vi.fn(),
   criarCorridaNaUber: vi.fn(),
   cancelarCorridaNaUber: vi.fn(),
@@ -30,11 +32,13 @@ vi.mock('@/lib/dados/entregas', () => ({
   marcarCorridaCriada: m.marcarCorridaCriada,
   marcarCorridaFalhou: m.marcarCorridaFalhou,
   remarcarEntrega: m.remarcarEntrega,
+  aplicarEntrega: m.aplicarEntrega,
 }))
 vi.mock('@/lib/uber/cliente', () => ({
   cotarNaUber: m.cotarNaUber,
   criarCorridaNaUber: m.criarCorridaNaUber,
   cancelarCorridaNaUber: m.cancelarCorridaNaUber,
+  lerCorridaNaUber: m.lerCorridaNaUber,
 }))
 vi.mock('@/lib/dados/loja', () => ({ lerLoja: m.lerLoja }))
 vi.mock('@/lib/dados/ambiente', () => ({
@@ -52,7 +56,7 @@ vi.mock('next/server', async (original) => ({
   after: m.after,
 }))
 
-import { criarCorridasPendentes, pedirCorridas } from '@/lib/uber/corridas'
+import { conferirCorrida, criarCorridasPendentes, pedirCorridas } from '@/lib/uber/corridas'
 
 // Sao Paulo esta em UTC-3 em novembro: 13h de SP sao 16h UTC.
 const TERCA_13H = new Date('2026-11-24T16:00:00Z')
@@ -460,5 +464,61 @@ describe('pedirCorridas', () => {
     expect(() => pedirCorridas()).not.toThrow()
     expect(m.registrarFalha).toHaveBeenCalledWith('uber.after', { code: 'fora_da_requisicao' })
     expect(m.reservarCorridas).not.toHaveBeenCalled()
+  })
+})
+
+describe('conferirCorrida', () => {
+  const lida = (extra = {}) => ({
+    ok: true,
+    dados: { id: 'del_1', status: 'pickup', valorCentavos: 1234, rastreioUrl: 'https://track.uber.com/x', aoVivo: false, ...extra },
+  })
+  beforeEach(() => {
+    m.lerCorridaNaUber.mockReset()
+    m.aplicarEntrega.mockReset()
+    m.after.mockReset()
+    m.aplicarEntrega.mockResolvedValue({ pedido: 'p1', pedidoStatus: 'em_preparo', estado: 'criada' })
+  })
+
+  it('aplica o que o GET disse, com o rastreio conferido', async () => {
+    m.lerCorridaNaUber.mockResolvedValue(lida())
+    expect(await conferirCorrida('del_1')).toBe(true)
+    expect(m.aplicarEntrega).toHaveBeenCalledWith({
+      uberEntregaId: 'del_1',
+      statusUber: 'pickup',
+      rastreioUrl: 'https://track.uber.com/x',
+      valorUberCentavos: 1234,
+    })
+    expect(m.after).not.toHaveBeenCalled()
+  })
+
+  it('rastreio recusado vai como null', async () => {
+    m.lerCorridaNaUber.mockResolvedValue(lida({ rastreioUrl: 'javascript:alert(1)' }))
+    await conferirCorrida('del_1')
+    expect(m.aplicarEntrega.mock.calls[0][0].rastreioUrl).toBeNull()
+  })
+
+  it('entrega que voltou a a_criar pede nova corrida', async () => {
+    m.lerCorridaNaUber.mockResolvedValue(lida({ status: 'canceled' }))
+    m.aplicarEntrega.mockResolvedValue({ pedido: 'p1', pedidoStatus: 'em_preparo', estado: 'a_criar' })
+    expect(await conferirCorrida('del_1')).toBe(true)
+    expect(m.after).toHaveBeenCalledTimes(1)
+  })
+
+  it('id desconhecido: verdadeiro', async () => {
+    m.lerCorridaNaUber.mockResolvedValue(lida())
+    m.aplicarEntrega.mockResolvedValue(null)
+    expect(await conferirCorrida('del_1')).toBe(true)
+  })
+
+  it('a Uber nao respondeu: falso, nada aplicado', async () => {
+    m.lerCorridaNaUber.mockResolvedValue({ ok: false, status: 0, codigo: null })
+    expect(await conferirCorrida('del_1')).toBe(false)
+    expect(m.aplicarEntrega).not.toHaveBeenCalled()
+  })
+
+  it('nunca lanca: erro do banco vira falso', async () => {
+    m.lerCorridaNaUber.mockResolvedValue(lida())
+    m.aplicarEntrega.mockRejectedValue(new Error('x'))
+    expect(await conferirCorrida('del_1')).toBe(false)
   })
 })

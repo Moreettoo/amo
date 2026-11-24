@@ -235,6 +235,11 @@ describe('avisos do webhook', () => {
     expect(await registrarEventoWebhook({ eventoId: 'e1', tipo: 'order', recursoId: 'ORD1' })).toEqual({ evento: 7, situacao: 'novo' })
     expect(rpc()).toEqual(['rpc', 'registrar_evento_webhook', { p_origem: 'mercadopago', p_evento_id: 'e1', p_tipo: 'order', p_recurso_id: 'ORD1' }])
   })
+  it('com origem uber, passa a origem adiante', async () => {
+    responder([{ evento: 9, situacao: 'novo' }])
+    await registrarEventoWebhook({ origem: 'uber', eventoId: 'e3', tipo: 'event.delivery_status', recursoId: 'del_1' })
+    expect(rpc()?.[2]).toMatchObject({ p_origem: 'uber' })
+  })
   it('tipo e recurso nulos seguem nulos', async () => {
     responder([{ evento: 8, situacao: 'ja_tratado' }])
     await registrarEventoWebhook({ eventoId: 'e2', tipo: null, recursoId: null })

@@ -86,14 +86,15 @@ export async function pagamentosAReconciliar(): Promise<{ tentativa: string; mpP
   }))
 }
 
-/** Registra um aviso do Mercado Pago: 'novo', 'ja_tratado' ou 'tratar_de_novo'. */
+/** Registra um aviso (do Mercado Pago, ou da Uber quando a origem diz): 'novo', 'ja_tratado' ou 'tratar_de_novo'. */
 export async function registrarEventoWebhook(e: {
+  origem?: 'mercadopago' | 'uber'
   eventoId: string
   tipo: string | null
   recursoId: string | null
 }): Promise<{ evento: number; situacao: 'novo' | 'ja_tratado' | 'tratar_de_novo' }> {
   const { data, status } = await chamar('registrar_evento_webhook', {
-    p_origem: 'mercadopago',
+    p_origem: e.origem ?? 'mercadopago',
     p_evento_id: e.eventoId,
     p_tipo: e.tipo,
     p_recurso_id: e.recursoId,

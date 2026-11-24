@@ -2,6 +2,7 @@ import 'server-only'
 import { after } from 'next/server'
 import { ambientesCombinam, cozinha, uberConfigurada, uberEmTeste, type Cozinha } from '@/lib/dados/ambiente'
 import {
+  aplicarEntrega,
   marcarCorridaCriada,
   marcarCorridaFalhou,
   remarcarEntrega,
@@ -12,7 +13,7 @@ import { registrarFalha } from '@/lib/dados/erros'
 import { lerLoja } from '@/lib/dados/loja'
 import { rastreioSeguro } from '@/lib/dados/pedidos'
 import { FAIXA, faixasLivres, hojeEmSaoPaulo, janelasDaFaixa, situacaoDaLoja, type Faixa, type Loja } from '@/lib/loja'
-import { cancelarCorridaNaUber, cotarNaUber, criarCorridaNaUber } from '@/lib/uber/cliente'
+import { cancelarCorridaNaUber, cotarNaUber, criarCorridaNaUber, lerCorridaNaUber } from '@/lib/uber/cliente'
 import type { EnderecoUber } from '@/lib/uber/endereco'
 
 /**
@@ -173,5 +174,29 @@ export function pedirCorridas(): void {
     after(() => criarCorridasPendentes())
   } catch {
     registrarFalha('uber.after', { code: 'fora_da_requisicao' })
+  }
+}
+
+/**
+ * Le a corrida na Uber (nunca o corpo do aviso) e aplica o que ela diz. Se a
+ * Uber cancelou e o banco devolveu a entrega a `a_criar`, pede a segunda
+ * corrida. Id desconhecido nao e erro. Falso so quando a Uber nao respondeu
+ * ou o banco falhou. Nunca lanca.
+ */
+export async function conferirCorrida(uberEntregaId: string): Promise<boolean> {
+  try {
+    const lida = await lerCorridaNaUber(uberEntregaId)
+    if (!lida.ok) return false
+    const r = await aplicarEntrega({
+      uberEntregaId,
+      statusUber: lida.dados.status,
+      rastreioUrl: rastreioSeguro(lida.dados.rastreioUrl),
+      valorUberCentavos: lida.dados.valorCentavos,
+    })
+    if (r?.estado === 'a_criar') pedirCorridas()
+    return true
+  } catch {
+    registrarFalha('uber.conferir', { code: 'excecao' })
+    return false
   }
 }
