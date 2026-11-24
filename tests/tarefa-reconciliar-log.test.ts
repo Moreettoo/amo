@@ -23,6 +23,15 @@ vi.mock('@/lib/mercadopago/sincronizar', () => ({
   estornarNoMp: m.estornarNoMp,
   cancelarNoMp: m.cancelarNoMp,
 }))
+vi.mock('@/lib/uber/corridas', () => ({
+  criarCorridasPendentes: async () => ({ criadas: 0, falhas: 0 }),
+  cancelarCorridasPedidas: async () => ({ canceladas: 0, falhas: 0 }),
+  conferirCorrida: async () => true,
+}))
+vi.mock('@/lib/dados/entregas', () => ({
+  corridasAConferir: async () => [],
+  escalarCancelamentosIncertos: async () => 0,
+}))
 vi.mock('@/lib/dados/ambiente', () => ({ variavel: m.variavel }))
 
 import { POST } from '@/app/api/tarefas/reconciliar/route'
@@ -57,7 +66,7 @@ describe('o log da reconciliacao', () => {
     m.aplicarPagamento.mockRejectedValue(new Error('outro texto cru'))
     m.cancelarNoMp.mockResolvedValue(null)
 
-    expect(await (await chamar()).json()).toEqual({ conferidas: 0, canceladas: 0, falhas: 6 })
+    expect(await (await chamar()).json()).toMatchObject({ conferidas: 0, canceladas: 0, falhas: 6 })
     expect(registros()).toEqual([
       expect.objectContaining({ onde: 'reconciliar.sincronizar', code: 'sem_resposta_do_mp' }),
       expect.objectContaining({ onde: 'reconciliar.sincronizar', code: 'excecao' }),

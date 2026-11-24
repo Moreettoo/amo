@@ -10,6 +10,11 @@ const m = vi.hoisted(() => ({
   cancelarNoMp: vi.fn(),
   variavel: vi.fn(),
   registrarFalha: vi.fn(),
+  criarCorridasPendentes: vi.fn(),
+  cancelarCorridasPedidas: vi.fn(),
+  conferirCorrida: vi.fn(),
+  corridasAConferir: vi.fn(),
+  escalarCancelamentosIncertos: vi.fn(),
 }))
 
 vi.mock('@/lib/dados/pagamentos', () => ({
@@ -21,6 +26,15 @@ vi.mock('@/lib/mercadopago/sincronizar', () => ({
   sincronizarTentativa: m.sincronizarTentativa,
   estornarNoMp: m.estornarNoMp,
   cancelarNoMp: m.cancelarNoMp,
+}))
+vi.mock('@/lib/uber/corridas', () => ({
+  criarCorridasPendentes: m.criarCorridasPendentes,
+  cancelarCorridasPedidas: m.cancelarCorridasPedidas,
+  conferirCorrida: m.conferirCorrida,
+}))
+vi.mock('@/lib/dados/entregas', () => ({
+  corridasAConferir: m.corridasAConferir,
+  escalarCancelamentosIncertos: m.escalarCancelamentosIncertos,
 }))
 vi.mock('@/lib/dados/ambiente', () => ({ variavel: m.variavel }))
 vi.mock('@/lib/dados/erros', async (original) => ({
@@ -49,6 +63,11 @@ beforeEach(() => {
   m.sincronizarTentativa.mockResolvedValue(ok)
   m.estornarNoMp.mockResolvedValue(ok)
   m.cancelarNoMp.mockResolvedValue(ok)
+  m.criarCorridasPendentes.mockResolvedValue({ criadas: 0, falhas: 0 })
+  m.cancelarCorridasPedidas.mockResolvedValue({ canceladas: 0, falhas: 0 })
+  m.escalarCancelamentosIncertos.mockResolvedValue(0)
+  m.corridasAConferir.mockResolvedValue([])
+  m.conferirCorrida.mockResolvedValue(true)
 })
 afterEach(() => vi.useRealTimers())
 
@@ -93,7 +112,7 @@ describe('a reconciliacao', () => {
     ])
     const r = await chamar('Bearer segredo-da-tarefa')
     expect(r.status).toBe(200)
-    expect(await r.json()).toEqual({ conferidas: 3, canceladas: 2, falhas: 1 })
+    expect(await r.json()).toMatchObject({ conferidas: 3, canceladas: 2, falhas: 1 })
     expect(m.sincronizarTentativa).toHaveBeenCalledWith('a', 'ORD-A')
     expect(m.aplicarPagamento).toHaveBeenCalledTimes(1)
     expect(m.aplicarPagamento).toHaveBeenCalledWith(
@@ -125,7 +144,7 @@ describe('a reconciliacao', () => {
     m.sincronizarTentativa.mockRejectedValueOnce(new Error('banco')).mockResolvedValueOnce(null)
     m.cancelarNoMp.mockResolvedValueOnce(null)
     const r = await chamar('Bearer segredo-da-tarefa')
-    expect(await r.json()).toEqual({ conferidas: 1, canceladas: 1, falhas: 3 })
+    expect(await r.json()).toMatchObject({ conferidas: 1, canceladas: 1, falhas: 3 })
     expect(m.sincronizarTentativa).toHaveBeenCalledTimes(3)
     expect(m.cancelarNoMp).toHaveBeenCalledTimes(2)
     expect(m.registrarFalha).toHaveBeenCalledTimes(3)
@@ -151,8 +170,112 @@ describe('a reconciliacao', () => {
       return ok
     })
     const r = await chamar('Bearer segredo-da-tarefa')
-    expect(await r.json()).toEqual({ conferidas: 1, canceladas: 0, falhas: 0 })
+    expect(await r.json()).toMatchObject({ conferidas: 1, canceladas: 0, falhas: 0 })
     expect(m.sincronizarTentativa).toHaveBeenCalledTimes(1)
     expect(m.cancelarNoMp).not.toHaveBeenCalled()
+  })
+
+  describe('as corridas da Uber', () => {
+    const SEGREDO = 'Bearer segredo-da-tarefa'
+    const zero = { criadas: 0, canceladas: 0, conferidas: 0, incertas: 0, falhas: 0 }
+
+    it('chama as listas na ordem, depois do Mercado Pago, e conta', async () => {
+      const ordem: string[] = []
+      m.pagamentosAReconciliar.mockImplementation(async () => (ordem.push('mp'), []))
+      m.criarCorridasPendentes.mockImplementation(async () => (ordem.push('criar'), { criadas: 2, falhas: 1 }))
+      m.cancelarCorridasPedidas.mockImplementation(async () => (ordem.push('cancelar'), { canceladas: 3, falhas: 0 }))
+      m.escalarCancelamentosIncertos.mockImplementation(async () => (ordem.push('escalar'), 4))
+      m.corridasAConferir.mockImplementation(async () => (ordem.push('lista'), ['del_1', 'del_2']))
+      m.conferirCorrida.mockImplementation(async (id: string) => (ordem.push(id), true))
+      const r = await chamar(SEGREDO)
+      expect(ordem).toEqual(['mp', 'criar', 'cancelar', 'escalar', 'lista', 'del_1', 'del_2'])
+      expect(m.criarCorridasPendentes).toHaveBeenCalledWith(5)
+      const corpo = await r.json()
+      expect(corpo.corridas).toEqual({ criadas: 2, canceladas: 3, conferidas: 2, incertas: 4, falhas: 1 })
+      expect(corpo).toMatchObject({ conferidas: 0, canceladas: 0 })
+    })
+
+    it('sem trabalho: tudo zero', async () => {
+      const r = await chamar(SEGREDO)
+      expect((await r.json()).corridas).toEqual(zero)
+    })
+
+    it('falha da Uber conta em falhas e nao derruba o Mercado Pago nem a resposta', async () => {
+      m.pagamentosAReconciliar.mockResolvedValue([{ tentativa: 'a', mpPedidoId: 'ORD-A', status: 'pendente' }])
+      m.criarCorridasPendentes.mockRejectedValue(new Error('x'))
+      m.cancelarCorridasPedidas.mockRejectedValue(new Error('x'))
+      m.escalarCancelamentosIncertos.mockRejectedValue(new Error('x'))
+      m.corridasAConferir.mockResolvedValue(['del_1', 'del_2'])
+      m.conferirCorrida.mockResolvedValueOnce(false).mockRejectedValueOnce(new Error('x'))
+      const r = await chamar(SEGREDO)
+      expect(r.status).toBe(200)
+      const corpo = await r.json()
+      expect(corpo.conferidas).toBe(1)
+      expect(corpo.corridas).toEqual({ ...zero, falhas: 5 })
+      expect(corpo.falhas).toBe(5)
+      expect(m.conferirCorrida).toHaveBeenCalledTimes(2)
+    })
+
+    it('falhas devolvidas pelos passos entram na conta', async () => {
+      m.criarCorridasPendentes.mockResolvedValue({ criadas: 0, falhas: 2 })
+      m.cancelarCorridasPedidas.mockResolvedValue({ canceladas: 1, falhas: 1 })
+      const corpo = await (await chamar(SEGREDO)).json()
+      expect(corpo.corridas).toEqual({ ...zero, canceladas: 1, falhas: 3 })
+      expect(corpo.falhas).toBe(3)
+    })
+
+    it('a lista de conferir que lanca conta uma falha e nao quebra', async () => {
+      m.corridasAConferir.mockRejectedValue(new Error('banco'))
+      const r = await chamar(SEGREDO)
+      expect(r.status).toBe(200)
+      expect((await r.json()).corridas.falhas).toBe(1)
+    })
+
+    it('prazo estourado no meio para sem lancar e devolve o que fez', async () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(0)
+      m.criarCorridasPendentes.mockImplementation(async () => {
+        vi.setSystemTime(51_000)
+        return { criadas: 1, falhas: 0 }
+      })
+      const r = await chamar(SEGREDO)
+      expect(r.status).toBe(200)
+      expect((await r.json()).corridas).toEqual({ ...zero, criadas: 1 })
+      expect(m.cancelarCorridasPedidas).not.toHaveBeenCalled()
+      expect(m.escalarCancelamentosIncertos).not.toHaveBeenCalled()
+      expect(m.conferirCorrida).not.toHaveBeenCalled()
+    })
+
+    it('prazo estourado no meio das conferencias para antes da proxima', async () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(0)
+      m.corridasAConferir.mockResolvedValue(['del_1', 'del_2', 'del_3'])
+      m.conferirCorrida.mockImplementation(async () => {
+        vi.setSystemTime(51_000)
+        return true
+      })
+      const r = await chamar(SEGREDO)
+      expect((await r.json()).corridas.conferidas).toBe(1)
+      expect(m.conferirCorrida).toHaveBeenCalledTimes(1)
+    })
+
+    it('prazo estourado no Mercado Pago pula a Uber inteira', async () => {
+      vi.useFakeTimers()
+      vi.setSystemTime(0)
+      m.pagamentosAReconciliar.mockResolvedValue([{ tentativa: 'a', mpPedidoId: 'ORD-A', status: 'pendente' }])
+      m.sincronizarTentativa.mockImplementation(async () => {
+        vi.setSystemTime(51_000)
+        return ok
+      })
+      const r = await chamar(SEGREDO)
+      expect((await r.json()).corridas).toEqual(zero)
+      expect(m.criarCorridasPendentes).not.toHaveBeenCalled()
+    })
+
+    it('lista do Mercado Pago que lanca continua 500 e nao chama a Uber', async () => {
+      m.pagamentosAReconciliar.mockRejectedValue(new Error('banco'))
+      expect((await chamar(SEGREDO)).status).toBe(500)
+      expect(m.criarCorridasPendentes).not.toHaveBeenCalled()
+    })
   })
 })

@@ -13,6 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:banco": "vitest run --config vitest.banco.config.mts",
+    "reconciliar": "node --env-file=.env.local scripts/reconciliar.mjs",
     "varrer": "node scripts/varrer-segredos.mjs",
     "postbuild": "node scripts/varrer-segredos.mjs"
   },

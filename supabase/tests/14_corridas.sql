@@ -506,6 +506,36 @@ select pg_temp.verificar('marcar criada com rastreio http e recusado',
 select pg_temp.verificar('a corrida recusada continua criando e sem id',
   (select uber_entrega_id is null and estado = 'criando' from privado.entregas where pedido_id = pg_temp.id('p7')));
 
+-- 8b. cancelamento incerto: a_cancelar sem id, parada ha mais de 10 min, vai a equipe
+insert into _v values ('e1', pg_temp.pedido_pago(pg_temp.id('a')));
+insert into _v values ('e2', pg_temp.pedido_pago(pg_temp.id('a')));
+insert into _v values ('e3', pg_temp.pedido_pago(pg_temp.id('a')));
+select pg_temp.reservar(98, 50);
+select pg_temp.cancelar(pg_temp.id('e1'));
+select pg_temp.cancelar(pg_temp.id('e2'));
+select pg_temp.cancelar(pg_temp.id('e3'));
+select privado.marcar_corrida_falhou(pg_temp.id('e1'), 'sem_resposta', false);
+select privado.marcar_corrida_falhou(pg_temp.id('e2'), 'sem_resposta', false);
+select privado.marcar_corrida_criada(pg_temp.id('e3'), 'del_e3', 990, null, 'pending');
+select pg_temp.preparar(format($$update privado.entregas set criado_em = now() - interval '11 minutes', reservado_em = null where pedido_id = %L$$, pg_temp.id('e1')));
+select pg_temp.preparar(format($$update privado.entregas set criado_em = now() - interval '5 minutes', reservado_em = null where pedido_id = %L$$, pg_temp.id('e2')));
+select pg_temp.preparar(format($$update privado.entregas set criado_em = now() - interval '11 minutes', reservado_em = null where pedido_id = %L$$, pg_temp.id('e3')));
+select pg_temp.verificar('o preparo: e1, e2 e e3 estao a_cancelar',
+  pg_temp.estado(pg_temp.id('e1')) = 'a_cancelar' and pg_temp.estado(pg_temp.id('e2')) = 'a_cancelar'
+  and pg_temp.estado(pg_temp.id('e3')) = 'a_cancelar');
+select pg_temp.verificar('a chave secreta escala os cancelamentos incertos',
+  pg_temp.valor('service_role', null, 'select privado.escalar_cancelamentos_incertos()') ~ '^[0-9]+$');
+select pg_temp.verificar('a_cancelar sem id ha 11 min vai a equipe com o motivo',
+  (select estado = 'precisa_da_equipe' and motivo = 'cancelamento_incerto' from privado.entregas where pedido_id = pg_temp.id('e1')));
+select pg_temp.verificar('a_cancelar sem id ha 5 min continua a_cancelar', pg_temp.estado(pg_temp.id('e2')) = 'a_cancelar');
+select pg_temp.verificar('a_cancelar com id nao e escalada', pg_temp.estado(pg_temp.id('e3')) = 'a_cancelar');
+select pg_temp.verificar('a funcao devolve a contagem do que escalou',
+  privado.escalar_cancelamentos_incertos() = 0);
+select pg_temp.verificar('cliente nao escala cancelamentos',
+  pg_temp.como('authenticated', pg_temp.id('a'), 'select privado.escalar_cancelamentos_incertos()') like '42501%');
+select pg_temp.verificar('anonimo nao escala cancelamentos',
+  pg_temp.como('anon', null, 'select privado.escalar_cancelamentos_incertos()') like '42501%');
+
 -- 9. so a chave secreta
 select pg_temp.verificar('cliente nao reserva corrida',
   pg_temp.como('authenticated', pg_temp.id('a'), 'select * from privado.reservar_corridas(1)') like '42501%');

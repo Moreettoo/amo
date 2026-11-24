@@ -3,6 +3,8 @@ import { after } from 'next/server'
 import { ambientesCombinam, cozinha, uberConfigurada, uberEmTeste, type Cozinha } from '@/lib/dados/ambiente'
 import {
   aplicarEntrega,
+  corridaCancelada,
+  corridasACancelar,
   marcarCorridaCriada,
   marcarCorridaFalhou,
   remarcarEntrega,
@@ -199,4 +201,37 @@ export async function conferirCorrida(uberEntregaId: string): Promise<boolean> {
     registrarFalha('uber.conferir', { code: 'excecao' })
     return false
   }
+}
+
+/**
+ * Cancela na Uber as corridas dos pedidos cancelados. 200, e 404 ou 409 (ja
+ * cancelada ou nao existe mais), valem como cancelada; o resto e falha e a
+ * corrida fica para a proxima passada. Nunca lanca.
+ */
+export async function cancelarCorridasPedidas(): Promise<{ canceladas: number; falhas: number }> {
+  let canceladas = 0
+  let falhas = 0
+  let lista: Awaited<ReturnType<typeof corridasACancelar>>
+  try {
+    lista = await corridasACancelar()
+  } catch {
+    registrarFalha('uber.cancelar_pedidas', { code: 'excecao' })
+    return { canceladas, falhas: 1 }
+  }
+  for (const { pedido, uberEntregaId } of lista) {
+    try {
+      const r = await cancelarCorridaNaUber(uberEntregaId)
+      if (!r.ok && r.status !== 404 && r.status !== 409) {
+        registrarFalha('uber.cancelar_pedidas', { code: motivoDaUber(r) })
+        falhas++
+        continue
+      }
+      await corridaCancelada(pedido)
+      canceladas++
+    } catch {
+      registrarFalha('uber.cancelar_pedidas', { code: 'excecao' })
+      falhas++
+    }
+  }
+  return { canceladas, falhas }
 }

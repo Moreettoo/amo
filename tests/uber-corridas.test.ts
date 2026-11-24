@@ -14,6 +14,8 @@ const m = vi.hoisted(() => ({
   marcarCorridaFalhou: vi.fn(),
   remarcarEntrega: vi.fn(),
   aplicarEntrega: vi.fn(),
+  corridasACancelar: vi.fn(),
+  corridaCancelada: vi.fn(),
   lerCorridaNaUber: vi.fn(),
   cotarNaUber: vi.fn(),
   criarCorridaNaUber: vi.fn(),
@@ -33,6 +35,8 @@ vi.mock('@/lib/dados/entregas', () => ({
   marcarCorridaFalhou: m.marcarCorridaFalhou,
   remarcarEntrega: m.remarcarEntrega,
   aplicarEntrega: m.aplicarEntrega,
+  corridasACancelar: m.corridasACancelar,
+  corridaCancelada: m.corridaCancelada,
 }))
 vi.mock('@/lib/uber/cliente', () => ({
   cotarNaUber: m.cotarNaUber,
@@ -56,7 +60,7 @@ vi.mock('next/server', async (original) => ({
   after: m.after,
 }))
 
-import { conferirCorrida, criarCorridasPendentes, pedirCorridas } from '@/lib/uber/corridas'
+import { cancelarCorridasPedidas, conferirCorrida, criarCorridasPendentes, pedirCorridas } from '@/lib/uber/corridas'
 
 // Sao Paulo esta em UTC-3 em novembro: 13h de SP sao 16h UTC.
 const TERCA_13H = new Date('2026-11-24T16:00:00Z')
@@ -520,5 +524,52 @@ describe('conferirCorrida', () => {
     m.lerCorridaNaUber.mockResolvedValue(lida())
     m.aplicarEntrega.mockRejectedValue(new Error('x'))
     expect(await conferirCorrida('del_1')).toBe(false)
+  })
+})
+
+describe('cancelarCorridasPedidas', () => {
+  beforeEach(() => {
+    m.corridasACancelar.mockReset()
+    m.corridaCancelada.mockReset()
+    m.cancelarCorridaNaUber.mockReset()
+    m.registrarFalha.mockReset()
+    m.corridaCancelada.mockResolvedValue(undefined)
+  })
+
+  it('200 cancela e grava cancelada', async () => {
+    m.corridasACancelar.mockResolvedValue([{ pedido: 'p1', uberEntregaId: 'del_1' }])
+    m.cancelarCorridaNaUber.mockResolvedValue({ ok: true, dados: { id: 'del_1', status: 'canceled' } })
+    expect(await cancelarCorridasPedidas()).toEqual({ canceladas: 1, falhas: 0 })
+    expect(m.cancelarCorridaNaUber).toHaveBeenCalledWith('del_1')
+    expect(m.corridaCancelada).toHaveBeenCalledWith('p1')
+  })
+
+  it.each([404, 409])('%s conta como cancelada', async (status) => {
+    m.corridasACancelar.mockResolvedValue([{ pedido: 'p1', uberEntregaId: 'del_1' }])
+    m.cancelarCorridaNaUber.mockResolvedValue({ ok: false, status, codigo: null })
+    expect(await cancelarCorridasPedidas()).toEqual({ canceladas: 1, falhas: 0 })
+    expect(m.corridaCancelada).toHaveBeenCalledWith('p1')
+  })
+
+  it.each([0, 400, 429, 500])('%s e falha e nao grava', async (status) => {
+    m.corridasACancelar.mockResolvedValue([
+      { pedido: 'p1', uberEntregaId: 'del_1' },
+      { pedido: 'p2', uberEntregaId: 'del_2' },
+    ])
+    m.cancelarCorridaNaUber
+      .mockResolvedValueOnce({ ok: false, status, codigo: null })
+      .mockResolvedValueOnce({ ok: true, dados: { id: 'del_2', status: 'canceled' } })
+    expect(await cancelarCorridasPedidas()).toEqual({ canceladas: 1, falhas: 1 })
+    expect(m.corridaCancelada).toHaveBeenCalledTimes(1)
+    expect(m.corridaCancelada).toHaveBeenCalledWith('p2')
+  })
+
+  it('nunca lanca: lista ou gravacao que falham viram falha', async () => {
+    m.corridasACancelar.mockRejectedValueOnce(new Error('banco'))
+    expect(await cancelarCorridasPedidas()).toEqual({ canceladas: 0, falhas: 1 })
+    m.corridasACancelar.mockResolvedValue([{ pedido: 'p1', uberEntregaId: 'del_1' }])
+    m.cancelarCorridaNaUber.mockResolvedValue({ ok: true, dados: { id: 'del_1', status: 'canceled' } })
+    m.corridaCancelada.mockRejectedValueOnce(new Error('banco'))
+    expect(await cancelarCorridasPedidas()).toEqual({ canceladas: 0, falhas: 1 })
   })
 })

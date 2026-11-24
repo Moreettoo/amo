@@ -205,3 +205,9 @@ export async function reservarRenovacaoToken(): Promise<boolean> {
   const { data, status } = await chamar('reservar_renovacao_token', {})
   return ler('reservar_renovacao_token', status, () => (typeof data === 'boolean' ? data : torta()))
 }
+
+/** Passa a precisa_da_equipe as a_cancelar sem id paradas ha mais de 10 minutos (cancelamento incerto); devolve quantas. */
+export async function escalarCancelamentosIncertos(): Promise<number> {
+  const { data, status } = await chamar('escalar_cancelamentos_incertos', {})
+  return ler('escalar_cancelamentos_incertos', status, () => inteiro(data))
+}

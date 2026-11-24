@@ -65,6 +65,7 @@ insert into _esperado (objeto, papel, privilegio) values
   ('privado.corridas_a_cancelar()', 'service_role', 'EXECUTE'),
   ('privado.corrida_cancelada(uuid)', 'service_role', 'EXECUTE'),
   ('privado.corridas_a_conferir()', 'service_role', 'EXECUTE'),
+  ('privado.escalar_cancelamentos_incertos()', 'service_role', 'EXECUTE'),
   ('privado.ler_token_uber()', 'service_role', 'EXECUTE'),
   ('privado.guardar_token_uber(text, timestamp with time zone)', 'service_role', 'EXECUTE'),
   ('privado.reservar_renovacao_token()', 'service_role', 'EXECUTE'),
