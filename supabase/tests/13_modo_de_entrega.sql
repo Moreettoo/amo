@@ -200,6 +200,46 @@ select pg_temp.verificar('outra marca nao vale',
   and pg_temp.remarcar(pg_temp.id('pago2'), 'agendado', pg_temp.h('amanha_14'), pg_temp.h('amanha_15')) like 'P0001 campo_imutavel');
 select set_config('amo.remarcando', '', true);
 
+-- a coerencia do modo e da faixa vale tambem para quem escreve direto
+select pg_temp.verificar('cotacao agendada sem fim e recusada pelo check',
+  pg_temp.como('postgres', null, format(
+    $$insert into privado.cotacoes (cep, logradouro, numero, bairro, cidade, uf, valor_centavos, minutos, origem,
+        expira_em, modo, janela_inicio, janela_fim)
+      values ('04567000', 'Rua X', '1', 'Centro', 'São Paulo', 'SP', 990, 35, 'exemplo',
+        now() + interval '15 minutes', 'agendado', %L, null)$$, pg_temp.h('amanha_12'))) like '23514%');
+select pg_temp.verificar('cotacao agendada sem inicio e recusada pelo check',
+  pg_temp.como('postgres', null, format(
+    $$insert into privado.cotacoes (cep, logradouro, numero, bairro, cidade, uf, valor_centavos, minutos, origem,
+        expira_em, modo, janela_inicio, janela_fim)
+      values ('04567000', 'Rua X', '1', 'Centro', 'São Paulo', 'SP', 990, 35, 'exemplo',
+        now() + interval '15 minutes', 'agendado', null, %L)$$, pg_temp.h('amanha_13'))) like '23514%');
+select pg_temp.verificar('pedido agendado sem fim e recusado pelo check',
+  pg_temp.como('postgres', null, format(
+    $$insert into public.pedidos (
+        numero, user_id, subtotal_centavos, frete_centavos, total_centavos,
+        cliente_nome, cliente_celular, cliente_email,
+        entrega_cep, entrega_logradouro, entrega_numero, entrega_complemento,
+        entrega_bairro, entrega_cidade, entrega_uf, entrega_minutos,
+        entrega_modo, entrega_janela_inicio, entrega_janela_fim)
+      values ('AMO-ZZZZ2345', %L, 1890, 990, 2880,
+        'Cliente Teste', '11987654321', 'cliente@teste.invalid',
+        '04567000', 'Rua Siqueira Bueno', '120', 'ap 52',
+        'Belenzinho', 'São Paulo', 'SP', 35,
+        'agendado', %L, null)$$, pg_temp.id('e'), pg_temp.h('amanha_12'))) like '23514%');
+select pg_temp.verificar('pedido agendado sem inicio e recusado pelo check',
+  pg_temp.como('postgres', null, format(
+    $$insert into public.pedidos (
+        numero, user_id, subtotal_centavos, frete_centavos, total_centavos,
+        cliente_nome, cliente_celular, cliente_email,
+        entrega_cep, entrega_logradouro, entrega_numero, entrega_complemento,
+        entrega_bairro, entrega_cidade, entrega_uf, entrega_minutos,
+        entrega_modo, entrega_janela_inicio, entrega_janela_fim)
+      values ('AMO-ZZZZ2346', %L, 1890, 990, 2880,
+        'Cliente Teste', '11987654321', 'cliente@teste.invalid',
+        '04567000', 'Rua Siqueira Bueno', '120', 'ap 52',
+        'Belenzinho', 'São Paulo', 'SP', 35,
+        'agendado', null, %L)$$, pg_temp.id('e'), pg_temp.h('amanha_13'))) like '23514%');
+
 select pg_temp.verificar('a cliente nao altera o modo',
   pg_temp.como('authenticated', pg_temp.id('e'), format(
     $$update public.pedidos set entrega_modo = 'agendado' where id = %L$$, pg_temp.id('pago2'))) like '42501%');
