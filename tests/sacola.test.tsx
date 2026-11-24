@@ -63,6 +63,8 @@ vi.mock('next/headers', () => ({ headers: async () => new Headers({ 'x-nonce': '
 
 const cotacaoDe = (venceEmMs = 15 * 60_000): Cotacao => ({
   id: 'b1f0c9a2-4d3e-4f5a-8b6c-7d8e9f0a1b2c',
+  modo: 'agora',
+  faixa: null,
   valorCentavos: 1290,
   minutos: 45,
   expiraEm: new Date(Date.now() + venceEmMs).toISOString(),

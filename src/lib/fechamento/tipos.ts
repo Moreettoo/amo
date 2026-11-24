@@ -65,6 +65,9 @@ export type Cotacao = {
   minutos: number
   expiraEm: string
   exemplo: boolean
+  /** Agora, ou agendado numa faixa de uma hora. */
+  modo: 'agora' | 'agendado'
+  faixa: { inicio: string; fim: string } | null
   endereco: EnderecoDaCotacao
 }
 

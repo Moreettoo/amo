@@ -55,7 +55,13 @@ function cotacao(v: unknown): Cotacao | null {
   const campos = ['cep', 'logradouro', 'numero', 'complemento', 'bairro', 'cidade', 'uf'] as const
   if (!campos.every((c) => texto(e[c], 200))) return null
   const endereco = Object.fromEntries(campos.map((c) => [c, e[c]])) as Cotacao['endereco']
-  return { id: v.id, valorCentavos: v.valorCentavos, minutos: v.minutos, expiraEm: v.expiraEm, exemplo: v.exemplo, endereco }
+  // guardado antes dos modos: sem modo, e agora e sem faixa
+  const modo = v.modo === 'agendado' ? 'agendado' : 'agora'
+  const f = v.faixa
+  const faixa =
+    modo === 'agendado' && objeto(f) && texto(f.inicio, 40) && texto(f.fim, 40) ? { inicio: f.inicio, fim: f.fim } : null
+  if (modo === 'agendado' && !faixa) return null
+  return { id: v.id, valorCentavos: v.valorCentavos, minutos: v.minutos, expiraEm: v.expiraEm, exemplo: v.exemplo, modo, faixa, endereco }
 }
 
 function linhaDoPedido(v: unknown): LinhaDoPedido | null {

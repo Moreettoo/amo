@@ -6,6 +6,8 @@ const AGORA = Date.parse('2026-11-21T15:00:00.000Z')
 const endereco = { cep: '04567-000', numero: '10', complemento: 'apto 12' }
 const cotacao = (venceEmMs: number): Cotacao => ({
   id: 'b1f0c9a2-4d3e-4f5a-8b6c-7d8e9f0a1b2c',
+  modo: 'agora',
+  faixa: null,
   valorCentavos: 1290,
   minutos: 45,
   expiraEm: new Date(AGORA + venceEmMs).toISOString(),

@@ -6,7 +6,10 @@ import { obterUsuario } from '@/lib/auth'
 import { lerIp } from '@/lib/auth/ip'
 import { buscarCep } from '@/lib/dados/cep'
 import { cotarDeExemplo, registrarCotacao, VALIDADE_DA_COTACAO_MS } from '@/lib/dados/cotacao'
-import { mercadoPagoEmTeste } from '@/lib/dados/ambiente'
+import { ambientesCombinam, cozinha, mercadoPagoEmTeste, uberConfigurada, uberEmTeste } from '@/lib/dados/ambiente'
+import { lerLoja } from '@/lib/dados/loja'
+import { cotarNaUber } from '@/lib/uber/cliente'
+import { FAIXA, faixasLivres, faixaValida, fechamentoDeHoje, janelasDaFaixa, situacaoDaLoja, type Faixa } from '@/lib/loja'
 import { ErroDeRegra, registrarFalha } from '@/lib/dados/erros'
 import { conferirNumeroDoPedido } from '@/lib/conta/regras'
 import { criarPedido, iniciarPagamento, lerPedidoParaPagar, lerUltimaTentativa } from '@/lib/dados/fechamento'
@@ -41,12 +44,32 @@ type Campos = Partial<Record<'cep' | 'numero' | 'complemento', string>>
 const falha = (erro: CodigoDoFechamento, campos?: Campos): RespostaDaCotacao =>
   campos ? { ok: false, erro, campos } : { ok: false, erro }
 
+const INSTANTE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/
+
+/** Erro da Uber na cotacao para o codigo da tela. */
+function erroDaUber(status: number, codigo: string | null): CodigoDoFechamento {
+  if (codigo?.startsWith('address_undeliverable')) return 'fora_da_area'
+  if (status === 429 || codigo === 'moeda') return 'entrega_indisponivel'
+  return 'tente_de_novo'
+}
+
 export async function cotarEntrega(entrada: unknown): Promise<RespostaDaCotacao> {
   if (typeof entrada !== 'object' || entrada === null) return falha('campos_invalidos')
-  const { cep: c, numero: n, complemento: o } = entrada as Record<string, unknown>
+  const { cep: c, numero: n, complemento: o, modo: m, faixa: f } = entrada as Record<string, unknown>
   if (typeof c !== 'string' || typeof n !== 'string' || (o !== undefined && typeof o !== 'string')) {
     return falha('campos_invalidos')
   }
+  if (m !== undefined && m !== 'agora' && m !== 'agendado') return falha('campos_invalidos')
+  if (m === 'agendado' ? typeof f !== 'string' || !INSTANTE.test(f) || Number.isNaN(Date.parse(f)) : f !== undefined) {
+    return falha('campos_invalidos')
+  }
+  const faixaPedida: Faixa | null =
+    typeof f === 'string'
+      ? {
+          inicio: new Date(f).toISOString(),
+          fim: new Date(Date.parse(f) + FAIXA.duracaoMin * 60_000).toISOString(),
+        }
+      : null
 
   const cepTexto = c.trim()
   const numero = n.trim()
@@ -61,16 +84,73 @@ export async function cotarEntrega(entrada: unknown): Promise<RespostaDaCotacao>
   const cep = cepTexto.replace('-', '')
 
   try {
-    if (!(await consumirLimite(`cotar:ip:${lerIp(await headers())}`, 10, 3600))) return falha('muitas_tentativas')
+    if (!(await consumirLimite(`cotar:ip:${lerIp(await headers())}`, 30, 3600))) return falha('muitas_tentativas')
 
     const achado = await buscarCep(cep)
     if (!achado || achado.logradouro.length < 2 || !achado.bairro || !achado.cidade || !achado.uf) {
       return falha('cep_nao_encontrado')
     }
 
-    const cotado = cotarDeExemplo(cep)
-    if (!cotado) return falha('fora_da_area')
-    if (!mercadoPagoEmTeste()) return falha('entrega_indisponivel')
+    // o modo: vendas pausadas vencem os dois (senao a faixa dira "escolha outra" sem fim)
+    const loja = await lerLoja()
+    if (loja.pausada) return falha('loja_fechada')
+    const agora = new Date()
+    const aberta = situacaoDaLoja(loja, agora).aberta
+    let modo: 'agora' | 'agendado'
+    let faixa: Faixa | null = null
+    if (m === 'agora') {
+      if (!aberta) return falha('agora_indisponivel')
+      modo = 'agora'
+    } else if (m === 'agendado') {
+      if (!faixaPedida || !faixaValida(loja, faixaPedida, agora)) return falha('faixa_indisponivel')
+      modo = 'agendado'
+      faixa = faixaPedida
+    } else if (aberta) {
+      modo = 'agora'
+    } else {
+      faixa = faixasLivres(loja, agora)[0] ?? null
+      if (!faixa) return falha('faixa_indisponivel')
+      modo = 'agendado'
+    }
+
+    const uber = uberConfigurada()
+    let valorCentavos: number
+    let minutos: number
+    let uberCotacaoId: string | null = null
+    if (!uber) {
+      const cotado = cotarDeExemplo(cep)
+      if (!cotado) return falha('fora_da_area')
+      if (!mercadoPagoEmTeste()) return falha('entrega_indisponivel')
+      ;({ valorCentavos, minutos } = cotado)
+    } else {
+      if (!ambientesCombinam()) {
+        registrarFalha('cotar_entrega', { code: 'ambientes_trocados' })
+        return falha('entrega_indisponivel')
+      }
+      const cozinhaAtual = cozinha()
+      const feito = await cotarNaUber({
+        retirada: cozinhaAtual.endereco,
+        telefoneRetirada: cozinhaAtual.telefone,
+        entrega: { cep, numero, complemento, logradouro: achado.logradouro, bairro: achado.bairro, cidade: achado.cidade, uf: achado.uf },
+        janelas: faixa ? janelasDaFaixa(faixa) : null,
+      })
+      if (!feito.ok) {
+        registrarFalha('cotar_entrega', { code: feito.codigo ?? `uber_${feito.status}` })
+        return falha(erroDaUber(feito.status, feito.codigo))
+      }
+      const q = feito.dados
+      // a cotacao da Uber quase nunca traz live_mode: o portao de verdade e a criacao da corrida
+      if (q.aoVivo !== null && q.aoVivo === uberEmTeste()) {
+        registrarFalha('cotar_entrega', { code: 'ao_vivo_trocado' })
+        return falha('entrega_indisponivel')
+      }
+      if (modo === 'agora') {
+        const ate = q.retiradaEmMinutos ?? q.minutos
+        const fecha = fechamentoDeHoje(loja, agora)
+        if (ate == null || !fecha || agora.getTime() + ate * 60_000 > fecha.getTime()) return falha('agora_indisponivel')
+      }
+      ;({ valorCentavos, minutos, id: uberCotacaoId } = q)
+    }
 
     const usuario = await obterUsuario()
     const endereco = {
@@ -82,24 +162,26 @@ export async function cotarEntrega(entrada: unknown): Promise<RespostaDaCotacao>
       cidade: achado.cidade,
       uf: achado.uf,
     }
-    // ate a cotacao da Uber entrar: a conta de exemplo, sempre agora
     const id = await registrarCotacao({
       usuarioId: usuario?.id ?? null,
-      ...cotado,
+      valorCentavos,
+      minutos,
       ...endereco,
-      origem: 'exemplo',
-      uberCotacaoId: null,
-      modo: 'agora',
-      faixa: null,
+      origem: uber ? 'uber' : 'exemplo',
+      uberCotacaoId,
+      modo,
+      faixa,
     })
     return {
       ok: true,
       cotacao: {
         id,
-        valorCentavos: cotado.valorCentavos,
-        minutos: cotado.minutos,
+        valorCentavos,
+        minutos,
         expiraEm: new Date(Date.now() + VALIDADE_DA_COTACAO_MS).toISOString(),
-        exemplo: true,
+        exemplo: !uber,
+        modo,
+        faixa,
         endereco,
       },
     }
