@@ -1381,6 +1381,14 @@ describe('o cartão pelo Card Payment Brick', () => {
     expect(sessionStorage.getItem(CHAVE_DO_PROGRESSO)).toBeNull()
   })
 
+  it('o Device ID que o SDK do Mercado Pago deixa no window vai junto com o cartão', async () => {
+    vi.stubGlobal('MP_DEVICE_SESSION_ID', 'armor.abc123def456')
+    const { user } = await comCartao()
+    await user.click(botaoDoResumo())
+    expect(await screen.findByRole('heading', { level: 1, name: 'Pedido 123456 recebido' })).toBeInTheDocument()
+    expect(m.pagarCartao).toHaveBeenCalledWith(expect.objectContaining({ dispositivo: 'armor.abc123def456' }))
+  })
+
   it('sem dados válidos no Brick nada sai; sem CPF o documento não vai', async () => {
     const { user } = await comCartao()
     brick.getFormData.mockResolvedValueOnce(undefined)

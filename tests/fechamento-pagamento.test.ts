@@ -241,6 +241,7 @@ describe('criar no Mercado Pago', () => {
       cartao: { token: TOKEN, bandeira: 'visa', tipo: 'credit_card', parcelas: 1 },
       documento: { tipo: 'CPF', numero: '12345678909' },
       itens: [],
+      dispositivo: null,
     })
     expect(m.aplicarRespostaDoMp).toHaveBeenCalledWith('tent-1', expect.anything(), '4242')
     expect(r.ok && r.situacao.estado).toBe('pago')
@@ -263,6 +264,27 @@ describe('criar no Mercado Pago', () => {
     expect(r.ok).toBe(true)
     expect(m.criarPedidoPix.mock.calls[0][0].itens).toEqual([])
     expect(JSON.stringify(vi.mocked(console.error).mock.calls)).toContain('pagar.itens')
+  })
+  it('o dispositivo no formato vai a criarPedidoCartao', async () => {
+    await pagarComCartao({ ...cartao, dispositivo: 'armor.abc123def456' })
+    expect(m.criarPedidoCartao).toHaveBeenCalledWith(expect.objectContaining({ dispositivo: 'armor.abc123def456' }))
+  })
+  it('sem dispositivo, criarPedidoCartao recebe null', async () => {
+    await pagarComCartao(cartao)
+    expect(m.criarPedidoCartao).toHaveBeenCalledWith(expect.objectContaining({ dispositivo: null }))
+  })
+  it('dispositivo hostil e descartado e o cartao paga mesmo assim', async () => {
+    const DISPOSITIVO = /^[A-Za-z0-9._:-]{8,200}$/
+    const hostis: unknown[] = ['a\r\nX-Outro: 1', 'x'.repeat(10_000), 'com espaco', 'curto', '', { a: 1 }, 12345678, ...HOSTIS.filter((h) => !DISPOSITIVO.test(h))]
+    for (const d of hostis) {
+      m.criarPedidoCartao.mockClear()
+      const r = await pagarComCartao({ ...cartao, dispositivo: d })
+      expect(r.ok).toBe(true)
+      expect(m.criarPedidoCartao).toHaveBeenCalledWith(expect.objectContaining({ dispositivo: null }))
+    }
+  })
+  it('campo desconhecido continua campos_invalidos', async () => {
+    expect(await pagarComCartao({ ...cartao, outro: 'x' })).toEqual({ ok: false, erro: 'campos_invalidos' })
   })
   it('cartao sem documento manda null', async () => {
     await pagarComCartao(cartao)

@@ -133,12 +133,14 @@ async function chamar(
   caminho: string,
   chave: string | null,
   corpo: unknown,
+  extras: Record<string, string> = {},
 ): Promise<ResultadoMp> {
   let temporizador: ReturnType<typeof setTimeout> | undefined
   try {
     const cabecalhos: Record<string, string> = { Authorization: `Bearer ${variavel('MERCADOPAGO_ACCESS_TOKEN')}` }
     if (chave) cabecalhos['X-Idempotency-Key'] = chave
     if (metodo === 'POST') cabecalhos['Content-Type'] = 'application/json'
+    Object.assign(cabecalhos, extras)
 
     const limite = new Promise<never>((_, rejeitar) => {
       temporizador = setTimeout(() => rejeitar(new Error('prazo')), PRAZO_MS)
@@ -178,6 +180,17 @@ async function chamar(
   } finally {
     clearTimeout(temporizador)
   }
+}
+
+const DISPOSITIVO = /^[A-Za-z0-9._:-]{8,200}$/
+
+/**
+ * O Device ID no formato que pode virar cabecalho (sem espaco, controle ou
+ * quebra de linha), ou null. Fora do formato ele e descartado, nunca recusado:
+ * o pagamento segue sem ele (spec do pagamento de verdade, 8).
+ */
+export function dispositivoValido(v: unknown): string | null {
+  return typeof v === 'string' && DISPOSITIVO.test(v) ? v : null
 }
 
 /** Um item do pedido no Mercado Pago, em centavos. */
@@ -231,6 +244,7 @@ export function criarPedidoCartao(p: {
   cartao: { token: string; bandeira: string; tipo: 'credit_card' | 'debit_card'; parcelas: number }
   documento: { tipo: 'CPF'; numero: string } | null
   itens: ItemMp[]
+  dispositivo: string | null
 }): Promise<ResultadoMp> {
   if (!totalValido(p.totalCentavos)) return FALHA_LOCAL
   const valor = valorEmReais(p.totalCentavos)
@@ -252,7 +266,13 @@ export function criarPedidoCartao(p: {
       ],
     },
     config: { online: { transaction_security: { validation: 'on_fraud_risk', liability_shift: 'required' } } },
-  })
+  }, dispositivoDoCabecalho(p.dispositivo))
+}
+
+/** O cabecalho do Device ID (contrato, 1.3), conferido de novo aqui: so vai o que pode ser cabecalho. */
+function dispositivoDoCabecalho(dispositivo: string | null): Record<string, string> {
+  const valido = dispositivoValido(dispositivo)
+  return valido ? { 'X-meli-session-id': valido } : {}
 }
 
 export function lerPedidoMp(id: string): Promise<ResultadoMp> {

@@ -85,6 +85,7 @@ describe('o Mercado Pago falso do ensaio, lido pelo cliente de verdade', () => {
       cartao: { token: 'a'.repeat(32), bandeira: 'master', tipo: 'credit_card', parcelas: 1 },
       documento: null,
       itens: [],
+      dispositivo: null,
     })
     expect(r.ok && traduzir(r.pedido)?.status).toBe('aprovado')
     expect(r.ok && r.pedido.pagamento?.bandeira).toBe('master')

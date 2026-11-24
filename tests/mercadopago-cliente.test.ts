@@ -139,7 +139,7 @@ describe('criarPedidoPix', () => {
 describe('criarPedidoCartao', () => {
   it('manda o corpo do contrato, sem identification quando não há documento', async () => {
     fetchFalso.mockResolvedValue(resposta(201, pedidoCartao('processed', 'accredited')))
-    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })
+    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 9280, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [], dispositivo: null })
     const init = fetchFalso.mock.calls[0][1]
     expect(fetchFalso.mock.calls[0][0]).toBe('https://api.mercadopago.com/v1/orders')
     expect(init.method).toBe('POST')
@@ -160,14 +160,14 @@ describe('criarPedidoCartao', () => {
 
   it('manda o CPF quando há documento', async () => {
     fetchFalso.mockResolvedValue(resposta(201, pedidoCartao('processed', 'accredited')))
-    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: { tipo: 'CPF', numero: '12345678909' }, itens: [] })
+    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: { tipo: 'CPF', numero: '12345678909' }, itens: [], dispositivo: null })
     expect(JSON.parse(fetchFalso.mock.calls[0][1].body).payer.identification).toEqual({ type: 'CPF', number: '12345678909' })
   })
 
   it('desafio 3DS dá a URL, só se for https do Mercado Pago', async () => {
     const com = (url: string) =>
       resposta(201, pedidoCartao('action_required', 'pending_challenge', { transaction_security: { url } }))
-    const chamar = () => criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })
+    const chamar = () => criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [], dispositivo: null })
 
     fetchFalso.mockResolvedValueOnce(com('https://www.mercadopago.com.br/3ds/x'))
     const boa = await chamar()
@@ -182,14 +182,14 @@ describe('criarPedidoCartao', () => {
 
   it('HTTP 402 com corpo de pedido failed dá ok', async () => {
     fetchFalso.mockResolvedValue(resposta(402, pedidoCartao('failed', 'insufficient_amount')))
-    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })
+    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [], dispositivo: null })
     expect(r.ok && r.pedido.pagamento?.detalhe).toBe('insufficient_amount')
   })
 
   it('HTTP 402 com o pedido dentro de data, como a API devolve (ensaio de 2026-11-23), dá ok com a recusa', async () => {
     const pedido = { ...pedidoCartao('failed', 'rejected_by_issuer'), status_detail: 'failed' }
     fetchFalso.mockResolvedValue(resposta(402, { errors: [{ code: 'failed', message: 'x', details: ['y'] }], data: pedido }))
-    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })
+    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [], dispositivo: null })
     expect(r.ok).toBe(true)
     expect(r.ok && r.pedido).toMatchObject({ id: 'ORD02', status: 'failed', detalhe: 'failed', referencia: TENTATIVA, valorCentavos: 9280 })
     expect(r.ok && r.pedido.pagamento).toMatchObject({ id: 'PAY02', status: 'failed', detalhe: 'rejected_by_issuer', bandeira: 'master' })
@@ -198,8 +198,34 @@ describe('criarPedidoCartao', () => {
 
   it('data so vale no 402: um 201 com o pedido dentro de data nao vira pedido', async () => {
     fetchFalso.mockResolvedValue(resposta(201, { data: pedidoCartao('processed', 'accredited') }))
-    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })
+    const r = await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [], dispositivo: null })
     expect(r).toEqual({ ok: false, status: 201, codigo: null })
+  })
+})
+
+describe('o Device ID do cartao', () => {
+  const DISPOSITIVO = 'armor.abc123def456'
+
+  it('o cartao com dispositivo manda X-meli-session-id; sem ele, nao; o Pix nunca', async () => {
+    fetchFalso.mockImplementation(async () => resposta(201, pedidoCartao('processed', 'accredited')))
+    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [], dispositivo: DISPOSITIVO })
+    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [], dispositivo: null })
+    await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', itens: [] })
+    expect(fetchFalso.mock.calls[0][1].headers).toEqual({
+      Authorization: `Bearer ${TOKEN}`,
+      'X-Idempotency-Key': TENTATIVA,
+      'Content-Type': 'application/json',
+      'X-meli-session-id': DISPOSITIVO,
+    })
+    expect(fetchFalso.mock.calls[1][1].headers).not.toHaveProperty('X-meli-session-id')
+    expect(fetchFalso.mock.calls[2][1].headers).not.toHaveProperty('X-meli-session-id')
+  })
+
+  it('o log nunca leva o dispositivo', async () => {
+    fetchFalso.mockResolvedValue(resposta(400, { errors: [{ code: 'invalid_total_amount', message: DISPOSITIVO }] }))
+    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [], dispositivo: DISPOSITIVO })
+    expect(erro).toHaveBeenCalled()
+    expect(JSON.stringify(erro.mock.calls)).not.toContain(DISPOSITIVO)
   })
 })
 
@@ -218,7 +244,7 @@ describe('os itens do pedido', () => {
     fetchFalso.mockImplementation(async () => resposta(201, pedidoPix()))
     const itens = itensParaOMp(POTES, 1810)
     await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: 5810, email: 'a@b.co', itens })
-    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 5810, email: 'a@b.co', cartao: CARTAO, documento: null, itens })
+    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 5810, email: 'a@b.co', cartao: CARTAO, documento: null, itens, dispositivo: null })
     const esperado = [
       { title: 'Granola', unit_price: '20.00', quantity: 2 },
       { title: 'Entrega', unit_price: '18.10', quantity: 1 },
@@ -325,7 +351,7 @@ describe('ler, cancelar e estornar', () => {
   it('total invalido nao chama o fetch', async () => {
     for (const total of [NaN, -1, 1.5, Infinity]) {
       expect(await criarPedidoPix({ tentativa: TENTATIVA, totalCentavos: total, email: 'a@b.co', itens: [] })).toEqual({ ok: false, status: 0, codigo: null })
-      expect(await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: total, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [] })).toEqual({ ok: false, status: 0, codigo: null })
+      expect(await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: total, email: 'a@b.co', cartao: CARTAO, documento: null, itens: [], dispositivo: null })).toEqual({ ok: false, status: 0, codigo: null })
     }
     expect(fetchFalso).not.toHaveBeenCalled()
   })
@@ -411,7 +437,7 @@ describe('resposta hostil', () => {
 describe('log', () => {
   it('nunca leva o token, o corpo nem o QR', async () => {
     fetchFalso.mockResolvedValueOnce(resposta(400, { errors: [{ code: 'invalid_total_amount', message: `${QR} ${TOKEN}` }] }))
-    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'maria@exemplo.com', cartao: CARTAO, documento: { tipo: 'CPF', numero: '12345678909' }, itens: [] })
+    await criarPedidoCartao({ tentativa: TENTATIVA, totalCentavos: 100, email: 'maria@exemplo.com', cartao: CARTAO, documento: { tipo: 'CPF', numero: '12345678909' }, itens: [], dispositivo: null })
     fetchFalso.mockRejectedValueOnce(new Error(`${TOKEN} ${QR}`))
     await lerPedidoMp('ORD1')
     expect(erro).toHaveBeenCalled()
