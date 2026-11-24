@@ -67,8 +67,9 @@ async function pedirNovo(): Promise<Guardado | null> {
 }
 
 /**
- * O token para chamar a Uber. renovar = true depois de um 401: pede outro
- * mesmo que o guardado pareca valido. Null quando nao ha como obter.
+ * O token para chamar a Uber. renovar = true depois de um 401: rele o banco e
+ * adota o token valido que for diferente do que falhou; so se nao houver
+ * pede outro, mesmo que o guardado pareca valido. Null quando nao ha como obter.
  */
 export async function obterToken(renovar = false): Promise<string | null> {
   if (!uberConfigurada()) return null
@@ -76,10 +77,15 @@ export async function obterToken(renovar = false): Promise<string | null> {
   if (!renovar && folga(memoria) > DOIS_DIAS) return memoria!.token
 
   const anterior = memoria
-  const lido = renovar ? null : await doBanco()
+  const lido = await doBanco()
   // sem o banco nao ha como guardar o token novo: nao gasta pedido da Uber
   if (lido === undefined) return null
-  const guardado = lido
+  // depois de um 401: se outro ja renovou (token valido e diferente do que falhou), adota
+  if (renovar && lido !== null && lido.token !== anterior?.token && folga(lido) > 0) {
+    memoria = lido
+    return lido.token
+  }
+  const guardado = renovar ? null : lido
   if (!renovar && folga(guardado) > DOIS_DIAS) {
     memoria = guardado
     return guardado!.token

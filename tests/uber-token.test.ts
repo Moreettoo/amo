@@ -119,6 +119,33 @@ describe('obterToken', () => {
     expect(fetchFalso).toHaveBeenCalledTimes(1)
   })
 
+  it('renovar com outro token valido no banco adota esse e nao chama a Uber nem pede a vez', async () => {
+    m.lido = { token: 'velho', expiraEm: daqui(20 * DIA) }
+    await obterToken()
+    m.lido = { token: 'outro-ja-renovou', expiraEm: daqui(30 * DIA) }
+    expect(await obterToken(true)).toBe('outro-ja-renovou')
+    expect(fetchFalso).not.toHaveBeenCalled()
+    expect(m.reservar).not.toHaveBeenCalled()
+    expect(await obterToken()).toBe('outro-ja-renovou')
+  })
+
+  it('renovar com o mesmo token no banco renova de verdade', async () => {
+    m.lido = { token: 'velho', expiraEm: daqui(20 * DIA) }
+    await obterToken()
+    uber({ access_token: 'novo', expires_in: 2592000 })
+    expect(await obterToken(true)).toBe('novo')
+    expect(fetchFalso).toHaveBeenCalledTimes(1)
+    expect(m.reservar).toHaveBeenCalledTimes(1)
+  })
+
+  it('renovar com o banco fora devolve null sem chamar a Uber', async () => {
+    m.lido = { token: 'velho', expiraEm: daqui(20 * DIA) }
+    await obterToken()
+    m.lerErro = true
+    expect(await obterToken(true)).toBeNull()
+    expect(fetchFalso).not.toHaveBeenCalled()
+  })
+
   it('sem a vez, espera 1 s, rele do banco e nao chama a Uber', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout'] })
     m.vez = false
