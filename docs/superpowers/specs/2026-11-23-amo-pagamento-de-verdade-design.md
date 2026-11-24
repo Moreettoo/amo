@@ -68,7 +68,7 @@ numa lista pronta para quando houver hospedagem.
 - **Não há site no ar.** Não existe projeto da AMO na Vercel nem repositório
   remoto. Em produção, o aviso de pagamento e o agendador da reconciliação
   dependem disso (backend §18).
-- **Não há programa de túnel nesta máquina** (nem `cloudflared`, nem `ngrok`).
+- **Não havia programa de túnel nesta máquina** (nem `cloudflared`, nem `ngrok`). O `cloudflared` foi instalado depois, no disco D (ver o Status).
 - **A entrega (amo-fa), em 2026-11-23:**
   - Prontas: as tasks T1 a T4. A T4 (aprovada em `534cdcf`) mantém a
     assinatura de `iniciar_pagamento` e acrescenta a recusa
@@ -221,8 +221,8 @@ Mercado Pago.
   - O código do site não muda.
   - Para testar o Pix que fica esperando, o servidor é reiniciado sem ele.
 - **O túnel.**
-  1. O `cloudflared` já está em `D:erramentasoudflaredoudflared.exe`.
-  2. Eu abro `D:erramentasoudflaredoudflared.exe tunnel --url http://localhost:3001`.
+  1. O `cloudflared` já está em `D:\ferramentas\cloudflared\cloudflared.exe`.
+  2. Eu abro `D:\ferramentas\cloudflared\cloudflared.exe tunnel --url http://localhost:3001`.
   3. O dono entra no painel do Mercado Pago com o **vendedor de teste** e
      cadastra `<túnel>/api/webhooks/mercadopago` no aplicativo dele, na parte
      de Webhooks:
