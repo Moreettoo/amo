@@ -120,6 +120,42 @@ select pg_temp.verificar('consumir_limite com chave hostil: recusa ou conta: ' |
     'select privado.consumir_limite(%L, 5, 60)', texto))))
 from _hostis;
 
+-- a corrida: o id, o estado e o rastreio da Uber, e o motivo da falha
+insert into _v values ('a_pago', pg_temp.pedido_de_exemplo(pg_temp.id('a'), 'pago'));
+select pg_temp.preparar(format($$update privado.entregas set estado = 'criada', uber_entrega_id = 'del_ok'
+  where pedido_id = %L$$, pg_temp.id('a_pago')));
+
+select pg_temp.verificar('aplicar_entrega com id hostil: recusa ou nada: ' || left(texto, 30),
+  pg_temp.recusa_ou_ok(pg_temp.como('service_role', null, format(
+    $$select * from privado.aplicar_entrega(%L, 'pending', null, null)$$, texto))))
+from _hostis;
+
+select pg_temp.verificar('aplicar_entrega recusa estado hostil: ' || left(texto, 30),
+  pg_temp.como('service_role', null, format(
+    $$select * from privado.aplicar_entrega('del_ok', %L, null, null)$$, texto)) = 'P0001 status_invalido')
+from _hostis;
+
+select pg_temp.verificar('aplicar_entrega recusa rastreio hostil: ' || left(texto, 30),
+  pg_temp.como('service_role', null, format(
+    $$select * from privado.aplicar_entrega('del_ok', 'pending', %L, null)$$, texto)) = 'P0001 rastreio_invalido')
+from (select texto from _hostis
+      union all select unnest(array['http://www.uber.com/x', 'https://uber.com.evil.com/x', 'https://evil-uber.com/x',
+        'https://www.uber.com/x"><script>', 'https://www.uber.com/x y'])) r;
+
+select pg_temp.verificar('marcar_corrida_criada com id hostil: recusa ou guarda: ' || left(texto, 30),
+  pg_temp.recusa_ou_ok(pg_temp.como('service_role', null, format(
+    $$select privado.marcar_corrida_criada(%L, %L, 990, null, 'pending')$$, pg_temp.id('a_pago'), texto))))
+from _hostis;
+
+select pg_temp.verificar('marcar_corrida_falhou recusa motivo hostil: ' || left(texto, 30),
+  pg_temp.como('service_role', null, format(
+    $$select privado.marcar_corrida_falhou(%L, %L, false)$$, pg_temp.id('a_pago'), texto)) = 'P0001 motivo_invalido')
+from _hostis;
+
+select pg_temp.verificar('a corrida continua inteira',
+  (select estado = 'criada' and uber_entrega_id = 'del_ok' and tentativas = 0
+   from privado.entregas where pedido_id = pg_temp.id('a_pago')));
+
 -- o banco continua inteiro
 select pg_temp.verificar('o banco continua inteiro',
   to_regclass('public.produtos') is not null and to_regclass('public.perfis') is not null

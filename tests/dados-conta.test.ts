@@ -93,6 +93,7 @@ describe('rastreioSeguro', () => {
     ['https://uber.com/track/abc', 'https://uber.com/track/abc'],
     ['https://www.uber.com/t/1', 'https://www.uber.com/t/1'],
     ['https://m.uber.com/ul/?x=1', 'https://m.uber.com/ul/?x=1'],
+    ['https://direct-order.uber.com/orders/del_1?ps=1', 'https://direct-order.uber.com/orders/del_1?ps=1'],
   ])('%s passa', (url, esperado) => {
     expect(rastreioSeguro(url)).toBe(esperado)
   })
@@ -101,6 +102,10 @@ describe('rastreioSeguro', () => {
     ['http://uber.com/track'],
     ['https://uber.com.golpe.io/track'],
     ['https://golpeuber.com/track'],
+    ['http://direct-order.uber.com/orders/del_1'],
+    ['https://uber.com.evil.com/'],
+    ['https://evil-uber.com/'],
+    ['https://direct-order.uber.com.evil.com/orders/del_1'],
     ['javascript:alert(1)'],
     ['https://user@evil.com'],
     ['nao e url'],

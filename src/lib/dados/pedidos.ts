@@ -62,7 +62,11 @@ export function pixPendenteDe(estado: string, tentativas: TentativaLida[], agora
   return { copiaECola: ultima.pix_copia_e_cola, qrBase64: ultima.pix_qr_base64, expiraEm: ultima.pix_expira_em }
 }
 
-/** O link de rastreio so passa se for https do Uber (uber.com ou um subdominio). */
+/**
+ * O link de rastreio so passa se for https do Uber: uber.com ou um subdominio,
+ * como direct-order.uber.com (o rastreio da Uber Direct). Dominio parecido
+ * (uber.com.golpe.io, golpe-uber.com) nao passa.
+ */
 export function rastreioSeguro(url: unknown): string | null {
   if (typeof url !== 'string') return null
   try {

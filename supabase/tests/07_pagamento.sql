@@ -170,17 +170,23 @@ select pg_temp.verificar('limite: a chave fica so como hash',
 select pg_temp.verificar('limite: parametros invalidos recusados',
   pg_temp.como('postgres', null, $$select privado.consumir_limite('x', 0, 60)$$) like '%limite_invalido%');
 
--- entrega
+-- entrega: o pagamento do p9 gravou a corrida; ela e criada na Uber e a
+-- Uber anda o pedido
+select pg_temp.verificar('o pagamento aprovado grava a corrida a criar',
+  (select estado = 'a_criar' from privado.entregas where pedido_id = pg_temp.id('p9')));
+select pg_temp.preparar(format($$update privado.entregas set estado = 'criada', uber_entrega_id = 'del_123'
+  where pedido_id = %L$$, pg_temp.id('p9')));
 select pg_temp.preparar(format($$update public.pedidos set status = 'em_preparo' where id = %L$$, pg_temp.id('p9')));
 select pg_temp.verificar('Uber retirou: a caminho',
-  privado.aplicar_entrega(pg_temp.id('p9'), 'del_123', 'pickup_complete', 'https://www.uber.com/track/del_123') = 'a_caminho');
+  (select pedido_status from privado.aplicar_entrega('del_123', 'pickup_complete', 'https://www.uber.com/track/del_123', null))
+  = 'a_caminho');
 select pg_temp.verificar('Uber entregou: entregue',
-  privado.aplicar_entrega(pg_temp.id('p9'), 'del_123', 'delivered', null) = 'entregue');
+  (select pedido_status from privado.aplicar_entrega('del_123', 'delivered', null, null)) = 'entregue');
 select pg_temp.verificar('rastreio gravado no pedido',
   (select rastreio_url = 'https://www.uber.com/track/del_123' from public.pedidos where id = pg_temp.id('p9')));
 select pg_temp.verificar('rastreio que nao e do Uber e recusado',
-  pg_temp.como('postgres', null, format(
-    $$select privado.aplicar_entrega(%L, 'del_123', 'delivered', 'javascript:alert(1)')$$, pg_temp.id('p9')))
+  pg_temp.como('postgres', null,
+    $$select * from privado.aplicar_entrega('del_123', 'delivered', 'javascript:alert(1)', null)$$)
   like '%rastreio_invalido%');
 
 select * from pg_temp.relatorio();

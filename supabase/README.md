@@ -251,8 +251,11 @@ e cliente continuam sem acesso a ele. `registrar_cotacao`,
 `aplicar_pagamento`, `pagamentos_a_reconciliar`,
 `pagamentos_a_cancelar_no_mp`, `tentativas_a_cancelar_da_cliente`,
 `mp_pedido_da_tentativa`,
-`registrar_evento_webhook`, `concluir_evento_webhook`, `aplicar_entrega` e
-`consumir_limite`. A chave secreta não lê nenhuma tabela.
+`registrar_evento_webhook`, `concluir_evento_webhook`, `consumir_limite`,
+`faixa_valida` e as da corrida na Uber (`reservar_corridas`,
+`marcar_corrida_criada`, `marcar_corrida_falhou`, `remarcar_entrega`,
+`aplicar_entrega`, `corridas_a_cancelar`, `corrida_cancelada` e
+`corridas_a_conferir`). A chave secreta não lê nenhuma tabela.
 
 Os erros de regra chegam com SQLSTATE `P0001` e a mensagem igual a um
 código curto, que o servidor traduz para a tela:
@@ -265,6 +268,7 @@ código curto, que o servidor traduz para a tela:
 | comentário | `comentario_nao_permitido`, `nota_invalida`, `texto_invalido` |
 | conta | `pedido_em_aberto`, `limite_de_enderecos` |
 | guardas | `passagem_invalida`, `campo_imutavel`, `rastreio_invalido`, `limite_invalido` |
+| corrida | `corrida_invalida`, `motivo_invalido`, `faixa_indisponivel`, `status_invalido`, `rastreio_invalido` |
 
 ## Tarefas agendadas (`pg_cron`)
 
