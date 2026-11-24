@@ -25,12 +25,15 @@ describe('montarPolitica', () => {
     const p = montarPolitica('abc', false, true)
     const diretiva = (nome: string) => p.split('; ').find((d) => d.startsWith(`${nome} `))
     expect(diretiva('script-src')).toBe(`script-src 'self' 'nonce-abc' 'strict-dynamic' ${HASH_DO_SCRIPT_DO_TOPO} https://sdk.mercadopago.com https://http2.mlstatic.com`)
-    expect(diretiva('connect-src')).toBe("connect-src 'self' https://api.mercadopago.com https://api-static.mercadopago.com https://api.mercadolibre.com https://http2.mlstatic.com")
+    // ensaio de 2026-11-23: os campos do cartao buscam secure-fields por fetch, e o Device ID sai de www.mercadolibre.com e www.mercadolivre.com
+    expect(diretiva('connect-src')).toBe(
+      "connect-src 'self' https://api.mercadopago.com https://api-static.mercadopago.com https://api.mercadolibre.com https://http2.mlstatic.com https://secure-fields.mercadopago.com https://www.mercadolibre.com https://www.mercadolivre.com",
+    )
     // o desafio do banco no dominio raiz, que o servidor aceita (urlDoDesafio), e nos subdominios
     expect(diretiva('frame-src')).toBe(
       'frame-src https://challenges.cloudflare.com https://secure-fields.mercadopago.com https://mercadopago.com https://*.mercadopago.com https://mercadopago.com.br https://*.mercadopago.com.br',
     )
-    expect(diretiva('img-src')).toBe("img-src 'self' blob: data: https://http2.mlstatic.com")
+    expect(diretiva('img-src')).toBe("img-src 'self' blob: data: https://http2.mlstatic.com https://www.mercadolibre.com https://www.mercadolivre.com")
     expect(diretiva('default-src')).toBe("default-src 'self'")
     expect(diretiva('font-src')).toBe("font-src 'self'")
   })

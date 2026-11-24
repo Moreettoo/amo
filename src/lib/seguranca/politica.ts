@@ -20,9 +20,13 @@ export const HASH_DO_SCRIPT_DO_TOPO = `'sha256-${createHash('sha256').update(MAR
  */
 const DO_MERCADO_PAGO = {
   script: ' https://sdk.mercadopago.com https://http2.mlstatic.com',
-  connect: ' https://api.mercadopago.com https://api-static.mercadopago.com https://api.mercadolibre.com https://http2.mlstatic.com',
+  // ensaio de 2026-11-23: os campos do cartao buscam secure-fields por fetch (sem isso o Brick
+  // nao sai do esqueleto), e o Device ID do SDK sai de www.mercadolibre.com e www.mercadolivre.com
+  connect:
+    ' https://api.mercadopago.com https://api-static.mercadopago.com https://api.mercadolibre.com https://http2.mlstatic.com' +
+    ' https://secure-fields.mercadopago.com https://www.mercadolibre.com https://www.mercadolivre.com',
   frame: ' https://secure-fields.mercadopago.com https://mercadopago.com https://*.mercadopago.com https://mercadopago.com.br https://*.mercadopago.com.br',
-  img: ' https://http2.mlstatic.com',
+  img: ' https://http2.mlstatic.com https://www.mercadolibre.com https://www.mercadolivre.com',
 }
 
 /** comMercadoPago: so a sacola, onde o Brick do cartao carrega (proxy.ts). */
