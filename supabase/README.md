@@ -479,10 +479,58 @@ deixa de aparecer na sacola; para reabrir, apagar a linha.
 insert into public.dias_fechados (data, motivo) values ('2026-12-25', 'Natal');
 ```
 
-O portão da Uber de verdade, em teste (túnel, aviso assinado, corrida com o Robo
-Courier, rastreio, cancelamento, `fee` cobrado igual ao cotado), é a Task 13 do
-plano `docs/superpowers/plans/2026-11-23-amo-entrega-uber-servidor.md`, feita
-com o dono; o resultado dela entra aqui.
+### O portão na conta de teste da Uber (2026-11-24)
+
+Ensaio com a Uber de verdade, em teste (`UBER_DIRECT_AMBIENTE=teste`, Robo Courier
+em modo `auto`), o Mercado Pago falso e um túnel `trycloudflare` para o aviso,
+com a conta de ensaio criada pelo admin do Auth. Destino: Rua Visconde de
+Parnaíba, 1316, Mooca. Pedidos `AMO-A8XPCCR4` (agora), `AMO-CBM83U84`
+(agendado, cancelado) e `AMO-UCY36BHG` (agora).
+
+- **Cotação real nos dois modos: confere.** Agora: R$ 18,10, `origem uber`, id
+  `dqt_`. Agendado (faixa das 16h às 17h): o mesmo valor, `modo agendado`.
+- **Corrida criada com o pagamento: confere.** Os três pedidos pagos criaram
+  a corrida (`del_`, `live_mode` falso, senão o código cancelaria), com o Robo
+  Courier. O agendado levou a faixa na criação.
+- **Avisos assinados: NÃO conferiu.** Em cerca de 20 minutos (primeiro
+  pedido) e 13 minutos (terceiro) nenhum `POST /api/webhooks/uber` chegou ao
+  servidor, e a Uber levou as corridas até `delivered` nesse tempo (a
+  reconciliação leu `delivered`). O endpoint estava no ar (a chamada assinada de
+  teste dava 200, a errada 401). Então: a Uber não mandou, ou o aviso do painel
+  não está ligado ao evento certo ou à URL do túnel, ou a conta de teste não
+  manda aviso para corrida do Robo Courier. Sem aviso, o pedido só chegou a
+  "entregue" pela reconciliação, 10 minutos depois do último sinal (e "a
+  caminho" e "entregue" ficaram com a mesma hora). Pendente: conferir no painel
+  `direct.uber.com` o evento e a URL, e o painel de entregas do webhook, e
+  repetir. Por isso também não se confirmou quais campos o corpo do aviso traz
+  no topo (`kind`, `id`, `delivery_id`, `status`).
+- **Link de rastreio: confere.** `https://direct-order.uber.com/br/orders/<uuid>?tenancyOverride=...`
+  responde 200 com HTML (a página é aplicativo de página única; o conteúdo
+  não foi lido num navegador).
+- **Cancelar o pedido pago pelo banco: confere.** `update public.pedidos set
+  status = 'cancelado', motivo_cancelamento = 'loja'` leva a entrega a
+  `a_cancelar`; a reconciliação seguinte a cancelou na Uber
+  (`corridas.canceladas: 1`) e a entrega ficou `cancelada`.
+- **`fee` cobrado igual ao cotado: confere.** Nos três pedidos o frete do
+  pedido e `entregas.valor_uber_centavos` valem 1810.
+- **Aceito pela Uber na criação:** o celular de cotação de marcador de lugar na
+  cotação e o celular real da cliente na corrida, `undeliverable_action:
+  leave_at_door` com foto de entrega, `external_id`, `manifest_total_value` e o
+  preço dos itens em centavos. Nenhuma criação foi recusada.
+
+Achado, corrigir antes de ligar o agendamento de verdade: a cotação **com
+janela** traz `duration` e `pickup_duration` contando o tempo até a janela
+(1237 e 1205 minutos para uma janela de amanhã às 10h), e `privado.cotacoes`
+só aceita `minutos` de 1 a 600 (`cotacoes_minutos_check`). Uma faixa a mais de
+cerca de 10 horas falha em `registrar_cotacao` (23514) e a sacola mostra "Não
+deu certo agora". Faixas mais próximas (aqui, daqui a 2 a 3 horas) passam. O
+servidor deve guardar os minutos da corrida e não os até a janela (por exemplo,
+limitando a 600 ou usando um valor fixo no agendado).
+
+Para ensaiar o agendado com a loja fechada, sem tela de escolha da faixa:
+`delete`/`insert` em `public.horarios` do dia de hoje com abertura mais tarde,
+cotar (a primeira faixa livre vira a cotação `agendado`), abrir o horário para o
+botão do pagamento ligar, pagar, e voltar a segunda a sábado, das 9h às 18h.
 
 ### O que é do dono
 
